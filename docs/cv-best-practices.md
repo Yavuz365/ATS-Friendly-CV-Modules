@@ -7,7 +7,7 @@ This comprehensive guide covers best practices for creating an effective CV that
 ### Optimal Length
 
 | Experience Level | Recommended Length |
-|-----------------|-------------------|
+|------------------|-------------------|
 | Entry-level (0-2 years) | 1 page |
 | Mid-level (3-7 years) | 1-2 pages |
 | Senior (8+ years) | 2 pages |
