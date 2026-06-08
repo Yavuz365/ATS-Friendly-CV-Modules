@@ -1,6 +1,6 @@
 # MASTER PROMPT — ATS CV (Taşınabilir / Herhangi Bir LLM)
 
-> Bunu herhangi bir LLM'e (ChatGPT, Claude, Gemini, DeepSeek, Copilot vb.) olduğu gibi kopyala. `<<< >>>` arasını doldur. Çıktı dili: Türkçe (aksi belirtilmedikçe).
+> Bunu Gemini, ChatGPT, DeepSeek, GLM, Qwen, Mistral veya Claude'a olduğu gibi kopyala. `<<< >>>` arasını doldur. Çıktı dili: Türkçe (aksi belirtilmedikçe).
 
 ---
 
@@ -84,5 +84,5 @@ Yukarıdakilerin sentezi: tek sütun, parse-güvenli, dürüst, ilana hizalı AT
 ---
 
 ### Notlar
-- Çok-araçlı akışta: ANALİZ+SENTEZ kısmını herhangi bir AI aracında çalıştırıp çıktıyı Word'ün `[SENTEZ-ÖNERİ]` bölümüne koyabilirsin; FINAL CV'yi ayrı bir modelde Framework CV ile yazdırabilirsin.
+- Çok-araçlı akışta: ANALİZ+SENTEZ kısmını Gemini'de çalıştırıp çıktıyı Word'ün `[SENTEZ-ÖNERİ]` bölümüne koyabilirsin; FINAL CV'yi ayrı bir modelde Framework CV ile yazdırabilirsin.
 - Genişletilmiş/önerilen terimler **aday-tarafı hedeflerdir**; yalnızca aday gerçekten karşılıyorsa CV'ye girer.
