@@ -15,16 +15,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install engine
-        run: pip install -e engine/
+      - name: Install engine + dev deps
+        run: pip install -e "engine/[dev]"
 
       - name: Run tests
         run: pytest engine/tests/ -v --tb=short
 
       - name: CLI smoke test
         run: |
-          python -m ats_engine.cli report \
+          python -m ats_engine.cli score \
             --jd engine/examples/sample_jd_foreign_trade.txt \
             --cv engine/examples/sample_cv.txt \
-            --no-sbert \
-            --format json
+            --no-sbert
