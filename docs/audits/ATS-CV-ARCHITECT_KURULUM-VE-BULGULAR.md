@@ -25,11 +25,11 @@ Bu sohbette örtük kullandığımız düşünme biçimini açık bir 6-vuruşlu
 
 ### Yüksek önem
 - **H1 — Revizyon döngüsü sonsuza girer (mantık hatası).** Eski kural: `skor < hedef VEYA gap ≠ boş → döngü`. Dürüst CV'de adayda olmayan zorunlu beceriler hep kalır → gap asla boşalmaz → sonsuz döngü. **Düzeltme:** durma koşulu `skor ≥ hedef VE *kapatılabilir* gap kalmadı`; gap'i kapatılabilir (kanıtı var, yansımamış) ve kapatılamaz (gerçekten yok) diye ayır; yalnızca kapatılabilir üzerinde dön.
-- **H2 — Taşınabilirlik kırılması (kullanılabilirlik).** Bir Claude `.skill` Gemini/ChatGPT/DeepSeek/GLM/Qwen/Mistral'da çalışmaz; sizin akışınız çok-araçlı. Yalnızca .skill verilseydi akışın çoğu çalışmazdı. **Düzeltme:** taşınabilir Master Prompt (`master-prompt-TR.md`) — aynı mantığı her LLM'e kopyalar; çok-araçlı akışın bel kemiği skill değil bu prompttur.
+- **H2 — Taşınabilirlik kırılması (kullanılabilirlik).** Bir Claude `.skill` AI aracı/ChatGPT/DeepSeek/GLM/Qwen/Mistral'da çalışmaz; sizin akışınız çok-araçlı. Yalnızca .skill verilseydi akışın çoğu çalışmazdı. **Düzeltme:** taşınabilir Master Prompt (`master-prompt-TR.md`) — aynı mantığı her LLM'e kopyalar; çok-araçlı akışın bel kemiği skill değil bu prompttur.
 
 ### Orta-yüksek önem
 - **MY1 — Provenans (dürüstlük) yalnızca ilkeydi, adım değildi.** "Sahte beceri ekleme" kuralı vardı ama uygulamada zorlayan bir kontrol yoktu. **Düzeltme:** çıkıştan önce zorunlu provenans tablosu — her CV maddesi Framework CV'deki bir girdi-id'sine bağlanmalı; bağlanamayan madde çıkar. (Source Registry'nin CV'ye uygulanmış hali.)
-- **MY2 — JD + Gemini SEO çıktısı aynı bölümde → kirlenme.** Enjekte LSI/eşanlamlı terimler adayda *olmayan* beceriler olabilir; karışırsa CV-yazıcı bunları "gerçek" sanır → şişirme + dürüstlük ihlali. **Düzeltme:** Word'de etiketli bölümler `[JD-ORİJİNAL] / [ANALİZ] / [SENTEZ-ÖNERİ]`; önerilen terimler "aday-tarafı hedef", olgu değil.
+- **MY2 — JD + AI aracı SEO çıktısı aynı bölümde → kirlenme.** Enjekte LSI/eşanlamlı terimler adayda *olmayan* beceriler olabilir; karışırsa CV-yazıcı bunları "gerçek" sanır → şişirme + dürüstlük ihlali. **Düzeltme:** Word'de etiketli bölümler `[JD-ORİJİNAL] / [ANALİZ] / [SENTEZ-ÖNERİ]`; önerilen terimler "aday-tarafı hedef", olgu değil.
 - **MY3 — 20 sayfa Framework CV'yi ham beslemek.** Bağlamı boğar, eşleşmeyi gürültüyle zayıflatır. **Düzeltme:** Framework CV'yi etiketli "kanıt bankası"na çevir (her başarı = bir girdi, beceri+metrik etiketli); her ilanda yalnızca eşleşen girdileri çek.
 
 ### Orta önem
@@ -84,13 +84,13 @@ Tam türetim ve düzeltmeler: `ats-cv-architect_SCORING-FORMULAS.md`.
 ### Aşama 1 — Skill'i kur (Claude tarafı)
 4. `ats-cv-architect.skill` dosyasını Claude'a yükle (Settings → Capabilities/Skills → upload). Artık "CV'mi şu ilana göre uyarlar mısın" dediğinde tetiklenir.
 
-### Aşama 2 — Çok-araçlı akışı kur (Gemini/ChatGPT/DeepSeek/…)
+### Aşama 2 — Çok-araçlı akışı kur (AI aracı/ChatGPT/DeepSeek/…)
 5. `master-prompt-TR.md`'yi bu araçlara kopyala-yapıştır şablonu olarak sakla (skill onlarda çalışmaz).
 6. Drive'da JD için **etiketli Word** şablonu: `[JD-ORİJİNAL] / [ANALİZ] / [SENTEZ-ÖNERİ]`.
 
 ### Aşama 3 — Tek ilan akışı (her ilan)
 7. **A.1** JD'yi Word'ün `[JD-ORİJİNAL]` bölümüne koy, Drive'a yükle.
-8. **A.2** Gemini'de Master Prompt'un ANALİZ+SENTEZ kısmını çalıştır → çıktıyı `[SENTEZ-ÖNERİ]`ye yapıştır (asla orijinale karıştırma).
+8. **A.2** AI aracı'de Master Prompt'un ANALİZ+SENTEZ kısmını çalıştır → çıktıyı `[SENTEZ-ÖNERİ]`ye yapıştır (asla orijinale karıştırma).
 9. **A.3** Tam Master Prompt ile 6 alanı üret (keywords/analysis/summary/synthesis/match_score/gap_analysis).
 10. **B.1** CV-yazıcı: Drive'dan 6 alan + kanıt bankasını alır, eşleşen+kanıtlı girdileri seçer, ATS CV yazar, skoru hesaplar, kapatılabilir gap üzerinde revize eder, provenans kontrolünü geçirir.
 
@@ -98,14 +98,14 @@ Tam türetim ve düzeltmeler: `ats-cv-architect_SCORING-FORMULAS.md`.
 11. `scripts/ats_score.py`'yi çalıştır (LLM tahmini yerine deterministik skor). SBERT için `pip install sentence-transformers`; corpus klasörü ver. Corpus+SBERT yoksa skoru göreli oku.
 
 ### Aşama 5 — Otomasyon + toplu mod (100 ilan)
-12. n8n: Drive tetikleyici → model çağrısı → 6 alanı Google Sheet/Notion satırına yaz → Telegram/Slack bildirimi.
+12. otomasyon platformu: Drive tetikleyici → model çağrısı → 6 alanı Google Sheet/Notion satırına yaz → Telegram/Slack bildirimi.
 13. Skora göre sırala → "bana en uygun ilanlar". İstersen xlsx ile karşılaştırma tablosu.
 
 ### Önerilen sıra (boğulmamak için)
 - **Hafta 1:** Kanıt bankası + tek ilanı elle (Master Prompt'la) çalıştır, mantığı hisset.
 - **Hafta 2:** Skill'i kur, 5–10 ilanda test et.
 - **Hafta 3:** `ats_score.py`'yi gerçek corpus+SBERT ile devreye al.
-- **Hafta 4:** n8n ile 100 ilanı otomatikleştir.
+- **Hafta 4:** otomasyon platformu ile 100 ilanı otomatikleştir.
 
 ---
 

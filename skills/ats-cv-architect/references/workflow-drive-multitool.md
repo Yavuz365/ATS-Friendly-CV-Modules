@@ -1,6 +1,5 @@
 # Drive + Çok-LLM İş Akışı (A.1–A.3 / B.1) — Kurulum ve Denetim
 
-Kullanıcının somut akışı: iş ilanını Drive'a Word olarak koy, Gemini ile SEO analiz+sentez geçir, Master Prompt ile stratejik yapıya oturt, sonra (Claude/ChatGPT/DeepSeek/GLM/Qwen/Mistral'dan biriyle) Drive'dan veri çekip Framework CV ile eşleştirerek ATS CV yazdır. Bu dosya akışı adım adım kurar ve denetimde bulunan riskleri düzeltir.
 Kullanıcının somut akışı: iş ilanını Drive'a Word olarak koy, AI aracı ile SEO analiz+sentez geçir, Master Prompt ile stratejik yapıya oturt, sonra (Claude/ChatGPT/DeepSeek/GLM/Qwen/Mistral'dan biriyle) Drive'dan veri çekip Framework CV ile eşleştirerek ATS CV yazdır. Bu dosya akışı adım adım kurar ve denetimde bulunan riskleri düzeltir.
 
 ## Akış (düzeltilmiş)
@@ -10,18 +9,12 @@ Word belgesini üç etiketli bölümle aç:
 ```
 [JD-ORİJİNAL]      ← ilanın ham, değiştirilmemiş metni. Asla kirletme.
 [ANALİZ]           ← 7 katmanlı ayrıştırma çıktısı (jd-decomposition.md)
-[SENTEZ-ÖNERİ]     ← Gemini'nin SEO genişletmeleri, LSI terimleri, öneriler
+[SENTEZ-ÖNERİ]     ← AI aracının SEO genişletmeleri, LSI terimleri, öneriler
 ```
-**[DENETİM-DÜZELTME C2 — kirlenme riski.]** JD'yi ve Gemini'nin SEO çıktısını aynı bölüme karıştırma. Enjekte edilen LSI/eşanlamlı terimler adayda *olmayan* beceriler olabilir; karışırsa CV-yazıcı bunları sonradan "JD gerçeği" veya "aday özelliği" sanır → şişirme + dürüstlük ihlali. Etiketli bölümler bunu önler.
-
-### A.2 — Gemini ile SEO analiz + sentez
-Gemini'ye `assets/master-prompt-TR.md`'nin ANALİZ+SENTEZ kısmını ver; çıktıyı **yalnızca `[SENTEZ-ÖNERİ]` bölümüne** yapıştır. Gemini'ye açıkça söyle: ürettiğin genişletilmiş terimler *aday-tarafı hedeflerdir; yalnızca aday gerçekten karşılıyorsa kullanılacaktır*, JD hakkında ya da aday hakkında olgu değildir.
-[SENTEZ-ÖNERİ]     ← AI aracı'nin SEO genişletmeleri, LSI terimleri, öneriler
-```
-**[DENETİM-DÜZELTME C2 — kirlenme riski.]** JD'yi ve AI aracı'nin SEO çıktısını aynı bölüme karıştırma. Enjekte edilen LSI/eşanlamlı terimler adayda *olmayan* beceriler olabilir; karışırsa CV-yazıcı bunları sonradan "JD gerçeği" veya "aday özelliği" sanır → şişirme + dürüstlük ihlali. Etiketli bölümler bunu önler.
+**[DENETİM-DÜZELTME C2 — kirlenme riski.]** JD'yi ve AI aracının SEO çıktısını aynı bölüme karıştırma. Enjekte edilen LSI/eşanlamlı terimler adayda *olmayan* beceriler olabilir; karışırsa CV-yazıcı bunları sonradan "JD gerçeği" veya "aday özelliği" sanır → şişirme + dürüstlük ihlali. Etiketli bölümler bunu önler.
 
 ### A.2 — AI aracı ile SEO analiz + sentez
-AI aracı'ye `assets/master-prompt-TR.md`'nin ANALİZ+SENTEZ kısmını ver; çıktıyı **yalnızca `[SENTEZ-ÖNERİ]` bölümüne** yapıştır. AI aracı'ye açıkça söyle: ürettiğin genişletilmiş terimler *aday-tarafı hedeflerdir; yalnızca aday gerçekten karşılıyorsa kullanılacaktır*, JD hakkında ya da aday hakkında olgu değildir.
+AI aracına `assets/master-prompt-TR.md`'nin ANALİZ+SENTEZ kısmını ver; çıktıyı **yalnızca `[SENTEZ-ÖNERİ]` bölümüne** yapıştır. AI aracına açıkça söyle: ürettiğin genişletilmiş terimler *aday-tarafı hedeflerdir; yalnızca aday gerçekten karşılıyorsa kullanılacaktır*, JD hakkında ya da aday hakkında olgu değildir.
 
 ### A.3 — Master Prompt ile stratejik yapı
 Tüm gözlemleri (A.1 + A.2) Master Prompt'un tamamına ver → 6 sabit alan (`output-fields-template.md`): keywords, analysis, summary, synthesis, match_score, gap_analysis. Bunları Word'e ya da bağlı bir tabloya yaz.
@@ -44,15 +37,6 @@ CV-yazıcı her ilanda 20 sayfa yerine yalnızca eşleşen girdileri (ör. EXP-0
 
 ## Araç eşlemesi (hangi iş hangi modelde)
 - **ANALİZ (ayrıştırma, ağırlık):** herhangi bir güçlü LLM; gerçek BM25/kosinüs sayısı isteniyorsa Claude + `scripts/ats_score.py`.
-- **SENTEZ (cümle yazımı, kümeleme):** Claude/GPT/Gemini — yaratıcı-akıl katmanı.
-- **Skor/gerçek matematik:** kod (scripts/ats_score.py). LLM "tahmini skor" verir; tutarlılık için koda taşı.
-- **Otomasyon:** n8n — Drive tetikleyici → model çağrısı → 6 alanı tabloya yaz → Telegram/Slack bildirimi.
-
-## Taşınabilirlik uyarısı (tekrar)
-**[DENETİM-DÜZELTME C1.]** Bu .skill yalnızca Claude'da çalışır. Gemini/ChatGPT/DeepSeek/GLM/Qwen/Mistral için `assets/master-prompt-TR.md`'yi kullan — aynı mantığı taşınabilir prompt olarak taşır. Çok-araçlı akışın bel kemiği bu prompttur, skill değil.
-
-## Toplu mod (100 ilan / data mining)
-Her ilan bir satır olacak şekilde bir Google Sheet/Notion tablosu kur; sütunlar = 6 alan + final skor. n8n akışı her yeni ilanda pipeline'ı çalıştırıp satırı doldurur. Sonra skora göre sırala → "bana en uygun ilanlar" listesi. İstenirse xlsx skill ile karşılaştırma tablosu/grafiği üret.
 - **SENTEZ (cümle yazımı, kümeleme):** Claude/GPT/AI aracı — yaratıcı-akıl katmanı.
 - **Skor/gerçek matematik:** kod (scripts/ats_score.py). LLM "tahmini skor" verir; tutarlılık için koda taşı.
 - **Otomasyon:** otomasyon platformu — Drive tetikleyici → model çağrısı → 6 alanı tabloya yaz → Telegram/Slack bildirimi.
@@ -61,4 +45,4 @@ Her ilan bir satır olacak şekilde bir Google Sheet/Notion tablosu kur; sütunl
 **[DENETİM-DÜZELTME C1.]** Bu .skill yalnızca Claude'da çalışır. AI aracı/ChatGPT/DeepSeek/GLM/Qwen/Mistral için `assets/master-prompt-TR.md`'yi kullan — aynı mantığı taşınabilir prompt olarak taşır. Çok-araçlı akışın bel kemiği bu prompttur, skill değil.
 
 ## Toplu mod (100 ilan / data mining)
-Her ilan bir satır olacak şekilde bir Google Sheet/Notion tablosu kur; sütunlar = 6 alan + final skor. otomasyon platformu akışı her yeni ilanda pipeline'ı çalıştırıp satırı doldurur. Sonra skora göre sırala → "bana en uygun ilanlar" listesi. İstenirse xlsx skill ile karşılaştırma tablosu/grafiği üret.
+Her ilan bir satır olacak şekilde bir Google Sheet/Notion tablosu kur; sütunlar = 6 alan + final skor. Otomasyon akışı her yeni ilanda pipeline'ı çalıştırıp satırı doldurur. Sonra skora göre sırala → "bana en uygun ilanlar" listesi. İstenirse xlsx skill ile karşılaştırma tablosu/grafiği üret.

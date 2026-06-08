@@ -49,9 +49,13 @@ Bir terimin nihai analiz ağırlığı ≈ `bm25(term) × modality × positional
 ---
 
 ## Modality & konum ağırlığı — kurallar
+
+**Graded modality (denetim-iyileştirmesi; 2 değer yerine 3+):**
 - `1.0` — açıkça zorunlu ("required/must/şart").
 - `0.7` — güçlü ima / tekrarlı: "required" etiketi yok ama terim ≥2–3 kez geçiyor ya da sorumluluk katmanında merkezî. Saf 1.0/0.3 ikilisi bu gizli zorunlulukları kaçırır.
 - `0.3` — açıkça tercih ("preferred/plus/avantaj").
+
+**Konum ağırlığı:**
 - İlk ~150 kelime / "aranan nitelikler"in ilk maddeleri: ×1.2–1.5.
 - Orta gövde: ×1.0.
 - "ek olarak / artı" kuyruğu: ×0.8.

@@ -84,7 +84,7 @@ Arşiv dosyaları (`archive/`) kanonik **değildir** ve doğrudan kullanılmamal
 
 ```
 Claude: skills/ats-cv-architect/dist/ats-cv-architect.skill → yükle → tetikle
-Gemini / ChatGPT / DeepSeek: skills/ats-cv-architect/assets/master-prompt-TR.md → kopyala-yapıştır
+AI aracı (ChatGPT / Gemini / DeepSeek / vb.): skills/ats-cv-architect/assets/master-prompt-TR.md → kopyala-yapıştır
 Deterministik skor: skills/ats-cv-architect/scripts/ats_score.py
 ```
 
