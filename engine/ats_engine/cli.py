@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""
+ats_engine.cli — birleşik komut satırı arayüzü.
+
+Alt komutlar:
+  report  : JD + Framework CV (+ ops. mevcut CV) → 6 alanlık tam rapor (JSON/MD)
+  score   : JD + CV → yalnızca hibrit ATS Match Score
+  parse   : JD → 7 katmanlı ayrıştırma (JSON)
+  bank    : Framework CV → ayrıştırılmış kanıt bankası (JSON)
+
+Örnekler:
+  python -m ats_engine.cli report --jd jd.txt --framework framework_cv.md --format md
+  python -m ats_engine.cli score  --jd jd.txt --cv cv.txt --must "akreditif,incoterms,gtip" --parse-gate 0.6
+  python -m ats_engine.cli parse  --jd jd.txt
+  python -m ats_engine.cli bank   --framework framework_cv.md
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+
+from . import jd_parser, scoring, evidence_bank, report
+
+
+def _read(path: str) -> str:
+    with open(path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _load_corpus(path: str | None):
+    if path and os.path.isdir(path):
+        return [_read(os.path.join(path, f)) for f in os.listdir(path) if f.endswith(".txt")]
+    return None
+
+
+def cmd_report(args):
+    corpus = _load_corpus(args.corpus)
+    cv = _read(args.cv) if args.cv else None
+    rep = report.build_report(
+        _read(args.jd), _read(args.framework), cv_text=cv,
+        parse_gate=args.parse_gate, corpus_texts=corpus,
+        use_sbert=not args.no_sbert, target_low=args.target,
+    )
+    print(report.to_markdown(rep) if args.format == "md" else report.to_json(rep))
+
+
+def cmd_score(args):
+    corpus = _load_corpus(args.corpus)
+    must = [m.strip() for m in args.must.split(",") if m.strip()]
+    res = scoring.ats_match_score(
+        _read(args.jd), _read(args.cv), must,
+        corpus_texts=corpus, parse_gate=args.parse_gate, use_sbert=not args.no_sbert,
+    )
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+
+
+def cmd_parse(args):
+    res = jd_parser.parse_jd(_read(args.jd))
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+
+
+def cmd_bank(args):
+    bank = evidence_bank.parse_bank(_read(args.framework))
+    from dataclasses import asdict
+    print(json.dumps([asdict(e) for e in bank], ensure_ascii=False, indent=2))
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="ats_engine", description="ATS-Friendly-CV-Modules Engine")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    r = sub.add_parser("report", help="6 alanlık tam rapor")
+    r.add_argument("--jd", required=True)
+    r.add_argument("--framework", required=True, help="etiketli Framework CV / kanıt bankası")
+    r.add_argument("--cv", default=None, help="opsiyonel mevcut CV (teşhis modu)")
+    r.add_argument("--corpus", default=None)
+    r.add_argument("--parse-gate", type=float, default=1.0)
+    r.add_argument("--target", type=float, default=75.0)
+    r.add_argument("--no-sbert", action="store_true")
+    r.add_argument("--format", choices=["json", "md"], default="md")
+    r.set_defaults(func=cmd_report)
+
+    s = sub.add_parser("score", help="yalnızca hibrit skor")
+    s.add_argument("--jd", required=True)
+    s.add_argument("--cv", required=True)
+    s.add_argument("--must", default="")
+    s.add_argument("--corpus", default=None)
+    s.add_argument("--parse-gate", type=float, default=1.0)
+    s.add_argument("--no-sbert", action="store_true")
+    s.set_defaults(func=cmd_score)
+
+    pa = sub.add_parser("parse", help="7 katmanlı JD ayrıştırma")
+    pa.add_argument("--jd", required=True)
+    pa.set_defaults(func=cmd_parse)
+
+    b = sub.add_parser("bank", help="Framework CV → kanıt bankası")
+    b.add_argument("--framework", required=True)
+    b.set_defaults(func=cmd_bank)
+    return p
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

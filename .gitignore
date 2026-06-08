@@ -1,222 +1,38 @@
-# ================================================================
-# ATS-Friendly-CV-Modules — .gitignore
-# Stack: Python · Claude Skills · n8n Workflows · Markdown
-# Son güncelleme: 2026-06-07
-# ================================================================
-
-# ─── GİZLİLİK & KİMDOĞRULAMA ──────────────────────────────────
-# API anahtarları, token'lar, servis hesapları — asla repoya girmesin
-.env
-.env.*
-!.env.example
-*.env
-secrets.json
-credentials.json
-service_account*.json
-token.json
-*.key
-*.pem
-*.p12
-*.pfx
-api_keys.txt
-config.local.*
-.secrets/
-
-# ─── KİŞİSEL VERİ (Framework CV, Çıktı CV'leri) ───────────────
-# Kariyer verinizi ve üretilen CV dosyalarını repoya koymayın;
-# bunlar hassas kişisel veri içerir.
-framework_cv*
-master_cv*
-candidate_*
-*_FRAMEWORK_CV*
-*_PERSONAL*
-output_cv*
-final_cv*
-# Genel kural: CV içerikli .docx / .pdf / .txt dışarıda kalsın
-cv_output/
-cv_drafts/
-
-# ─── PYTHON ────────────────────────────────────────────────────
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-
-# Sanal ortamlar
-env/
-venv/
-.venv/
-ENV/
-env.bak/
-venv.bak/
-.python-version
-
-# Kurulum & dağıtım
 *.egg-info/
-*.egg
 dist/
 build/
-wheels/
-MANIFEST
-pip-selfcheck.json
-pip-log.txt
+*.egg
+.eggs/
 
-# Test & kapsam
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing
 .pytest_cache/
 .coverage
-.coverage.*
-coverage.xml
 htmlcov/
-nosetests.xml
-test-results/
-*.log
-*.log.*
 
-# Tür denetimi & linter önbellekleri
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.ruff_cache/
-.pytype/
-
-# Jupyter Notebook (analiz defterleri — geçici çalışma dosyaları)
-.ipynb_checkpoints/
-*.ipynb_checkpoints/
-# Not: .ipynb dosyalarını izlemek istiyorsanız aşağıdaki satırı kaldırın
-# *.ipynb
-
-# ─── CLAUDE SKILL GELİŞTİRME ────────────────────────────────────
-# .skill ZIP paketleri ürünün kendisidir → TAKİP EDİLİR, yoksayılmaz
-# !*.skill  ← Bu satır kasıtlı yorum: .skill dosyaları REPODA OLMALIDIR
-
-# Yalnızca geliştirme sürecindeki geçici derleme çıktıları yoksayılır
-skill_build/
-skill_dist/
-*.skill.bak
-*.skill.tmp
-package_output/
-
-# ─── n8n & OTOMATİK AKIŞ ────────────────────────────────────────
-# workflows/ klasöründeki kaynak JSON'lar takip edilir
-# Yalnızca yerel n8n çalışma verisi yoksayılır
-.n8n/
-n8n_data/
-n8n_exports_temp/
-n8n_logs/
-
-# ─── BİNARY & OFİS DOSYALARI ────────────────────────────────────
-# Markdown tercih edilir; binary .docx/.xlsx/.pdf okunabilir değil
-*.docx
-*.doc
-*.xlsx
-*.xls
-*.xlsm
-*.pptx
-*.ppt
-*.pdf
-
-# Arşivler — repoya zip/bundle dosyası yüklemeyin
-*.zip
-*.tar.gz
-*.tar
-*.rar
-*.7z
-*.bundle
-*.gz
-*.bz2
-
-# ─── LLM KONUŞMA DIŞA AKTARIMLARI ──────────────────────────────
-# Claude / ChatGPT / Gemini sohbet veya artifact dışa aktarımları
-# (geçici; kaynak dosyalardan türetilir)
-*_conversation_export*
-*_chat_export*
-compass_artifact_*
-*_artifact_*
-*_text_markdown.md.bak
-
-# ─── CORPUS & BÜYÜK VERİ DOSYALARI ─────────────────────────────
-# BM25/TF-IDF için kullanılan ilan corpus'u büyüyebilir
-# Küçük örnek corpus (engine/data/) takip edilir
-# Büyük corpus klasörleri yoksayılır
-corpus/raw/
-corpus/bulk/
-data/raw/
-*.csv.gz
-large_corpus/
-
-# ─── İŞLETİM SİSTEMİ ────────────────────────────────────────────
-# macOS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-.AppleDouble
-.LSOverride
-Icon
-
-# Windows
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-desktop.ini
-$RECYCLE.BIN/
-*.lnk
-
-# Linux
-*~
-
-# ─── IDE & EDİTÖR ────────────────────────────────────────────────
-# VS Code (proje ayarları takip edilebilir, kişisel geçmiş edilemez)
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
-.history/
-*.vsix
-
-# JetBrains (PyCharm, vb.)
+# IDE
+.vscode/
 .idea/
-*.iml
-*.iws
-.idea_modules/
-
-# Vim / Neovim / Emacs
 *.swp
 *.swo
 *~
-\#*\#
-.#*
-Session.vim
-.netrwhist
 
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
+# OS
+.DS_Store
+Thumbs.db
 
-# ─── GEÇİCİ / ÖNBELLEK ───────────────────────────────────────────
+# Temporary
 *.tmp
-*.temp
 *.bak
-*.orig
-*.cache
-.cache/
-tmp/
-temp/
-scratch/
+*.log
 
-# ─── NOT: TAKİP EDİLMESİ GEREKEN DOSYALAR ───────────────────────
-# Aşağıdakiler KESİNLİKLE repoda olmalı, yoksaymayın:
-#   *.skill          — Claude skill paketleri (ürünün kendisi)
-#   *.md             — Tüm Markdown belgeler (docs, prompts, templates)
-#   *.py             — Python kaynak kodu (engine/)
-#   *.json           — Skill evals, n8n workflow şemaları, data dosyaları
-#   *.txt            — Stopword listeleri, küçük örnek corpus
-#   requirements.txt — Python bağımlılıkları
-#   pyproject.toml   — Proje yapılandırması
-#   Makefile         — Otomasyon görevleri
-#   LICENSE          — Lisans dosyası
+# Sentence-transformers cache
+.cache/

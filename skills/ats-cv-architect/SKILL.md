@@ -11,9 +11,6 @@ Bir iş ilanını **çöz** (ANALİZ), adayın gerçek kariyer verisiyle **yenid
 
 Bu skill yalnızca "anahtar kelime sayma" aracı değildir. Sentez katmanı (kanıta dayalı başarı cümleleri, dürüstlük kontrolü, anlatısal tutarlılık) en az analiz katmanı kadar önemlidir. İki katman da uygulanmadan iş bitmiş sayılmaz.
 
-## Önce dürüst bir uyarı (taşınabilirlik)
-Bu bir Claude skill'idir ve yalnızca Claude ekosisteminde (claude.ai, Claude Code, Cowork) çalışır. Kullanıcının iş akışı çok-araçlıdır (Gemini, ChatGPT, DeepSeek, GLM, Qwen, Mistral). **Diğer modeller bu .skill dosyasını çalıştıramaz.** Onlar için `assets/master-prompt-TR.md` içindeki taşınabilir Master Prompt'u kullan — aynı mantığı herhangi bir LLM'e kopyala-yapıştır ile taşır. İş akışını kurarken bu ayrımı kullanıcıya açıkça söyle.
-
 ## Girdiler
 1. **İş ilanı (JD):** ham metin, yapıştırılmış pano, ya da Drive/Word/PDF dosyası.
 2. **Framework/Master CV:** adayın tüm kariyerini içeren büyük belge (ör. 20 sayfa). Bu, sentez için "cevher ocağı"dır — çıktı CV'sindeki her iddia buradan gelmek zorundadır.

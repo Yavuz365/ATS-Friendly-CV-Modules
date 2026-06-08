@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ATS Match Score Result",
+  "type": "object",
+  "required": ["score_percent", "verdict", "components", "gap"],
+  "properties": {
+    "score_percent": {"type": "number", "minimum": 0, "maximum": 100},
+    "verdict": {"type": "string"},
+    "components": {
+      "type": "object",
+      "properties": {
+        "Lex": {"type": "number", "minimum": 0, "maximum": 1},
+        "Sem": {},
+        "Cov": {"type": "number", "minimum": 0, "maximum": 1},
+        "Parse_gate": {"type": "number", "minimum": 0, "maximum": 1},
+        "Stuffing": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "weights_used": {
+      "type": "object",
+      "properties": {
+        "alpha": {"type": "number"},
+        "beta": {"type": "number"},
+        "gamma": {"type": "number"},
+        "zeta": {"type": "number"}
+      }
+    },
+    "gap": {"type": "array", "items": {"type": "string"}},
+    "precision": {"type": "number", "minimum": 0, "maximum": 1},
+    "recall": {"type": "number", "minimum": 0, "maximum": 1},
+    "f1": {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}

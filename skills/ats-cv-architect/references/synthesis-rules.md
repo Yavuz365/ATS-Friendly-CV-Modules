@@ -57,3 +57,4 @@ Teslimden önce her CV maddesini Framework CV'deki bir girdiye (id) bağla. **E�
 ```
 
 Madde bu tabloya giremiyorsa CV'ye de giremez.
+Madde bu tabloya giremiyorsa CV'ye de giremez.

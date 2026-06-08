@@ -1,0 +1,32 @@
+{
+  "domain": "Foreign Trade & Logistics",
+  "language": "en",
+  "categories": {
+    "trade_operations": [
+      "import", "export", "customs clearance", "letter of credit", "bill of lading",
+      "incoterms", "HS code", "tariff classification", "landed cost", "freight forwarding",
+      "certificate of origin", "proforma invoice", "packing list", "commercial invoice",
+      "customs declaration", "duty drawback", "bonded warehouse", "free trade zone"
+    ],
+    "logistics_operations": [
+      "supply chain", "warehouse management", "inventory control", "demand forecasting",
+      "route optimization", "fleet management", "cross-docking", "last-mile delivery",
+      "reverse logistics", "3PL", "4PL", "cold chain", "intermodal transport",
+      "container management", "freight consolidation", "order fulfillment"
+    ],
+    "compliance_regulation": [
+      "trade compliance", "export control", "sanctions screening", "anti-dumping",
+      "countervailing duties", "origin determination", "preferential trade agreement",
+      "WTO regulations", "EU trade regulations", "customs audit"
+    ],
+    "finance_payment": [
+      "trade finance", "letter of credit", "documentary collection", "bank guarantee",
+      "SWIFT", "foreign exchange", "hedging", "payment terms", "cash against documents",
+      "trade insurance", "export credit"
+    ],
+    "technology_systems": [
+      "ERP", "SAP", "WMS", "TMS", "EDI", "RFID", "barcode scanning",
+      "trade management software", "customs automation", "shipment tracking"
+    ]
+  }
+}
