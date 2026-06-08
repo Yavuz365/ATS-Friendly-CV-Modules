@@ -1,224 +1,184 @@
-# ATS-Friendly CV Modules
+# ATS-Friendly-CV-Modules
 
-> **İş ilanını çöz → Kariyer verisiyle yeniden bağla → Ölç ve doğrula.**  
-> ATS-uyumlu, ilana özel CV üretimi için matematiksel ve algoritmik motor.
+> **Evidence-based, AI-agnostic ATS CV Engine**
 
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](./ats-cv-architect_SKILL.md)
-[![Claude Skill](https://img.shields.io/badge/Claude-Native%20Skill-orange)](./ats-cv-architect.skill)
-[![LLM: Any](https://img.shields.io/badge/LLM-Gemini%20%7C%20ChatGPT%20%7C%20Claude%20%7C%20DeepSeek-blue)](./ats-cv-architect_MASTER-PROMPT-TR.md)
-[![n8n Ready](https://img.shields.io/badge/n8n-Workflow%20Ready-brightgreen)](./ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md)
+Deterministik bir Python motoru ile iş ilanı (JD) ve CV arasındaki uyumu ölçen, kanıt-bazlı CV üretimini yönlendiren açık kaynak araç seti.
+
+[![CI](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions/workflows/test.yml/badge.svg)](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
+![License](https://img.shields.io/badge/license-Proprietary-red)
 
 ---
 
 ## 🎯 Ne Yapar?
 
-Bu repo, herhangi bir iş ilanını ATS (Applicant Tracking System) filtrelerinden geçirecek,
-ilana özel, kanıta dayalı bir CV üretmek için gereken **tüm motor, formül, prompt ve skill
-dosyalarını** barındırır.
-
-Sistem **iki katmanlı diyalektik bir motordur:**
-
 ```
-[İŞ İLANI (JD)] ──► ANALİZ (çöz) ──► 7 katmanlı ayrıştırma + ağırlıklı keyword listesi
-                                              │
-                         [ADAY FRAMEWORK CV] ─┘
-                                              │
-                       SENTEZ (yeniden bağla) ──► XYZ başarı cümleleri + semantik kümeler
-                                              │
-                     SKORLAMA + GAP ANALİZİ ──► Hibrit ATS Match Score + P/R/F1
-                                              │
-                          [skor < hedef?] ────┘ → sentez döngüsü
-                                              │
-                              FINAL ATS CV ◄──┘
+İş İlanı (JD)  ──→  7-Katman Ayrıştırma  ──→  Hibrit ATS Skoru  ──→  Gap Analizi
+                         │                          │                       │
+Framework CV  ──→  Kanıt Bankası  ──→  Provenans Kontrolü  ──→  Revizyon Döngüsü
 ```
 
-**Hedef skor bandı:** `%75–85` · `>%90` şişirme sinyali · `<%50` ciddi iyileştirme gerekir.
+1. **JD'yi 7 katmana ayırır** — zorunlu terimler, beceriler, niyet, ağırlıklar
+2. **Hibrit skor hesaplar** — BM25 + TF-IDF + SBERT + Kapsam − Şişirme cezası
+3. **Gap analizi yapar** — kapatılabilir vs kapatılamaz boşluklar
+4. **Provenans doğrular** — her CV maddesi Framework CV'ye bağlanır, uydurma engellenir
+5. **3-seviyeli skorlama** — Araç kapısı → 8-parça en-iyi → Kategori robustness
 
----
-
-## 📁 Dosya Rehberi
-
-### 🔧 Claude Native Skill Paketleri
-
-| Dosya | Açıklama |
-|-------|----------|
-| [`ats-cv-architect.skill`](./ats-cv-architect.skill) | **Ana skill paketi.** Claude'a yükle → `Settings → Skills → Upload`. JD + Framework CV verince otomatik 5-katman protokolü çalıştırır. |
-| [`synthesis-analysis-research.skill`](./synthesis-analysis-research.skill) | **Denetim/araştırma skill'i.** Herhangi bir metni/raporu `synthesis-analysis-research` disipliniyle tarar; hatalar `[DÜZELTME]` etiketiyle işaretlenir. |
-
-> ⚠️ `.skill` dosyaları **yalnızca Claude ekosisteminde** çalışır. Diğer modeller için aşağıdaki Master Prompt'u kullanın.
-
----
-
-### 📋 Orkestratör & Referans Dosyaları
-
-| Dosya | Açıklama |
-|-------|----------|
-| [`ats-cv-architect_SKILL.md`](./ats-cv-architect_SKILL.md) | Skill orkestratörü. Katman 0–5 protokolü, mod seçimi (tek ilan / toplu / teşhis), revizyon döngüsü kuralı, kalite & etik korumaları. |
-| [`ats-cv-architect_SCORING-FORMULAS.md`](./ats-cv-architect_SCORING-FORMULAS.md) | **Tüm matematik.** TF-IDF, BM25 (Okapi), Kosinüs benzerliği, SBERT semantik katmanı, Hibrit ATS Match Score (denetim-düzeltmeli), P/R/F1, çözümlü örnek. |
-| [`ats-cv-architect_TUM-SKILL-BIRLESIK.md`](./ats-cv-architect_TUM-SKILL-BIRLESIK.md) | Skill'in **8 dosyasını tek MD'de** birleştirir. Claude dışı modellere tam bağlamı bir seferde vermek için kullanın (54 KB). |
-
----
-
-### 🚀 Taşınabilir Prompt (Herhangi Bir LLM)
-
-| Dosya | Açıklama |
-|-------|----------|
-| [`ats-cv-architect_MASTER-PROMPT-TR.md`](./ats-cv-architect_MASTER-PROMPT-TR.md) | **Kopyala-yapıştır hazır.** Gemini, ChatGPT, DeepSeek, GLM, Qwen, Mistral'a olduğu gibi ver. `<<< >>>` arasını doldur → 6 sabit alan + FINAL CV üretir. |
-
----
-
-### 📚 Araştırma & Kurulum Belgeleri
-
-| Dosya | Açıklama |
-|-------|----------|
-| [`ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md`](./ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md) | Denetim raporu (bulunan 10 hata + düzeltmeler), kurulum aşamaları (Hafta 1–4), diyalektik düşünme döngüsü, dürüst sınırlamalar. |
-| [`synthesis-analysis-research_FULL.md`](./synthesis-analysis-research_FULL.md) | `synthesis-analysis-research` skill'inin tam dokümantasyonu. Çok dilli kaynak sentezi (13+ dil), akademik referanslar, araştırma metodolojisi. |
-
----
-
-## ⚙️ Hızlı Başlangıç
-
-### Yol 1 — Claude ile (Tam Otomatik)
+## 🏗️ Repo Yapısı
 
 ```
-1. ats-cv-architect.skill dosyasını Claude'a yükle
-   → Settings → Capabilities/Skills → Upload
-
-2. Yeni sohbet aç ve yaz:
-   "Şu ilanı Framework CV'me göre analiz et ve ATS CV üret:"
-   [JD metnini yapıştır]
-   [Framework CV'ni yapıştır]
-
-3. Claude otomatik olarak 5 katmanı çalıştırır:
-   Katman 0: Alım & Mod seçimi
-   Katman 1: Bütünsel kavrama
-   Katman 2: 7 katmanlı JD analizi
-   Katman 3: Hibrit skor + gap
-   Katman 4: Sentez (XYZ cümleleri)
-   Katman 5: Doğrulama & teslim
+ATS-Friendly-CV-Modules/
+├── engine/                    ← Python motoru (çekirdek)
+│   ├── ats_engine/
+│   │   ├── scoring.py         ← Hibrit ATS Match Score
+│   │   ├── multilevel.py      ← 3-seviyeli skorlama + LangGate
+│   │   ├── cv_parser.py       ← CV bölüm tespiti + parse güvenlik skoru
+│   │   ├── jd_parser.py       ← 7-katman JD ayrıştırma
+│   │   ├── bm25.py            ← Okapi BM25
+│   │   ├── evidence_bank.py   ← Kanıt bankası + provenans
+│   │   ├── synthesis.py       ← XYZ/CAR, gap sınıflandırma, anti-stuffing
+│   │   ├── lexicons.py        ← Beceri normalizasyonu, eşanlamlı eşleşme
+│   │   ├── text.py            ← Tokenizasyon, n-gram, stopwords
+│   │   ├── report.py          ← 6-alan çıktı (JSON + Markdown)
+│   │   └── cli.py             ← Komut satırı arayüzü
+│   ├── data/                  ← Veri dosyaları
+│   │   ├── action_verbs.json  ← 320 aksiyon fiili (TR/EN, 3 seviye)
+│   │   ├── skill_synonyms.json← 52 kanonikleme girdisi
+│   │   └── stopwords_tr_en.txt← Durak kelimeler (TR + EN)
+│   ├── tests/                 ← 19+ birim testi
+│   ├── examples/              ← Örnek JD, CV, demo scripti
+│   └── pyproject.toml         ← pip install ats-engine
+├── docs/                      ← Metodoloji dokümantasyonu (00-13)
+├── prompts/                   ← Master Prompt (TR + EN)
+│   └── adapters/              ← AI araç adaptörleri (ChatGPT, Claude, vb.)
+├── schemas/                   ← JSON çıktı şemaları
+├── skills/                    ← AI skill dosyaları
+├── templates/                 ← JD/CV şablonları
+├── domain-packs/              ← Alan-özel terim paketleri
+│   └── foreign-trade-logistics/
+├── workflows/                 ← Otomasyon pipeline dokümantasyonu
+└── .github/workflows/         ← CI/CD (pytest + smoke test)
 ```
 
-### Yol 2 — Herhangi Bir LLM ile (Master Prompt)
+## 🚀 Hızlı Başlangıç
 
-```
-1. ats-cv-architect_MASTER-PROMPT-TR.md dosyasını aç
-2. <<< İŞ İLANI >>> kısmına ilanı yapıştır
-3. <<< FRAMEWORK CV >>> kısmına kariyerini yapıştır
-4. Tüm prompt'u Gemini / ChatGPT / DeepSeek'e gönder
-5. 6 sabit alan alırsın:
-   keywords → analysis → summary → synthesis → match_score → gap_analysis
-   + FINAL ATS CV + provenans tablosu
-```
+### Kurulum
 
-### Yol 3 — Çok Araçlı Drive Akışı (A.1–A.3 / B.1)
+```bash
+# Temel kurulum (sıfır bağımlılık)
+pip install -e engine/
 
-```
-A.1 JD'yi Drive'a Word olarak yükle (3 etiketli bölüm):
-    [JD-ORİJİNAL] | [ANALİZ] | [SENTEZ-ÖNERİ]
-
-A.2 Gemini ile ANALİZ+SENTEZ → çıktıyı [SENTEZ-ÖNERİ]'ye yapıştır
-    ⚠️ JD-ORİJİNAL'e asla karıştırma (kirlenme riski)
-
-A.3 Master Prompt ile 6 alanı üret → Word/Notion'a kaydet
-
-B.1 CV-yazıcı LLM: Drive'dan 6 alan + Framework CV →
-    eşleşen+kanıtlı girdileri seç → ATS CV yaz →
-    skor hesapla → provenans kontrolü → teslim
+# Semantik benzerlik ile (opsiyonel)
+pip install -e "engine/[semantic]"
 ```
 
----
+### CLI Kullanımı
 
-## 🧮 Temel Formüller
+```bash
+# JD-CV uyum raporu
+python -m ats_engine.cli report \
+    --jd jobs/foreign_trade_analyst.txt \
+    --cv cvs/master_cv.md \
+    --format json
 
-```
-Hibrit ATS Match Score (denetim-düzeltmeli):
+# Sadece skor
+python -m ats_engine.cli score \
+    --jd jobs/jd.txt --cv cvs/cv.txt --must "akreditif,incoterms,GTIP"
 
-  RAW   = α·Lex + β·Sem + γ·Cov − ζ·Stuffing
-  Score = clamp( Parse_gate × RAW , 0 , 1 )
+# JD ayrıştırma
+python -m ats_engine.cli parse --jd jobs/jd.txt
 
-  Önerilen ağırlıklar:
-    α = 0.35  (BM25 lexical eşleşme)
-    β = 0.30  (SBERT semantik benzerlik)
-    γ = 0.35  (zorunlu terim kapsamı)
-    ζ = 0.20  (şişirme cezası)
-    Parse_gate ∈ [0.6, 1.0]  (biçim kapısı — çarpan, toplam değil)
-
-Gap analizi:
-  gap_kapatılabilir  = Framework CV'de kanıtı var, henüz CV'ye yansımamış
-  gap_kapatılamaz    = adayda gerçekten yok → asla uydurma
+# Kanıt bankası
+python -m ats_engine.cli bank --cv cvs/framework_cv.md
 ```
 
-> Tam türetim, düzeltmeler ve çözümlü örnek →
-> [`ats-cv-architect_SCORING-FORMULAS.md`](./ats-cv-architect_SCORING-FORMULAS.md)
+### Python API
 
----
+```python
+from ats_engine import ats_match_score, parse_jd, build_report
 
-## 🛠️ Desteklenen Araçlar
+# Tek satırda skor
+result = ats_match_score(jd_text, cv_text, ["akreditif", "incoterms", "GTIP"])
+print(f"Skor: %{result['score_percent']}")
+print(f"Sonuç: {result['verdict']}")
+print(f"Eksikler: {result['gap']}")
 
-| Araç | Kullanım |
-|------|----------|
-| **Claude** (claude.ai / Claude Code) | Native `.skill` dosyaları — tam otomatik 5-katman protokol |
-| **Gemini** | Master Prompt · Drive entegrasyonu · SEO analiz+sentez |
-| **ChatGPT / GPT-4** | Master Prompt · toplu mod · xlsx export |
-| **DeepSeek / GLM / Qwen / Mistral** | Master Prompt (taşınabilir) |
-| **n8n** | Drive tetikleyici → model çağrısı → 6 alan → Sheet/Notion → Telegram |
-| **Google Drive** | Etiketli Word şablonu (JD-ORİJİNAL / ANALİZ / SENTEZ-ÖNERİ) |
+# 3-seviyeli skorlama
+from ats_engine import level1_gate, level2_final, level3_category, lang_gate
 
----
+l1 = level1_gate(jd_text, cv_text, must_terms)
+lg = lang_gate(cv_text, jd_text)
+```
 
-## ⚖️ Etik & Kalite Kuralları
+## 📐 Skorlama Formülü
 
-| Kural | Açıklama |
-|-------|----------|
-| **Provenans zorunlu** | CV'deki her madde Framework CV'deki bir girdiye izlenebilmeli |
-| **Dürüstlük mutlak** | Adayda olmayan beceri/keyword asla eklenmez |
-| **Coverage > Density** | Keyword yoğunluğu değil, kapsam ve kanıt birincildir |
-| **Parse güvenliği** | Tek sütun · standart başlıklar · tablo/grafik yok · .docx tercih |
-| **Skor proxydır** | Workday/Greenhouse/iCIMS iç formülleri tescillidir; bu skor *yaklaşıklamadır* |
+```
+H(CV, JD) = LangGate × ParseGate × clamp(α·Lex + β·Sem + γ·Cov − ζ·Stuff, 0, 1)
+```
 
----
+| Parametre | Değer | Açıklama |
+|-----------|-------|----------|
+| α | 0.35 | TF-IDF kosinüs (leksikal benzerlik) |
+| β | 0.30 | SBERT kosinüs (semantik benzerlik) |
+| γ | 0.35 | Zorunlu terim kapsamı |
+| ζ | 0.20 | Şişirme (keyword stuffing) cezası |
+| ParseGate | 0-1 | Biçim ayrıştırılabilirliği |
+| LangGate | 0-1 | Dil tutarlılığı kapısı |
 
-## 📊 Denetim Özeti
+**Hedef bant:** %75–85 | >%90 = şişirme sinyali | <%50 = ciddi iyileştirme gerekli
 
-`synthesis-analysis-research` disipliniyle yapılan denetimde sistemde **10 hata** bulunmuş
-ve giderilmiştir. Kritik düzeltmeler:
+SBERT kurulu değilse β otomatik olarak α+γ'ya dağılır (graceful degradation).
 
-- **H1** Revizyon döngüsü sonsuz döngüye giriyordu → `gap = kapatılabilir` kısıtı eklendi
-- **H2** `.skill` taşınabilirlik kırılması → Master Prompt ayrı tutuldu
-- **M1** Skor alt sınırı negatife inebiliyordu → `clamp(..., 0, 1)` eklendi
-- **M2** Parse toplama yerine çarpan/kapı olarak yeniden tasarlandı
-- **M3** Lex/Cov çift sayım problemi → ayrı görevlere ayrıldı
+## 🔬 3-Seviyeli Skorlama
 
-> Tam denetim raporu → [`ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md`](./ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md)
+| Seviye | İşlev | Eşik |
+|--------|-------|------|
+| L1: Araç Kapısı | Tek AI aracının CV'sini JD'ye karşı skorlar | τ = 0.70 |
+| L2: 8-Parça En-İyi | Her bölüm için en yüksek skoru seçer + dikiş cezası | κ = 0.15 |
+| L3: Kategori Robustness | Birleşik CV'yi 3+ ilana test eder | σ ≤ 0.10 |
 
----
+## 🛡️ Araç-Bağımsızlık İlkesi
 
-## 🗺️ Yol Haritası
+Bu repo **hiçbir AI aracına bağımlı değildir**:
 
-- [x] ATS CV Architect skill (Claude native)
-- [x] Synthesis & Analysis Research skill
-- [x] Taşınabilir Master Prompt (tüm LLM'ler)
-- [x] Denetim-düzeltmeli hibrit skorlama formülleri
-- [ ] `engine/` — Python deterministik skorlayıcı (`ats_score.py`)
-- [ ] `docs/` — Metodoloji & mimari dokümantasyon
-- [ ] `templates/` — JD etiketli şablon, kanıt bankası şablonu
-- [ ] `workflows/` — n8n pipeline, Notion veritabanı şeması
-- [ ] Finans / borsa otomasyon modülleri
+- Motor (engine/) saf Python — herhangi bir LLM'den bağımsız çalışır
+- Master Prompt herhangi bir LLM'e kopyalanabilir (ChatGPT, Claude, Gemini, Copilot, vb.)
+- AI araç adaptörleri (`prompts/adapters/`) her LLM'in güçlü yanına göre optimize eder
+- Otomasyon herhangi bir platformla entegre edilebilir
 
----
+## 📚 Dokümantasyon
+
+| Dosya | Konu |
+|-------|------|
+| [docs/00-mimari.md](docs/00-mimari.md) | Genel mimari |
+| [docs/01-metodoloji.md](docs/01-metodoloji.md) | Diyalektik metodoloji |
+| [docs/02-jd-decomposition.md](docs/02-jd-decomposition.md) | 7-katman JD ayrıştırma |
+| [docs/03-skorlama-matematigi.md](docs/03-skorlama-matematigi.md) | Hibrit skor formülleri |
+| [docs/04-sentez-kurallari.md](docs/04-sentez-kurallari.md) | XYZ/CAR sentez kuralları |
+| [docs/05-grammarly-entegrasyonu.md](docs/05-grammarly-entegrasyonu.md) | Grammarly entegrasyonu |
+| [docs/06-denetim-ve-duzeltmeler.md](docs/06-denetim-ve-duzeltmeler.md) | Denetim düzeltmeleri |
+| [docs/08-kategorizasyon-taksonomisi.md](docs/08-kategorizasyon-taksonomisi.md) | İlan kategorizasyon sistemi |
+| [docs/09-orkestrasyon-katmanlari.md](docs/09-orkestrasyon-katmanlari.md) | Pipeline orkestrasyon |
+| [docs/10-sekiz-parca-skorlama.md](docs/10-sekiz-parca-skorlama.md) | 8-parça skorlama + QA |
+| [docs/11-uc-seviyeli-skorlama.md](docs/11-uc-seviyeli-skorlama.md) | 3-seviyeli skor matematiği |
+| [docs/12-dil-tutarliligi.md](docs/12-dil-tutarliligi.md) | Dil tutarlılığı + TR morfoloji |
+| [docs/13-grammarly-kapisi.md](docs/13-grammarly-kapisi.md) | Grammarly kapısı |
+
+## 🧪 Testler
+
+```bash
+cd engine && pytest tests/ -v
+```
+
+19+ test: clamp, gate, H1 durma koşulu, gap sınıflandırma, 6-alan çıktı, ve daha fazlası.
+
+## ⚖️ Etik İlkeler
+
+- ❌ Deneyim, metrik veya sertifika UYDURULMAZ
+- ✅ Her CV maddesi Framework CV'ye dayalıdır (provenans)
+- ✅ Keyword stuffing tespit edilir ve cezalandırılır
+- ✅ %75-85 hedef bandı — aşırı optimizasyon uyarılır
 
 ## 📄 Lisans
 
-Bu repo **proprietary** içerik barındırmaktadır.  
-Skill'ler ve prompt'lar kişisel iş akışı için tasarlanmıştır.  
-Ticari kullanım veya yeniden dağıtım için repo sahibiyle iletişime geçin.
-
----
-
-<div align="center">
-
-**Analiz çözer · Sentez bağlar · Skor doğrular**
-
-*Disiplinin kendisi üründür.*
-
-</div>
+Proprietary — tüm hakları saklıdır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.

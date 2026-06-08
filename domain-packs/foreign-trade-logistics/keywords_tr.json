@@ -1,0 +1,34 @@
+{
+  "domain": "Dış Ticaret & Lojistik",
+  "language": "tr",
+  "categories": {
+    "ticaret_operasyonlari": [
+      "ithalat", "ihracat", "gümrükleme", "akreditif", "konşimento",
+      "incoterms", "GTIP", "tarife sınıflandırma", "landed cost", "navlun",
+      "menşe şahadetnamesi", "proforma fatura", "ambalaj listesi", "ticari fatura",
+      "gümrük beyannamesi", "dahilde işleme", "antrepo", "serbest bölge",
+      "ATR belgesi", "EUR.1", "vesaik", "akreditif mektubu"
+    ],
+    "lojistik_operasyonlari": [
+      "tedarik zinciri", "depo yönetimi", "stok kontrol", "talep tahmini",
+      "rota optimizasyonu", "filo yönetimi", "çapraz sevkiyat", "son mil teslimat",
+      "tersine lojistik", "3PL", "4PL", "soğuk zincir", "intermodal taşıma",
+      "konteyner yönetimi", "navlun konsolidasyonu", "sipariş karşılama"
+    ],
+    "uyum_mevzuat": [
+      "ticaret uyumu", "ihracat kontrolü", "yaptırım taraması", "anti-damping",
+      "telafi edici vergi", "menşe tespiti", "tercihli ticaret anlaşması",
+      "DTÖ mevzuatı", "AB ticaret düzenlemeleri", "gümrük denetimi"
+    ],
+    "finans_odeme": [
+      "ticaret finansmanı", "akreditif", "vesaik mukabili", "banka teminat mektubu",
+      "SWIFT", "döviz", "kur riski yönetimi", "ödeme koşulları", "mal mukabili",
+      "ticaret sigortası", "ihracat kredisi"
+    ],
+    "teknoloji_sistemleri": [
+      "ERP", "SAP", "WMS", "TMS", "EDI", "RFID", "barkod tarama",
+      "ticaret yönetim yazılımı", "gümrük otomasyonu", "sevkiyat takibi",
+      "MIKRO", "LOGO", "Dynamics AX", "Netsis"
+    ]
+  }
+}

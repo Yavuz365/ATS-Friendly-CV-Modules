@@ -1,0 +1,491 @@
+{
+  "_meta": {
+    "version": "1.1.0",
+    "description": "Canonical skill normalization — maps variants/synonyms to canonical form",
+    "total_entries": 52
+  },
+  "letter_of_credit": {
+    "canonical": "letter of credit",
+    "variants": [
+      "akreditif",
+      "LC",
+      "L/C",
+      "belgesel kredi",
+      "documentary credit",
+      "sight LC",
+      "deferred LC",
+      "akreditif mektubu"
+    ]
+  },
+  "customs_clearance": {
+    "canonical": "customs clearance",
+    "variants": [
+      "gümrükleme",
+      "gümrük",
+      "ithalat prosedürü",
+      "ihracat prosedürü",
+      "customs",
+      "gümrük işlemleri",
+      "gümrük beyannamesi"
+    ]
+  },
+  "incoterms": {
+    "canonical": "incoterms",
+    "variants": [
+      "teslim şartları",
+      "ticaret terimleri",
+      "FOB",
+      "CIF",
+      "EXW",
+      "DDP",
+      "DAP",
+      "FCA",
+      "CFR",
+      "CPT"
+    ]
+  },
+  "hs_code": {
+    "canonical": "HS code",
+    "variants": [
+      "gtip",
+      "tariff code",
+      "gümrük tarife",
+      "harmonized system",
+      "GTIP kodu",
+      "tarife pozisyonu"
+    ]
+  },
+  "landed_cost": {
+    "canonical": "landed cost",
+    "variants": [
+      "maliyetlendirme",
+      "landed cost hesaplama",
+      "toplam maliyet",
+      "ithalat maliyeti",
+      "total landed cost"
+    ]
+  },
+  "bill_of_lading": {
+    "canonical": "bill of lading",
+    "variants": [
+      "konşimento",
+      "B/L",
+      "BL",
+      "deniz konşimentosu",
+      "ocean B/L",
+      "taşıma belgesi"
+    ]
+  },
+  "certificate_of_origin": {
+    "canonical": "certificate of origin",
+    "variants": [
+      "menşe şahadetnamesi",
+      "C/O",
+      "menşe belgesi",
+      "origin certificate"
+    ]
+  },
+  "atr_certificate": {
+    "canonical": "ATR certificate",
+    "variants": [
+      "ATR belgesi",
+      "ATR",
+      "dolaşım belgesi",
+      "movement certificate"
+    ]
+  },
+  "proforma_invoice": {
+    "canonical": "proforma invoice",
+    "variants": [
+      "proforma fatura",
+      "PI",
+      "teklif faturası",
+      "pro-forma"
+    ]
+  },
+  "packing_list": {
+    "canonical": "packing list",
+    "variants": [
+      "ambalaj listesi",
+      "çeki listesi",
+      "packing list"
+    ]
+  },
+  "freight_forwarding": {
+    "canonical": "freight forwarding",
+    "variants": [
+      "navlun",
+      "freight",
+      "nakliye",
+      "taşımacılık",
+      "forwarder",
+      "kargo"
+    ]
+  },
+  "supply_chain_management": {
+    "canonical": "supply chain management",
+    "variants": [
+      "tedarik zinciri yönetimi",
+      "SCM",
+      "TZY",
+      "supply chain"
+    ]
+  },
+  "procurement": {
+    "canonical": "procurement",
+    "variants": [
+      "satın alma",
+      "tedarik",
+      "purchasing",
+      "sourcing",
+      "kaynak temini"
+    ]
+  },
+  "warehouse_management": {
+    "canonical": "warehouse management",
+    "variants": [
+      "depo yönetimi",
+      "WMS",
+      "warehousing",
+      "depolama",
+      "antrepo"
+    ]
+  },
+  "inventory_management": {
+    "canonical": "inventory management",
+    "variants": [
+      "stok yönetimi",
+      "envanter yönetimi",
+      "inventory control",
+      "stok kontrol"
+    ]
+  },
+  "erp": {
+    "canonical": "ERP",
+    "variants": [
+      "kurumsal kaynak planlaması",
+      "enterprise resource planning",
+      "SAP",
+      "Oracle",
+      "Dynamics AX",
+      "MIKRO",
+      "LOGO",
+      "Netsis"
+    ]
+  },
+  "demand_forecasting": {
+    "canonical": "demand forecasting",
+    "variants": [
+      "talep tahmini",
+      "demand planning",
+      "talep planlama",
+      "forecasting"
+    ]
+  },
+  "quality_management": {
+    "canonical": "quality management",
+    "variants": [
+      "kalite yönetimi",
+      "QMS",
+      "kalite kontrol",
+      "quality control",
+      "QC",
+      "kalite güvence",
+      "QA"
+    ]
+  },
+  "iso_9001": {
+    "canonical": "ISO 9001",
+    "variants": [
+      "ISO 9001:2015",
+      "kalite yönetim sistemi",
+      "quality management system"
+    ]
+  },
+  "lean_manufacturing": {
+    "canonical": "lean manufacturing",
+    "variants": [
+      "yalın üretim",
+      "lean",
+      "yalın yönetim",
+      "lean management"
+    ]
+  },
+  "six_sigma": {
+    "canonical": "six sigma",
+    "variants": [
+      "altı sigma",
+      "6 sigma",
+      "6σ",
+      "DMAIC"
+    ]
+  },
+  "kaizen": {
+    "canonical": "kaizen",
+    "variants": [
+      "sürekli iyileştirme",
+      "continuous improvement",
+      "kaizen"
+    ]
+  },
+  "kpi": {
+    "canonical": "KPI",
+    "variants": [
+      "anahtar performans göstergesi",
+      "key performance indicator",
+      "performans metrikleri"
+    ]
+  },
+  "sla": {
+    "canonical": "SLA",
+    "variants": [
+      "hizmet seviyesi anlaşması",
+      "service level agreement"
+    ]
+  },
+  "excel": {
+    "canonical": "Excel",
+    "variants": [
+      "Microsoft Excel",
+      "MS Excel",
+      "spreadsheet",
+      "VLOOKUP",
+      "pivot table"
+    ]
+  },
+  "sap": {
+    "canonical": "SAP",
+    "variants": [
+      "SAP ERP",
+      "SAP S/4HANA",
+      "SAP MM",
+      "SAP SD",
+      "SAP WM"
+    ]
+  },
+  "crm": {
+    "canonical": "CRM",
+    "variants": [
+      "müşteri ilişkileri yönetimi",
+      "customer relationship management",
+      "Salesforce",
+      "HubSpot"
+    ]
+  },
+  "project_management": {
+    "canonical": "project management",
+    "variants": [
+      "proje yönetimi",
+      "PM",
+      "project management",
+      "proje yürütme"
+    ]
+  },
+  "pmp": {
+    "canonical": "PMP",
+    "variants": [
+      "Project Management Professional",
+      "proje yönetimi profesyoneli"
+    ]
+  },
+  "cilt": {
+    "canonical": "CILT",
+    "variants": [
+      "Chartered Institute of Logistics and Transport",
+      "CILT sertifikası"
+    ]
+  },
+  "foreign_trade": {
+    "canonical": "foreign trade",
+    "variants": [
+      "dış ticaret",
+      "international trade",
+      "uluslararası ticaret",
+      "dış ticaret uzmanı"
+    ]
+  },
+  "logistics": {
+    "canonical": "logistics",
+    "variants": [
+      "lojistik",
+      "logistics management",
+      "lojistik yönetimi"
+    ]
+  },
+  "import": {
+    "canonical": "import",
+    "variants": [
+      "ithalat",
+      "importing",
+      "ithal",
+      "ithalat işlemleri"
+    ]
+  },
+  "export": {
+    "canonical": "export",
+    "variants": [
+      "ihracat",
+      "exporting",
+      "ihraç",
+      "ihracat işlemleri"
+    ]
+  },
+  "negotiation": {
+    "canonical": "negotiation",
+    "variants": [
+      "müzakere",
+      "pazarlık",
+      "negotiating",
+      "anlaşma"
+    ]
+  },
+  "budgeting": {
+    "canonical": "budgeting",
+    "variants": [
+      "bütçeleme",
+      "bütçe yönetimi",
+      "budget management",
+      "bütçe planlama"
+    ]
+  },
+  "compliance": {
+    "canonical": "compliance",
+    "variants": [
+      "uyumluluk",
+      "mevzuat uyumu",
+      "regulatory compliance",
+      "yasal uyum"
+    ]
+  },
+  "risk_management": {
+    "canonical": "risk management",
+    "variants": [
+      "risk yönetimi",
+      "risk analizi",
+      "risk assessment",
+      "risk değerlendirme"
+    ]
+  },
+  "cross-functional": {
+    "canonical": "cross-functional",
+    "variants": [
+      "çapraz fonksiyonel",
+      "departmanlar arası",
+      "cross-departmental",
+      "multi-functional"
+    ]
+  },
+  "stakeholder_management": {
+    "canonical": "stakeholder management",
+    "variants": [
+      "paydaş yönetimi",
+      "paydaş ilişkileri",
+      "stakeholder engagement"
+    ]
+  },
+  "data_analysis": {
+    "canonical": "data analysis",
+    "variants": [
+      "veri analizi",
+      "data analytics",
+      "veri analitiği",
+      "analitik"
+    ]
+  },
+  "reporting": {
+    "canonical": "reporting",
+    "variants": [
+      "raporlama",
+      "report generation",
+      "rapor hazırlama"
+    ]
+  },
+  "power_bi": {
+    "canonical": "Power BI",
+    "variants": [
+      "PowerBI",
+      "Microsoft Power BI",
+      "iş zekası"
+    ]
+  },
+  "tableau": {
+    "canonical": "Tableau",
+    "variants": [
+      "Tableau Desktop",
+      "Tableau Server",
+      "veri görselleştirme"
+    ]
+  },
+  "python": {
+    "canonical": "Python",
+    "variants": [
+      "python programming",
+      "python scripting",
+      "Python 3"
+    ]
+  },
+  "sql": {
+    "canonical": "SQL",
+    "variants": [
+      "Structured Query Language",
+      "MySQL",
+      "PostgreSQL",
+      "T-SQL",
+      "MSSQL"
+    ]
+  },
+  "communication": {
+    "canonical": "communication",
+    "variants": [
+      "iletişim",
+      "iletişim becerileri",
+      "communication skills",
+      "yazılı iletişim",
+      "sözlü iletişim"
+    ]
+  },
+  "teamwork": {
+    "canonical": "teamwork",
+    "variants": [
+      "takım çalışması",
+      "team collaboration",
+      "ekip çalışması",
+      "collaborative"
+    ]
+  },
+  "problem_solving": {
+    "canonical": "problem solving",
+    "variants": [
+      "problem çözme",
+      "sorun giderme",
+      "troubleshooting",
+      "çözüm odaklı"
+    ]
+  },
+  "time_management": {
+    "canonical": "time management",
+    "variants": [
+      "zaman yönetimi",
+      "önceliklendirme",
+      "prioritization"
+    ]
+  },
+  "leadership": {
+    "canonical": "leadership",
+    "variants": [
+      "liderlik",
+      "yöneticilik",
+      "takım yönetimi",
+      "team leadership"
+    ]
+  },
+  "presentation": {
+    "canonical": "presentation",
+    "variants": [
+      "sunum",
+      "sunum becerileri",
+      "presentation skills",
+      "PowerPoint"
+    ]
+  }
+}

@@ -12,7 +12,7 @@ Bir iş ilanını **çöz** (ANALİZ), adayın gerçek kariyer verisiyle **yenid
 Bu skill yalnızca "anahtar kelime sayma" aracı değildir. Sentez katmanı (kanıta dayalı başarı cümleleri, dürüstlük kontrolü, anlatısal tutarlılık) en az analiz katmanı kadar önemlidir. İki katman da uygulanmadan iş bitmiş sayılmaz.
 
 ## Önce dürüst bir uyarı (taşınabilirlik)
-Bu bir Claude skill'idir ve yalnızca Claude ekosisteminde (claude.ai, Claude Code, Cowork) çalışır. Kullanıcının iş akışı çok-araçlıdır (Gemini, ChatGPT, DeepSeek, GLM, Qwen, Mistral). **Diğer modeller bu .skill dosyasını çalıştıramaz.** Onlar için `assets/master-prompt-TR.md` içindeki taşınabilir Master Prompt'u kullan — aynı mantığı herhangi bir LLM'e kopyala-yapıştır ile taşır. İş akışını kurarken bu ayrımı kullanıcıya açıkça söyle.
+Bu bir Claude skill'idir ve yalnızca Claude ekosisteminde (claude.ai, Claude Code, Cowork) çalışır. Kullanıcının iş akışı çok-araçlıdır (AI aracı, ChatGPT, DeepSeek, GLM, Qwen, Mistral). **Diğer modeller bu .skill dosyasını çalıştıramaz.** Onlar için `assets/master-prompt-TR.md` içindeki taşınabilir Master Prompt'u kullan — aynı mantığı herhangi bir LLM'e kopyala-yapıştır ile taşır. İş akışını kurarken bu ayrımı kullanıcıya açıkça söyle.
 
 ## Girdiler
 1. **İş ilanı (JD):** ham metin, yapıştırılmış pano, ya da Drive/Word/PDF dosyası.
@@ -52,7 +52,7 @@ Her ilandan TAM OLARAK şu altı alanı üret (toplu modda her ilan bir satır o
 ## Kullanıcının Drive + çok-araçlı iş akışı (A.1–A.3 / B.1)
 Kullanıcının somut akışını kurarken `references/workflow-drive-multitool.md`'yi oku. Özet ve kritik düzeltmeler:
 - **A.1** JD'yi Drive'a Word olarak yükle. **Word içinde etiketli bölümler kullan:** `[JD-ORİJİNAL]`, `[ANALİZ]`, `[SENTEZ-ÖNERİ]`. Karıştırma.
-- **A.2** JD'yi Gemini ile SEO analiz+sentez'den geçir, çıktıyı **`[SENTEZ-ÖNERİ]` bölümüne** ekle — asla JD-orijinalin içine değil. (Neden: enjekte edilen LSI/eşanlamlı terimler, adayda *olmayan* beceriler olabilir; bunları sonradan CV-yazıcı "adayın özelliği" sanmamalı.)
+- **A.2** JD'yi AI aracı ile SEO analiz+sentez'den geçir, çıktıyı **`[SENTEZ-ÖNERİ]` bölümüne** ekle — asla JD-orijinalin içine değil. (Neden: enjekte edilen LSI/eşanlamlı terimler, adayda *olmayan* beceriler olabilir; bunları sonradan CV-yazıcı "adayın özelliği" sanmamalı.)
 - **A.3** Master Prompt ile tüm gözlemleri stratejik yapıya oturt → 6 alan.
 - **B.1** CV-yazıcı, Drive'dan JD verisini + Framework CV'yi alır, **yalnızca eşleşen ve kanıtı olan** bölümleri seçer, ATS CV yazar. Framework CV 20 sayfaysa: önce onu **etiketli kanıt bankasına** (her başarı bir girdi, beceri+metrik etiketli) çevir; her seferinde 20 sayfayı ham yapıştırma.
 
@@ -74,8 +74,8 @@ Kullanıcının somut akışını kurarken `references/workflow-drive-multitool.
 - `references/jd-decomposition.md` — ANALİZ şeması: bir JD hangi 7 parçaya ayrılır, modality ve ağırlıklandırma nasıl yapılır.
 - `references/scoring-formulas.md` — tüm matematik: TF-IDF, BM25, kosinüs, hibrit ATS Match Score (denetim-düzeltmeli), P/R/F1, normalizasyon, çözümlü örnek.
 - `references/synthesis-rules.md` — SENTEZ mekaniği: kümeleme, LSI genişletme, XYZ/CAR, E-E-A-T, anti-stuffing, parse kuralları, anlatı.
-- `references/workflow-drive-multitool.md` — Drive + Gemini + çok-LLM iş akışının kurulumu ve denetimi.
-- `assets/master-prompt-TR.md` — herhangi bir LLM'e taşınabilir Master Prompt (Gemini/ChatGPT/DeepSeek/GLM/Qwen/Mistral).
+- `references/workflow-drive-multitool.md` — Drive + AI aracı + çok-LLM iş akışının kurulumu ve denetimi.
+- `assets/master-prompt-TR.md` — herhangi bir LLM'e taşınabilir Master Prompt (AI aracı/ChatGPT/DeepSeek/GLM/Qwen/Mistral).
 - `assets/output-fields-template.md` — 6 alanlık çıktı şablonu.
 
 Protokolü her çalıştırmada kısa yol kullanmadan yürüt. Disiplinin kendisi üründür.
