@@ -17,6 +17,19 @@ from functools import lru_cache
 # Türkçe karakterleri de kapsayan kelime tokenizeri.
 _TOKEN = re.compile(r"[a-zA-ZçÇğĞıİöÖşŞüÜ0-9]+")
 
+
+# ─── Y36-13: TR-aware casefold ─────────────────────────────────────────────
+# Python'un .lower() metodu Türkçe İ/ı dönüşümünü yanlış yapar:
+#   'İSTANBUL'.lower() → 'i̇stanbul' (yanlış)  |  Doğru: 'istanbul'
+#   'KISA'.lower()     → 'kisa' (yanlış)       |  Doğru: 'kısa'
+# Bu tablo, Python'un dotless ı ve dotted İ hatasını düzeltir.
+_TR_UPPER_TO_LOWER = str.maketrans("İIĞÜŞÖÇ", "iığüşöç")
+
+
+def tr_lower(text: str) -> str:
+    """Türkçe-bilinçli küçük harf dönüşümü. Python'un İ/ı hatasını düzeltir."""
+    return text.translate(_TR_UPPER_TO_LOWER).lower()
+
 # Sayı / yüzde / para örüntüleri (niceleme tespiti için).
 _QUANT = re.compile(r"(%\s?\d+([.,]\d+)?|\d+([.,]\d+)?\s?%|[$€₺£]\s?\d|\b\d{2,}\b|\b\d+([.,]\d+)?\s?(x|kat|adet|gün|saat|ay|yıl|day|days|month|months|year|years)\b)", re.IGNORECASE)
 
@@ -48,7 +61,7 @@ def tokenize(text: str, ngram_max: int = 3, drop_stopwords: bool = True) -> list
     Çok-kelimeli kavramları (ör. 'tedarik zinciri yönetimi') n-gram olarak bütün yakalar —
     bu, ATS'lerin terimi parçalamadan eşlemesini taklit eder.
     """
-    words = [w.lower() for w in _TOKEN.findall(text or "")]
+    words = [tr_lower(w) for w in _TOKEN.findall(text or "")]
     if drop_stopwords:
         stop = load_stopwords()
         words = [w for w in words if w not in stop]
@@ -84,6 +97,6 @@ def density(tokens: list[str], term: str) -> float:
     """Bir terimin token akışındaki yoğunluğu [0,1]. Şişirme denetiminin temelidir."""
     if not tokens:
         return 0.0
-    t = term.lower().strip()
+    t = tr_lower(term.strip())
     hits = sum(1 for x in tokens if x == t)
     return hits / len(tokens)

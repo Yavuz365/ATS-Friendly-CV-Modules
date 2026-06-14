@@ -267,3 +267,168 @@ def test_build_report_six_fields():
     report = build_report(SAMPLE_JD, FRAMEWORK, FRAMEWORK, use_sbert=False)
     for field in ["keywords", "analysis", "summary", "synthesis", "match_score", "gap_analysis"]:
         assert field in report, f"6 alanlı sözleşme eksik: {field}"
+
+
+# ─── Faz 0 Feature Tests ────────────────────────────────────────────────────
+
+# Y36-9: Genişletilmiş özel karakter regex
+def test_special_chars_extended():
+    from ats_engine.cv_parser import _SPECIAL_CHARS
+    # Eski regex yakalıyordu
+    assert _SPECIAL_CHARS.search("★")
+    assert _SPECIAL_CHARS.search("●")
+    # Yeni eklenen karakterler
+    assert _SPECIAL_CHARS.search("·"), "middle dot yakalanmalı"
+    assert _SPECIAL_CHARS.search("—"), "em-dash yakalanmalı"
+    assert _SPECIAL_CHARS.search("\u201c"), "smart quote yakalanmalı"
+    assert _SPECIAL_CHARS.search("…"), "ellipsis yakalanmalı"
+    # Normal karakterler yakalanmamalı
+    assert not _SPECIAL_CHARS.search("abc 123")
+    assert not _SPECIAL_CHARS.search("-")  # normal tire OK
+
+
+# Y36-10: cliche_risk verbs tespiti
+def test_cliche_verbs_detected():
+    from ats_engine.lexicons import cliche_verbs
+    cv = cliche_verbs()
+    assert "spearheaded" in cv, "spearheaded cliche olmalı"
+    assert "orchestrated" in cv, "orchestrated cliche olmalı"
+    assert "pioneered" in cv, "pioneered cliche olmalı"
+    # Normal fiiller cliche olmamalı
+    assert "built" not in cv
+    assert "managed" not in cv
+
+
+# Y36-13: TR-aware casefold
+def test_tr_lower_casefold():
+    from ats_engine.text import tr_lower
+    assert tr_lower("İSTANBUL") == "istanbul", "İ → i dönüşümü"
+    assert tr_lower("KISA") == "kısa", "I → ı dönüşümü"
+    assert tr_lower("GÜNEŞ") == "güneş", "diğer TR karakterler"
+    assert tr_lower("HELLO") == "hello", "EN kelimeler"
+
+
+# Y36-13: tokenize artık TR-aware
+def test_tokenize_tr_aware():
+    tokens = text.tokenize("İSTANBUL ve ANKARA", ngram_max=1)
+    assert "istanbul" in tokens, "İSTANBUL → istanbul olmalı"
+    assert "ankara" in tokens
+
+
+# Y36-11: report.py skill count table
+def test_report_has_skill_count_table():
+    report = build_report(SAMPLE_JD, FRAMEWORK, FRAMEWORK, use_sbert=False)
+    assert "skill_count_table" in report, "skill_count_table raporun parçası olmalı"
+    table = report["skill_count_table"]
+    assert len(table) > 0, "En az bir satır olmalı"
+    # Her satırda gerekli alanlar
+    for row in table:
+        assert "skill" in row
+        assert "jd_count" in row
+        assert "resume_count" in row
+        assert "status" in row
+
+
+# Y36-12: skill_synonyms genişletilmiş
+def test_skill_synonyms_expanded():
+    from ats_engine.lexicons import normalize_skill
+    # Yeni eklenen giriş: "multimodal transport" → "intermodal transport" eşleşmeli
+    result = normalize_skill("intermodal transport")
+    assert result == "multimodal transport", f"Beklenen: multimodal transport, Gelen: {result}"
+
+
+# Y36-15: sample_cv temizliği (· ve — olmamalı)
+def test_sample_cv_clean():
+    import os
+    sample_path = os.path.join(
+        os.path.dirname(__file__), "..", "examples", "sample_cv.txt"
+    )
+    with open(sample_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    assert "·" not in content, "middle dot temizlenmeli"
+    assert "—" not in content, "em-dash temizlenmeli"
+
+
+# ─── Faz 1 Feature Tests ────────────────────────────────────────────────────
+
+# Y36-16: completeness_guard
+def test_evidence_recall():
+    from ats_engine.completeness_guard import evidence_recall
+    result = evidence_recall(FRAMEWORK, FRAMEWORK, threshold=0.3)
+    assert "total_evidence" in result
+    assert "recall_percent" in result
+    assert "verdict" in result
+    # Framework vs kendisi → recall yüksek olmalı
+    assert result["recall_percent"] >= 50.0
+
+
+# Y36-17: format_metadata_hygiene
+def test_hygiene_check():
+    from ats_engine.format_metadata_hygiene import full_hygiene_check
+    result = full_hygiene_check(FRAMEWORK)
+    assert "word_budget" in result
+    assert "paragraph_length" in result
+    assert "special_characters" in result
+    assert "bullet_count" in result
+    assert "word_count" in result["word_budget"]
+
+
+# Y36-19: locale_consistency
+def test_locale_detection():
+    from ats_engine.locale_consistency import detect_locale, locale_mismatches
+    assert detect_locale("We optimize and organize processes") == "AmE"
+    assert detect_locale("We optimise and organise processes") == "BrE"
+    assert detect_locale("Hello world") == "unknown"
+
+    # Mismatch tespiti
+    result = locale_mismatches(
+        "We need someone who can optimize operations",
+        "I optimise business processes daily"
+    )
+    assert len(result["mismatches"]) > 0, "AmE JD vs BrE CV → mismatch olmalı"
+
+
+# Y36-20: quantification_score
+def test_quantification_audit():
+    from ats_engine.quantification_score import quantification_audit
+    cv_with_numbers = (
+        "- Revenue'yi %30 artırdım.\n"
+        "- 50 kişilik ekibi yönettim.\n"
+        "- Maliyeti $200K düşürdüm.\n"
+        "- 3 yıllık deneyim.\n"
+        "- Süreçleri optimize ettim.\n"
+    )
+    result = quantification_audit(cv_with_numbers, target_min=3)
+    assert result["total_quantified"] >= 3
+    assert result["score_percent"] >= 90.0
+
+
+# Y36-21: cliche_tone
+def test_cliche_detection():
+    from ats_engine.cliche_tone import detect_cliches
+    cv_with_cliches = "I spearheaded the transformation and orchestrated a paradigm shift"
+    result = detect_cliches(cv_with_cliches)
+    assert result["total_cliches"] > 0
+    assert "❌" in result["tone_verdict"] or "⚠️" in result["tone_verdict"]
+
+    # Temiz CV
+    clean = "I managed the project and delivered results on time"
+    result2 = detect_cliches(clean)
+    assert result2["total_cliches"] == 0
+
+
+# Y36-18: calibration
+def test_calibration():
+    from ats_engine.calibration import create_calibration, suggest_weight_adjustment
+    jd_results = [
+        ("Siegwerk", 86.7, 70.0),
+        ("TestCo", 82.0, 78.0),
+        ("AnotherJD", 90.5, 85.0),
+    ]
+    report = create_calibration(jd_results)
+    assert len(report.entries) == 3
+    assert report.mean_delta > 0  # engine inflated
+    assert report.bias_direction == "engine_inflated"
+
+    suggestions = suggest_weight_adjustment(report)
+    assert len(suggestions["suggested_changes"]) > 0

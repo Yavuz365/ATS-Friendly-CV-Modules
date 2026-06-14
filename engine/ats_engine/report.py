@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 
-from . import jd_parser, scoring, synthesis, evidence_bank
+from . import jd_parser, scoring, synthesis, evidence_bank, text
 
 
 def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = None,
@@ -85,6 +85,21 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         ) or ["Kapatılabilir gap yok; skor hedefteyse teslim et."],
     }
 
+    # ── Y36-11: Jobscan-style Skill/JD/Resume sayım tablosu ──────────────
+    jd_tokens = text.tokenize(jd_text, ngram_max=3, drop_stopwords=True)
+    cv_tokens = text.tokenize(scored_text, ngram_max=3, drop_stopwords=True)
+    skill_count_table = []
+    all_terms = [m["term"] for m in (analysis["must_have"] + analysis["nice_to_have"])]
+    for term in all_terms:
+        t_low = text.tr_lower(term)
+        jd_count = sum(1 for tok in jd_tokens if t_low in tok)
+        resume_count = sum(1 for tok in cv_tokens if t_low in tok)
+        status = "✅ Match" if resume_count > 0 else "❌ Missing"
+        skill_count_table.append({
+            "skill": term, "jd_count": jd_count,
+            "resume_count": resume_count, "status": status,
+        })
+
     return {
         "mode": "diagnostic" if cv_text is not None else "framework-baseline",
         "keywords": keywords,
@@ -100,6 +115,7 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         "synthesis": synth,
         "match_score": match_score,
         "gap_analysis": gap_analysis,
+        "skill_count_table": skill_count_table,
     }
 
 
@@ -150,6 +166,14 @@ def to_markdown(report: dict) -> str:
                  f"Stuffing={ms['components']['Stuffing']}")
     lines.append(f"- **Ağırlıklar:** {ms['weights_used']}")
     lines.append(f"- **P/R/F1:** {ms['precision']} / {ms['recall']} / {ms['f1']}")
+    lines.append("")
+
+    # Y36-11: Jobscan-style sayım tablosu
+    lines.append("## Skill Count Table (Jobscan-style)")
+    lines.append("| Skill | JD Count | Resume Count | Status |")
+    lines.append("|-------|----------|--------------|--------|")
+    for row in report.get("skill_count_table", []):
+        lines.append(f"| {row['skill']} | {row['jd_count']} | {row['resume_count']} | {row['status']} |")
     lines.append("")
 
     lines.append("## 6. gap_analysis")

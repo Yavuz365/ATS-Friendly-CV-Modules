@@ -60,7 +60,20 @@ _TABLE_PATTERN = re.compile(r"[|┌┐└┘├┤┬┴┼─│]")
 _MULTI_COLUMN = re.compile(r"\t{2,}|\s{8,}")  # çift sütun belirteci
 _IMAGE_REF = re.compile(r"(?i)!\[.*?\]\(.*?\)|<img\s|data:image")
 _HEADER_FOOTER = re.compile(r"(?i)^(?:page\s*\d+|confidential|curriculum\s*vitae)\s*$")
-_SPECIAL_CHARS = re.compile(r"[★☆●◆▪▸►■□▶✓✗✔✘→←↑↓♦♣♠♥]")
+# Y36-9: Genişletilmiş özel karakter regex'i — middle dot, em/en-dash,
+# smart quotes, emoji, ve diğer ATS-kırıcı semboller.
+_SPECIAL_CHARS = re.compile(
+    r"[★☆●◆▪▸►■□▶✓✗✔✘→←↑↓♦♣♠♥"
+    r"·‧∙"                          # middle dot varyantları
+    r"—–"                           # em-dash, en-dash
+    r"\u201c\u201d\u2018\u2019"     # smart quotes: "" ''
+    r"«»"                           # guillemets
+    r"…"                            # ellipsis
+    r"•‣⁃"                          # bullet varyantları
+    r"℃℉™®©"                       # semboller
+    r"\U0001F300-\U0001F9FF"        # emoji bloğu
+    r"]"
+)
 
 
 @dataclass

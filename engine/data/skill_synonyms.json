@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Canonical skill normalization — maps variants/synonyms to canonical form",
-    "total_entries": 52
+    "total_entries": 62
   },
   "letter_of_credit": {
     "canonical": "letter of credit",
@@ -146,9 +146,14 @@
     "variants": [
       "depo yönetimi",
       "WMS",
-      "warehousing",
-      "depolama",
-      "antrepo"
+      "warehouse management system",
+      "stok yönetimi",
+      "inventory management",
+      "depo operasyonları",
+      "FIFO",
+      "LIFO",
+      "inventory control",
+      "stok takibi"
     ]
   },
   "inventory_management": {
@@ -387,9 +392,14 @@
     "canonical": "data analysis",
     "variants": [
       "veri analizi",
-      "data analytics",
       "veri analitiği",
-      "analitik"
+      "data analytics",
+      "business intelligence",
+      "BI",
+      "raporlama",
+      "reporting",
+      "Excel analytics",
+      "pivot table"
     ]
   },
   "reporting": {
@@ -486,6 +496,114 @@
       "sunum becerileri",
       "presentation skills",
       "PowerPoint"
+    ]
+  },
+  "gtip_extended": {
+    "canonical": "HS code",
+    "variants": [
+      "harmonized tariff schedule",
+      "technical regulations",
+      "tariff classification",
+      "customs tariff number",
+      "tarife sınıflandırması",
+      "gümrük tarife istatistik pozisyonu",
+      "GTIP sorgulama",
+      "HS nomenclature"
+    ]
+  },
+  "import_cost": {
+    "canonical": "import cost analysis",
+    "variants": [
+      "landed cost calculation",
+      "import cost reduction",
+      "maliyet analizi",
+      "ithalat maliyet optimizasyonu",
+      "total cost of ownership",
+      "TCO",
+      "duty drawback",
+      "gümrük vergisi hesaplama"
+    ]
+  },
+  "multimodal_transport": {
+    "canonical": "multimodal transport",
+    "variants": [
+      "intermodal transport",
+      "combined transport",
+      "kombine taşımacılık",
+      "çoklu taşıma",
+      "door-to-door logistics",
+      "FTL",
+      "LTL",
+      "konteyner taşımacılığı",
+      "denizyolu",
+      "karayolu"
+    ]
+  },
+  "regulatory_compliance": {
+    "canonical": "regulatory compliance",
+    "variants": [
+      "mevzuat uyumu",
+      "yasal uyum",
+      "uyum yönetimi",
+      "compliance management",
+      "regulatory affairs",
+      "CE marking",
+      "REACH",
+      "RoHS",
+      "dış ticaret mevzuatı",
+      "ihracat kontrol"
+    ]
+  },
+  "trade_finance": {
+    "canonical": "trade finance",
+    "variants": [
+      "ticaret finansmanı",
+      "dış ticaret finansmanı",
+      "forfaiting",
+      "factoring",
+      "eximbank",
+      "export credit",
+      "ihracat kredisi",
+      "vesaik mukabili",
+      "kabul kredili"
+    ]
+  },
+  "vendor_management": {
+    "canonical": "vendor management",
+    "variants": [
+      "tedarikçi yönetimi",
+      "supplier relationship management",
+      "SRM",
+      "tedarikçi değerlendirme",
+      "vendor assessment",
+      "supplier audit",
+      "tedarikçi performans",
+      "vendor scorecard"
+    ]
+  },
+  "demand_planning": {
+    "canonical": "demand planning",
+    "variants": [
+      "talep planlama",
+      "talep tahmini",
+      "demand forecasting",
+      "S&OP",
+      "sales and operations planning",
+      "satış ve operasyon planlama"
+    ]
+  },
+  "continuous_improvement": {
+    "canonical": "continuous improvement",
+    "variants": [
+      "sürekli iyileştirme",
+      "kaizen",
+      "lean management",
+      "yalın yönetim",
+      "six sigma",
+      "5S",
+      "PDCA",
+      "process improvement",
+      "süreç iyileştirme"
     ]
   }
 }

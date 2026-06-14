@@ -46,8 +46,28 @@ def all_action_verbs() -> frozenset[str]:
     for key, vals in data.items():
         if key.startswith("_"):
             continue
-        verbs.update(v.lower() for v in vals)
+        # Y36-10: action_verbs artık dict (cliche_risk etiketli) veya str olabilir
+        for v in vals:
+            verb_str = v["verb"] if isinstance(v, dict) else v
+            verbs.add(verb_str.lower())
     return frozenset(verbs)
+
+
+def cliche_verbs() -> frozenset[str]:
+    """Klişe/AI-tetikleyici olarak işaretlenmiş fiillerin kümesi."""
+    data = _load_action_verbs()
+    cliches: set[str] = set()
+    for key, vals in data.items():
+        if key.startswith("_"):
+            continue
+        for v in vals:
+            if isinstance(v, dict) and v.get("cliche_risk"):
+                cliches.add(v["verb"].lower())
+    # Meta'daki cliche_verbs listesinden de ekle
+    meta = data.get("_meta", {})
+    for cv in meta.get("cliche_verbs", []):
+        cliches.add(cv.lower())
+    return frozenset(cliches)
 
 
 def action_verbs_by_intent(intent: str) -> list[str]:

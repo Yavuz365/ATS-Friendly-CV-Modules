@@ -28,6 +28,7 @@ from .synthesis import (
 )
 from .report import build_report, to_json, to_markdown
 from . import lexicons, text
+from .text import tr_lower
 
 from .multilevel import (
     level1_gate, level2_best_of, level2_final, level3_category,
@@ -40,7 +41,15 @@ from .domain_packs import (
     enrich_must_terms, detect_domain,
 )
 
-__version__ = "1.3.0"
+# Faz 1 modülleri
+from .completeness_guard import evidence_recall
+from .format_metadata_hygiene import full_hygiene_check
+from .locale_consistency import detect_locale, locale_mismatches
+from .quantification_score import quantification_audit
+from .cliche_tone import detect_cliches
+from .calibration import create_calibration, suggest_weight_adjustment
+
+__version__ = "1.4.0"
 
 __all__ = [
     "ats_match_score", "tfidf_cosine", "coverage", "prf", "DEFAULTS", "THRESHOLDS",
@@ -53,5 +62,10 @@ __all__ = [
     "SECTION_LABELS", "L1_GATE_THRESHOLD", "L2_SEAM_PENALTY",
     "load_pack", "list_packs", "all_keywords", "keywords_by_category",
     "enrich_must_terms", "detect_domain",
-    "lexicons", "text", "__version__",
+    "lexicons", "text", "tr_lower",
+    "evidence_recall", "full_hygiene_check",
+    "detect_locale", "locale_mismatches",
+    "quantification_audit", "detect_cliches",
+    "create_calibration", "suggest_weight_adjustment",
+    "__version__",
 ]

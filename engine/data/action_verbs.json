@@ -3,7 +3,26 @@
     "version": "1.1.0",
     "description": "ATS-optimized action verbs — TR/EN bilingual, 3-tier impact hierarchy",
     "source": "Grammarly keyword optimization + ATS best practices",
-    "total_verbs": 320
+    "total_verbs": 320,
+    "cliche_verbs": [
+      "catalyzed",
+      "championed",
+      "cultivated",
+      "galvanised",
+      "galvanized",
+      "helmed",
+      "innovated",
+      "leveraged",
+      "liaised",
+      "masterminded",
+      "orchestrated",
+      "pioneered",
+      "revolutionized",
+      "spearheaded",
+      "synergized",
+      "trailblazed"
+    ],
+    "cliche_note": "cliche_risk olarak işaretlenen fiiller Grammarly AI-detection tetikleyicisi; Jobscan 'Cliches found' uyarısı verir. CV'de kaçınılmalı veya insani alternatiflerle değiştirilmelidir."
   },
   "en_tier1_impact": [
     "built",
@@ -15,7 +34,10 @@
     "transformed",
     "restructured",
     "automated",
-    "pioneered",
+    {
+      "verb": "pioneered",
+      "cliche_risk": true
+    },
     "negotiated",
     "secured",
     "closed",
@@ -32,9 +54,18 @@
     "scaled",
     "elevated",
     "revamped",
-    "spearheaded",
-    "orchestrated",
-    "innovated",
+    {
+      "verb": "spearheaded",
+      "cliche_risk": true
+    },
+    {
+      "verb": "orchestrated",
+      "cliche_risk": true
+    },
+    {
+      "verb": "innovated",
+      "cliche_risk": true
+    },
     "achieved"
   ],
   "en_tier2_leadership": [
@@ -54,13 +85,19 @@
     "chaired",
     "represented",
     "influenced",
-    "championed",
+    {
+      "verb": "championed",
+      "cliche_risk": true
+    },
     "mobilized",
     "empowered",
     "coached",
     "aligned",
     "unified",
-    "cultivated",
+    {
+      "verb": "cultivated",
+      "cliche_risk": true
+    },
     "recruited",
     "onboarded"
   ],
