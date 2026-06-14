@@ -1,0 +1,28 @@
+# ATSE-13: Pre-commit hooks — ruff + mypy
+# Kurulum: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^engine/
+      - id: ruff-format
+        files: ^engine/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        files: ^engine/ats_engine/
+        args: [--config-file=engine/pyproject.toml]
+        additional_dependencies: []
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        files: ^engine/data/|^domain-packs/

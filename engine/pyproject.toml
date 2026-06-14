@@ -29,3 +29,43 @@ include = ["ats_engine*"]
 
 [tool.setuptools]
 include-package-data = true
+
+# ── ATSE-13: Kod kalite altyapısı ────────────────────────────────────────
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["ats_engine"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+    "RUF",    # Ruff-specific
+]
+ignore = [
+    "E501",   # line too long — ruff formatter handles this
+    "B008",   # do not perform function calls in argument defaults
+    "RUF001", # string contains ambiguous unicode — TR chars
+    "RUF002", # docstring contains ambiguous unicode — TR chars
+    "RUF003", # comment contains ambiguous unicode — TR chars
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ats_engine"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
