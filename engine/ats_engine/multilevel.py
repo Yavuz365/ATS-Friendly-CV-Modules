@@ -84,7 +84,10 @@ def language_purity(doc: str, expected_lang: str) -> float:
     Belgenin beklenen dile ne kadar sadık olduğunu [0, 1] ölçer.
     Karışık dilli CV, ATS parser'ları şaşırtır.
 
-    Yöntem: Token düzeyinde dil sınıflandırma → beklenen dil oranı.
+    ATSE-9 fix: Bilinmeyen kelimeler artık 0.5 ağırlıkla sayılıyor (nötr).
+    Eski davranış: bilinmeyen → 1.0 (beklenen dile dahil) → purity her zaman ~1.0
+    oluyordu ve lang_gate hiç tetiklenmiyordu.
+    Yeni: Yalnızca kesinlikle eşleşen kelimeler 1.0, karşı dil 0.0, bilinmeyen 0.5.
     """
     if not doc or not doc.strip():
         return 1.0
@@ -93,22 +96,30 @@ def language_purity(doc: str, expected_lang: str) -> float:
     if not words:
         return 1.0
 
-    expected_hits = 0
+    weighted_hits = 0.0
     total = len(words)
 
     for w in words:
-        if expected_lang == "tr":
-            if _TR_CHARS.search(w) or _TR_WORDS.match(w):
-                expected_hits += 1
-            elif not _EN_WORDS.match(w):
-                expected_hits += 1  # bilinmeyen → nötr
-        else:  # en
-            if _EN_WORDS.match(w):
-                expected_hits += 1
-            elif not _TR_CHARS.search(w) and not _TR_WORDS.match(w):
-                expected_hits += 1  # bilinmeyen → nötr
+        is_tr_char = bool(_TR_CHARS.search(w))
+        is_tr_word = bool(_TR_WORDS.match(w))
+        is_en_word = bool(_EN_WORDS.match(w))
 
-    return expected_hits / total if total else 1.0
+        if expected_lang == "tr":
+            if is_tr_char or is_tr_word:
+                weighted_hits += 1.0   # kesin Türkçe sinyal
+            elif is_en_word:
+                weighted_hits += 0.0   # kesin yabancı dil
+            else:
+                weighted_hits += 0.5   # bilinmeyen → nötr (yarım ağırlık)
+        else:  # en
+            if is_en_word:
+                weighted_hits += 1.0   # kesin İngilizce sinyal
+            elif is_tr_char or is_tr_word:
+                weighted_hits += 0.0   # kesin yabancı dil
+            else:
+                weighted_hits += 0.5   # bilinmeyen → nötr (yarım ağırlık)
+
+    return weighted_hits / total if total else 1.0
 
 
 def lang_gate(cv_text: str, jd_text: str, p0: float = LANG_PURITY_THRESHOLD) -> float:

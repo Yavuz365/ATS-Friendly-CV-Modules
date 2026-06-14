@@ -137,20 +137,27 @@ def prf(cv_text: str, must_have: list[str], cv_terms: list[str] | None = None) -
     """
     R  = Recall   = zorunluların kapsanma oranı (eksik must-have = gap → R düşer)
     P  = Precision = CV'de öne çıkarılan terimlerin ne kadarı zorunlularla ilgili
-                     (cv_terms verilmezse must-have havuzu üzerinden kapsam-temelli proxy)
     F1 = harmonik ortalama
-    Not: gerçek precision CV'nin tüm terim havuzunu ister; cv_terms ile geçilebilir.
+
+    ATSE-11 fix: cv_terms verilmezse CV'den unigram tokenize ile terim havuzu
+    otomatik çıkarılır → gerçek precision hesaplanır (eski P=R proxy kaldırıldı).
     """
     M = [m.strip() for m in must_have if m.strip()]
     if not M:
         return 0.0, 0.0, 0.0
     hit = [m for m in M if lexicons.matches_semantically(m, cv_text)]
     R = len(hit) / len(M)
+    # ATSE-11 fix: cv_terms yoksa CV'den otomatik çıkar (P≠R artık)
+    if not cv_terms:
+        raw_tokens = tokenize(cv_text, ngram_max=1)
+        # Tekil terimler — küçük harfle, tekrar yok
+        cv_terms = list(dict.fromkeys(raw_tokens))
     if cv_terms:
-        relevant = [t for t in cv_terms if lexicons.matches_semantically(t, " ".join(M))]
-        P = len(relevant) / len(cv_terms) if cv_terms else 0.0
+        must_text = " ".join(M)
+        relevant = [t for t in cv_terms if lexicons.matches_semantically(t, must_text)]
+        P = len(relevant) / len(cv_terms)
     else:
-        P = R  # proxy: CV'nin sunduğu zorunlu-terim örtüşmesini ilgililik vekili say
+        P = 0.0
     F1 = (2 * P * R / (P + R)) if (P + R) else 0.0
     return round(P, 3), round(R, 3), round(F1, 3)
 
@@ -199,6 +206,16 @@ def ats_match_score(
     cv_uni = tokenize(cv_text, ngram_max=1)
     Lex = max(0.0, min(1.0, tfidf_cosine(jd_uni, cv_uni, bm.idf)))
 
+    # ATSE-5 fix: BM25 relevance skorunu hesapla ve Lex ile harmanlı kullan.
+    # BM25.score() JD'yi sorgu, CV'yi belge olarak alır → normalize edilir.
+    bm25_raw = bm.score(jd_uni, 1)  # doc_index=1 → CV
+    bm25_max = bm.max_self_score(jd_uni)
+    Bm25_norm = bm25_raw / bm25_max if bm25_max > 0 else 0.0
+    Bm25_norm = max(0.0, min(1.0, Bm25_norm))
+    # Lex = harmanlı: %70 TF-IDF kosinüs + %30 BM25 normalize
+    Lex_raw = Lex
+    Lex = 0.70 * Lex + 0.30 * Bm25_norm
+
     # Sem
     Sem = sbert_cosine(jd_text, cv_text) if use_sbert else None
     if Sem is not None:
@@ -230,6 +247,8 @@ def ats_match_score(
         "verdict": _verdict(pct),
         "components": {
             "Lex": round(Lex, 3),
+            "Lex_tfidf": round(Lex_raw, 3),
+            "Lex_bm25": round(Bm25_norm, 3),
             "Sem": (round(Sem, 3) if Sem is not None else "yok (SBERT kurulu değil)"),
             "Cov": round(Cov, 3),
             "Parse_gate": parse_gate,

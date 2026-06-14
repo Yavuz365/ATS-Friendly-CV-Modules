@@ -120,10 +120,16 @@ def jaccard(a: str, b: str) -> float:
     return inter / union if union else 0.0
 
 
-def matches_semantically(term: str, text: str, threshold: float = 0.34) -> bool:
+def matches_semantically(term: str, text: str, threshold: float | None = None) -> bool:
     """
     term, metinde ya birebir/varyant olarak ya da kanonik kök üzerinden ya da
     fuzzy (Jaccard) eşik üzerinden geçiyor mu? jd_parser/synthesis kapsam denetiminde kullanılır.
+
+    ATSE-7 fix: Jaccard eşiği artık terim uzunluğuna göre dinamik.
+    Kısa terimler (1 kelime) → 0.80 eşik (kısa terimlerde false positive önlenir)
+    2 kelime → 0.50
+    3+ kelime → 0.34 (eski varsayılan)
+    threshold parametresi verilirse o kullanılır (override).
     """
     low_text = (text or "").lower()
     low_term = (term or "").lower().strip()
@@ -135,6 +141,15 @@ def matches_semantically(term: str, text: str, threshold: float = 0.34) -> bool:
     for variant in [low_term] + [v.lower() for v in expand_lsi(low_term)]:
         if variant and variant in low_text:
             return True
+    # ATSE-7 fix: dinamik eşik — kısa terimlerde false positive önlenir.
+    term_word_count = len(low_term.split())
+    if threshold is None:
+        if term_word_count <= 1:
+            threshold = 0.80  # tek kelime → neredeyse tam eşleşme gerekli
+        elif term_word_count == 2:
+            threshold = 0.50  # iki kelime → makul örtüşme
+        else:
+            threshold = 0.34  # 3+ kelime → eski varsayılan
     # fuzzy: metnin pencerelerine karşı Jaccard
     words = low_text.split()
     n = len(low_term.split())

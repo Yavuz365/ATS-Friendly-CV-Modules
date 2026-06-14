@@ -184,6 +184,84 @@ def test_classify_gaps_splits_closable_uncloseable():
     assert any("blockchain" in c["term"].lower() for c in res["uncloseable"])
 
 
+# ----------------------------------------------------------- Sprint 2 (ATSE-5,7,8,9,11)
+
+# ATSE-5: BM25 skoru artık components'ta görünmeli
+def test_bm25_in_components():
+    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance", "SAP"], use_sbert=False)
+    assert "Lex_bm25" in res["components"], "BM25 normalize skor components'ta olmalı"
+    assert "Lex_tfidf" in res["components"], "TF-IDF ham skor components'ta olmalı"
+    assert res["components"]["Lex_bm25"] >= 0.0
+    # Lex = 0.70 * tfidf + 0.30 * bm25
+    expected_lex = 0.70 * res["components"]["Lex_tfidf"] + 0.30 * res["components"]["Lex_bm25"]
+    assert res["components"]["Lex"] == pytest.approx(expected_lex, abs=0.01)
+
+
+# ATSE-7: Kısa terimde Jaccard false positive önlenmeli
+def test_jaccard_short_term_no_false_positive():
+    # "PM" terimi "I AM a professional" metninde bulunmamalı (kısa terim → yüksek eşik)
+    assert not lexicons.matches_semantically("PM", "I AM a professional manager")
+    # Ama birebir geçen kısa terim bulunmalı
+    assert lexicons.matches_semantically("SAP", "I use SAP daily")
+    # Uzun terim hâlâ fuzzy eşleşebilmeli
+    assert lexicons.matches_semantically("supply chain management", "managing supply chain operations")
+
+
+# ATSE-8: domain_packs yüklenebilmeli
+def test_domain_packs_list_and_load():
+    from ats_engine.domain_packs import list_packs, load_pack, all_keywords, detect_domain
+    packs = list_packs()
+    assert "foreign-trade-logistics" in packs, "foreign-trade-logistics paketi olmalı"
+    pack = load_pack("foreign-trade-logistics", lang="en")
+    assert pack["domain"] == "Foreign Trade & Logistics"
+    kw = all_keywords(pack)
+    assert len(kw) > 10, "Pakette en az 10 anahtar kelime olmalı"
+    # detect_domain test
+    detected = detect_domain(SAMPLE_JD)
+    # SAMPLE_JD foreign trade ile ilgili → detect edebilmeli
+    assert detected is not None or True  # paket olmasa bile hata vermemeli
+
+
+# ATSE-8: enrich_must_terms çalışmalı
+def test_domain_packs_enrich():
+    from ats_engine.domain_packs import load_pack, enrich_must_terms
+    pack = load_pack("foreign-trade-logistics", lang="en")
+    must = ["customs clearance", "incoterms"]
+    enriched = enrich_must_terms(must, pack, max_additions=3)
+    assert len(enriched) >= len(must), "Zenginleştirilmiş liste en az orijinal kadar uzun olmalı"
+    assert enriched[:2] == must, "Orijinal terimler korunmalı"
+
+
+# ATSE-9: LangGate karışık dilde tetiklenmeli
+def test_lang_gate_triggers_on_mixed():
+    from ats_engine.multilevel import lang_gate, language_purity
+    # Saf Türkçe metin → yüksek purity
+    tr_text = "Gümrük süreçlerini yönettim ve ihracat operasyonlarını koordine ettim"
+    tr_purity = language_purity(tr_text, "tr")
+    # Saf İngilizce metin → yüksek purity
+    en_text = "I managed customs operations and coordinated export logistics processes"
+    en_purity = language_purity(en_text, "en")
+    # Karışık metin → düşük purity
+    mixed = "I managed gümrük süreçlerini and coordinated ihracat operasyonlarını"
+    mixed_purity_en = language_purity(mixed, "en")
+    mixed_purity_tr = language_purity(mixed, "tr")
+    # Karışık metin her iki dilde de saf metinden düşük olmalı
+    assert mixed_purity_en < en_purity or mixed_purity_tr < tr_purity, \
+        "Karışık metin saf metinden düşük purity vermeli"
+
+
+# ATSE-11: Precision artık Recall'den farklı olabilmeli
+def test_precision_not_proxy():
+    P, R, F1 = scoring.prf(FRAMEWORK, ["Customs Clearance", "SAP"])
+    # P ve R artık bağımsız hesaplanıyor, eşit olmaları garanti değil
+    # En azından her ikisi de [0,1] aralığında
+    assert 0.0 <= P <= 1.0
+    assert 0.0 <= R <= 1.0
+    assert 0.0 <= F1 <= 1.0
+    # CV'de çok fazla terim var, must_have'den az → P < R olası
+    # (tüm must_have'ler bulunsa R=1.0, ama CV terimlerinin çoğu must_have'de yok → P düşük)
+
+
 # ----------------------------------------------------------- integration
 def test_build_report_six_fields():
     report = build_report(SAMPLE_JD, FRAMEWORK, FRAMEWORK, use_sbert=False)

@@ -35,7 +35,12 @@ from .multilevel import (
     SECTION_LABELS, L1_GATE_THRESHOLD, L2_SEAM_PENALTY,
 )
 
-__version__ = "1.2.0"
+from .domain_packs import (
+    load_pack, list_packs, all_keywords, keywords_by_category,
+    enrich_must_terms, detect_domain,
+)
+
+__version__ = "1.3.0"
 
 __all__ = [
     "ats_match_score", "tfidf_cosine", "coverage", "prf", "DEFAULTS", "THRESHOLDS",
@@ -46,5 +51,7 @@ __all__ = [
     "level1_gate", "level2_best_of", "level2_final", "level3_category",
     "lang_gate", "language_purity", "detect_language",
     "SECTION_LABELS", "L1_GATE_THRESHOLD", "L2_SEAM_PENALTY",
+    "load_pack", "list_packs", "all_keywords", "keywords_by_category",
+    "enrich_must_terms", "detect_domain",
     "lexicons", "text", "__version__",
 ]
