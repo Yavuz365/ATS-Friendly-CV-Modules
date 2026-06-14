@@ -16,6 +16,7 @@
 | [11-uc-seviyeli-skorlama.md](11-uc-seviyeli-skorlama.md) | 3-seviyeli ATS skor matematiği |
 | [12-dil-tutarliligi.md](12-dil-tutarliligi.md) | Dil tutarlılığı + Türkçe morfoloji |
 | [13-grammarly-kapisi.md](13-grammarly-kapisi.md) | Grammarly kapısı (AI-detector/rewriter) |
+| [14-pipeline-stages.md](14-pipeline-stages.md) | Pipeline aşamaları ve akış şeması |
 
 ### Araştırma Notları
 

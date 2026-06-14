@@ -1,16 +1,16 @@
-# ats_engine — Çalışan ATS Motoru
+# ats_engine — ATS CV Engine (v1.4.0)
 
-Sentez-önce, audit-düzeltmeli ATS-CV motoru. **Çekirdek yalnızca standart kütüphane** ile çalışır (zorunlu bağımlılık yok). SBERT opsiyoneldir; kurulu değilse motor zarifçe SBERT'siz çalışır (β payını α+γ'ya dağıtır).
+Synthesis-first, audit-corrected ATS-CV engine. **Core runs on standard library only** (zero required dependencies). SBERT is optional; if not installed, the engine gracefully redistributes β weight to α+γ.
 
-## Kurulum
+## Installation
 ```bash
 cd engine
-pip install -e .            # opsiyonel; ya da doğrudan çalıştır
-pip install -e ".[semantic]"  # SBERT (sentence-transformers) ile
-pip install -e ".[dev]"       # testler (pytest)
+pip install -e .              # basic (no external deps)
+pip install -e ".[semantic]"  # with SBERT (sentence-transformers)
+pip install -e ".[dev]"       # tests (pytest) + linting (ruff, mypy)
 ```
 
-## Hızlı kullanım (CLI)
+## Quick Usage (CLI)
 ```bash
 python -m ats_engine.cli report --jd examples/sample_jd_foreign_trade.txt \
     --framework examples/framework_cv.md --cv examples/sample_cv.txt --no-sbert --format md
@@ -19,21 +19,34 @@ python -m ats_engine.cli parse  --jd jd.txt
 python -m ats_engine.cli bank   --framework framework.md
 ```
 
-## Demo + test
+## Demo + Tests
 ```bash
 python examples/run_demo.py
-pytest -q          # 19 test
+pytest -q          # 41 tests
 ```
 
 ## Python API
 ```python
 from ats_engine import build_report, to_markdown
 rep = build_report(jd_text, framework_cv_text, cv_text, use_sbert=False)
-print(to_markdown(rep))   # 6 alan: keywords/analysis/summary/synthesis/match_score/gap_analysis
+print(to_markdown(rep))   # 6 fields: keywords/analysis/summary/synthesis/match_score/gap_analysis
+
+# v1.4 quality modules
+from ats_engine import (
+    detect_cliches,         # buzzword/cliché detection
+    quantification_audit,   # metrics counting
+    full_hygiene_check,     # format & metadata check
+    evidence_recall,        # completeness guard
+    detect_locale,          # language consistency
+    create_calibration,     # score calibration
+)
 ```
 
-## Modüller
-`text` (tokenizer/n-gram/quantification) · `bm25` (Okapi) · `lexicons` (action_verbs + synonyms/LSI + jaccard) · `scoring` (TF-IDF kosinüs, SBERT, kapsama, hibrit skor) · `jd_parser` (7 katman) · `evidence_bank` (provenans) · `synthesis` (küme/XYZ/gap/durma) · `report` (6 alan) · `cli`.
+## 18 Modules
+**Core:** `text` · `bm25` · `lexicons` · `scoring` · `jd_parser` · `evidence_bank` · `synthesis` · `report` · `cli` · `multilevel` · `cv_parser` · `domain_packs`
+**Quality (v1.4):** `calibration` · `cliche_tone` · `completeness_guard` · `format_metadata_hygiene` · `locale_consistency` · `quantification_score`
 
-## Veri
-`data/action_verbs.json` (Grammarly-türevi), `data/skill_synonyms.json` (LSI/normalize), `data/stopwords_tr_en.txt`.
+## Data
+- `data/action_verbs.json` — 260+ verbs (TR/EN, 13 categories, cliche_risk tags)
+- `data/skill_synonyms.json` — 61 canonicalization entries (LSI/normalize)
+- `data/stopwords_tr_en.txt` — Stopwords (TR + EN)

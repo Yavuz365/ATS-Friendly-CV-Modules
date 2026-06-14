@@ -1,4 +1,5 @@
-.PHONY: install dev demo test score clean
+.PHONY: install dev demo test score lint format check clean
+
 install:
 	cd engine && pip install -e . --break-system-packages
 dev:
@@ -6,8 +7,15 @@ dev:
 demo:
 	cd engine && python examples/run_demo.py
 test:
-	cd engine && python -m pytest -q
+	cd engine && python -m pytest tests/ -v
 score:
 	cd engine && python -m ats_engine.cli report --jd examples/sample_jd_foreign_trade.txt --framework examples/framework_cv.md --cv examples/sample_cv.txt --no-sbert --format md
+lint:
+	cd engine && python -m ruff check ats_engine/ tests/
+format:
+	cd engine && python -m ruff format ats_engine/ tests/
+check: lint test
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} + ; find . -name '*.pyc' -delete
+	find . -type d -name .pytest_cache -prune -exec rm -rf {} +
+	find . -type d -name '*.egg-info' -prune -exec rm -rf {} +

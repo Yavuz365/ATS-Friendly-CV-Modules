@@ -3,6 +3,31 @@
 Tüm önemli değişiklikler bu dosyada belgelenir.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [1.4.0] — 2026-06-13
+
+### Added — New Modules (Phase 0 + Phase 1)
+- **calibration.py** — Score calibration module: `create_calibration()`, `suggest_weight_adjustment()`
+- **cliche_tone.py** — Buzzword/cliché detector: `detect_cliches()` with severity levels
+- **completeness_guard.py** — Section completeness check: `evidence_recall()` measures CV section coverage
+- **format_metadata_hygiene.py** — Format & metadata hygiene: `full_hygiene_check()` validates structure
+- **locale_consistency.py** — Language consistency check: `detect_locale()`, `locale_mismatches()`
+- **quantification_score.py** — Quantification scoring: `quantification_audit()` counts metrics per bullet
+
+### Improved — Phase 0 Enhancements
+- **_SPECIAL_CHARS regex** expanded — now catches `·`, `—`, `""`, `''` and more ATS-problematic chars
+- **action_verbs.json** — added `cliche_risk` field to flag overused verbs (spearheaded, orchestrated, etc.)
+- **report.py** — new Skill|JD|Resume count table in output
+- **skill_synonyms.json** — expanded from 52 to 61 canonicalization entries
+- **text.py** — `tr_lower()` function for proper Turkish İ/ı/Ş/ş case folding
+- **docs/14-pipeline-stages.md** — new pipeline stages documentation
+- **sample_cv.txt** — cleaned special characters
+
+### Tests
+- 13 new tests added (Phase 0 + Phase 1)
+- **Total: 41/41 tests passing**
+
+---
+
 ## [1.3.0] — 2026-06-14
 
 ### Added — Yeni Özellikler

@@ -2,123 +2,129 @@
 
 > **Evidence-based, AI-agnostic ATS CV Engine**
 
-Deterministik bir Python motoru ile iş ilanı (JD) ve CV arasındaki uyumu ölçen, kanıt-bazlı CV üretimini yönlendiren açık kaynak araç seti.
+A deterministic Python engine that measures job description (JD) to CV alignment, guides evidence-based CV generation, and prevents hallucination through provenance tracking.
 
 [![CI](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions/workflows/test.yml/badge.svg)](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.1.0-green)
+![Version](https://img.shields.io/badge/version-1.4.0-green)
+![Tests](https://img.shields.io/badge/tests-41%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
 
 ---
 
-## 🎯 Ne Yapar?
+## 🎯 What It Does
 
 ```
-İş İlanı (JD)  ──→  7-Katman Ayrıştırma  ──→  Hibrit ATS Skoru  ──→  Gap Analizi
-                         │                          │                       │
-Framework CV  ──→  Kanıt Bankası  ──→  Provenans Kontrolü  ──→  Revizyon Döngüsü
+Job Description (JD)  ──→  7-Layer Decomposition  ──→  Hybrid ATS Score  ──→  Gap Analysis
+                                 │                            │                       │
+Framework CV  ──────→  Evidence Bank  ──→  Provenance Check  ──→  Revision Loop
 ```
 
-1. **JD'yi 7 katmana ayırır** — zorunlu terimler, beceriler, niyet, ağırlıklar
-2. **Hibrit skor hesaplar** — BM25 + TF-IDF + SBERT + Kapsam − Şişirme cezası
-3. **Gap analizi yapar** — kapatılabilir vs kapatılamaz boşluklar
-4. **Provenans doğrular** — her CV maddesi Framework CV'ye bağlanır, uydurma engellenir
-5. **3-seviyeli skorlama** — Araç kapısı → 8-parça en-iyi → Kategori robustness
+1. **Decomposes JD into 7 layers** — must-have terms, skills, intent, weights
+2. **Computes hybrid score** — BM25 + TF-IDF + SBERT + Coverage − Stuffing penalty
+3. **Gap analysis** — closable vs unclosable gaps
+4. **Provenance verification** — every CV bullet traces to Framework CV; fabrication blocked
+5. **3-level scoring** — Tool gate → 8-part best-of → Category robustness
 
-## 🏗️ Repo Yapısı
+## 🏗️ Repository Structure
 
 ```
 ATS-Friendly-CV-Modules/
-├── engine/                        ← Python motoru (çekirdek)
+├── engine/                           ← Python engine (core)
 │   ├── ats_engine/
-│   │   ├── __init__.py            ← Tüm API export'ları (v1.1.0)
-│   │   ├── scoring.py             ← Hibrit ATS Match Score
-│   │   ├── multilevel.py          ← 3-seviyeli skorlama + LangGate
-│   │   ├── cv_parser.py           ← CV bölüm tespiti + parse güvenlik skoru
-│   │   ├── jd_parser.py           ← 7-katman JD ayrıştırma
-│   │   ├── bm25.py                ← Okapi BM25
-│   │   ├── evidence_bank.py       ← Kanıt bankası + provenans
-│   │   ├── synthesis.py           ← XYZ/CAR, gap sınıflandırma, anti-stuffing
-│   │   ├── lexicons.py            ← Beceri normalizasyonu, eşanlamlı eşleşme
-│   │   ├── text.py                ← Tokenizasyon, n-gram, stopwords
-│   │   ├── report.py              ← 6-alan çıktı (JSON + Markdown)
-│   │   └── cli.py                 ← Komut satırı arayüzü
-│   ├── data/                      ← Veri dosyaları
-│   │   ├── action_verbs.json      ← 260+ aksiyon fiili (TR/EN, 13 kategori)
-│   │   ├── skill_synonyms.json    ← 53 kanonikleme girdisi
-│   │   └── stopwords_tr_en.txt    ← Durak kelimeler (TR + EN)
-│   ├── tests/test_core.py         ← 19 birim testi
-│   ├── examples/                  ← Örnek JD, CV, demo scripti
+│   │   ├── __init__.py               ← All API exports (v1.4.0)
+│   │   ├── scoring.py                ← Hybrid ATS Match Score (TF-IDF+BM25+SBERT)
+│   │   ├── multilevel.py             ← 3-level scoring + LangGate
+│   │   ├── cv_parser.py              ← CV section detection + parse safety score
+│   │   ├── jd_parser.py              ← 7-layer JD decomposition
+│   │   ├── bm25.py                   ← Okapi BM25 (Lex=0.70×TF-IDF+0.30×BM25)
+│   │   ├── evidence_bank.py          ← Evidence bank + provenance
+│   │   ├── synthesis.py              ← XYZ/CAR, gap classification, anti-stuffing
+│   │   ├── lexicons.py               ← Skill normalization, synonym matching
+│   │   ├── text.py                   ← Tokenization, n-gram, stopwords, tr_lower()
+│   │   ├── report.py                 ← 6-field output (JSON + Markdown)
+│   │   ├── domain_packs.py           ← Domain-specific keyword pack loader (v1.3)
+│   │   ├── calibration.py            ← Score calibration module (v1.4)
+│   │   ├── cliche_tone.py            ← Buzzword/cliché detector (v1.4)
+│   │   ├── completeness_guard.py     ← Section completeness check (v1.4)
+│   │   ├── format_metadata_hygiene.py← Format & metadata hygiene (v1.4)
+│   │   ├── locale_consistency.py     ← Language consistency check (v1.4)
+│   │   ├── quantification_score.py   ← Quantification/metrics scoring (v1.4)
+│   │   └── cli.py                    ← Command-line interface
+│   ├── data/
+│   │   ├── action_verbs.json         ← 260+ action verbs (TR/EN, 13 categories, cliche_risk)
+│   │   ├── skill_synonyms.json       ← 61 canonicalization entries
+│   │   └── stopwords_tr_en.txt       ← Stopwords (TR + EN)
+│   ├── tests/test_core.py            ← 41 unit tests
+│   ├── examples/
 │   │   ├── run_demo.py
 │   │   ├── sample_jd_foreign_trade.txt
 │   │   ├── sample_cv.txt
 │   │   └── framework_cv.md
-│   ├── pyproject.toml             ← pip install -e engine/
-│   └── requirements.txt
+│   ├── pyproject.toml                ← pip install -e engine/
+│   ├── requirements.txt
+│   └── MANIFEST.in
 │
-├── docs/                          ← Metodoloji dokümantasyonu
-│   ├── 00-mimari.md … 13-grammarly-kapisi.md  (14 ana doküman)
-│   ├── architecture/              ← Sistem mimarisi
+├── docs/                             ← Methodology documentation
+│   ├── 00-mimari.md … 14-pipeline-stages.md  (15 main documents)
+│   ├── architecture/                 ← System architecture
 │   │   ├── system-overview.md
 │   │   └── provenance-and-anti-hallucination.md
-│   ├── audits/                    ← Denetim raporları
+│   ├── audits/                       ← Audit reports
 │   │   └── ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md
-│   ├── migration/                 ← Eski yapıdan geçiş rehberi
+│   ├── migration/                    ← Legacy migration guide
 │   │   └── legacy-map.md
-│   └── research/                  ← Araştırma notları
+│   └── research/                     ← Research notes
 │       ├── R1-sistemik-veri-ats-mimarisi.md
 │       ├── R2-sentez-once-analiz.md
 │       └── R3-seo-ats-sozluk.md
 │
-├── prompts/                       ← Master Prompt (TR + EN)
-│   ├── master-prompt-TR.md        ← Taşınabilir Türkçe prompt
-│   ├── master-prompt-EN.md        ← Taşınabilir İngilizce prompt
-│   ├── output-fields-template.md  ← 6-alan çıktı şablonu
-│   └── adapters/                  ← AI araç adaptörleri
-│       ├── chatgpt.md
-│       ├── claude.md
-│       ├── gemini.md
-│       ├── copilot.md
-│       ├── deepseek.md
-│       └── perplexity.md
+├── prompts/                          ← Master Prompt (TR + EN)
+│   ├── master-prompt-TR.md           ← Portable Turkish prompt
+│   ├── master-prompt-EN.md           ← Portable English prompt
+│   ├── output-fields-template.md     ← 6-field output template
+│   └── adapters/                     ← AI tool adapters
+│       ├── chatgpt.md, claude.md, gemini.md
+│       ├── copilot.md, deepseek.md, perplexity.md
 │
-├── references/                    ← ATS bilgi bankası
+├── references/                       ← ATS knowledge base
 │   └── ats-kb/
-│       ├── ats-parser-rules.md    ← ATS ayrıştırıcı kuralları
-│       ├── jd-taxonomy.md         ← JD taksonomisi (7-katman)
-│       └── keyword-ontology.md    ← Keyword sınıflandırma ontolojisi
+│       ├── ats-parser-rules.md       ← ATS parser rules
+│       ├── jd-taxonomy.md            ← JD taxonomy (7-layer)
+│       └── keyword-ontology.md       ← Keyword classification ontology
 │
-├── schemas/                       ← JSON çıktı şemaları
+├── schemas/                          ← JSON output schemas
 │   └── scoring_result.schema.json
 │
-├── skills/                        ← AI skill dosyaları
-│   ├── ats-cv-architect/          ← Ana CV motoru skill'i
+├── skills/                           ← AI skill files
+│   ├── ats-cv-architect/             ← Main CV engine skill
 │   │   ├── SKILL.md
-│   │   ├── assets/                ← master-prompt-TR.md, output-fields-template.md
-│   │   ├── references/            ← jd-decomposition, scoring, synthesis, workflow
+│   │   ├── assets/
+│   │   ├── references/
 │   │   └── scripts/ats_score.py
-│   └── synthesis-analysis-research/  ← Araştırma/analiz skill'i
+│   └── synthesis-analysis-research/  ← Research/analysis skill
 │       ├── SKILL.md
 │       └── references/
 │
-├── domain-packs/                  ← Alan-özel terim paketleri
+├── domain-packs/                     ← Domain-specific term packs
 │   └── foreign-trade-logistics/
-│       ├── keywords_en.json       ← 65 keyword (İngilizce)
-│       └── keywords_tr.json       ← 73 keyword (Türkçe)
+│       ├── keywords_en.json          ← 65 keywords (English)
+│       └── keywords_tr.json          ← 73 keywords (Turkish)
 │
-├── templates/                     ← JD/CV şablonları
-│   ├── jd-etiketli-sablon.md      ← 3-bölümlü JD Word şablonu
-│   └── kanit-bankasi-sablonu.md   ← Framework CV → kanıt bankası
+├── templates/                        ← JD/CV templates
+│   ├── jd-etiketli-sablon.md
+│   └── kanit-bankasi-sablonu.md
 │
-├── workflows/                     ← Otomasyon pipeline dokümantasyonu
+├── workflows/                        ← Automation pipeline docs
 │   ├── automation/ats-cv-pipeline.md
 │   └── notion/veritabani-semasi.md
 │
-├── archive/                       ← Eski birleşik skill dosyaları (referans)
+├── archive/                          ← Legacy skill files (reference)
 │   ├── ats-cv-architect_TUM-SKILL-BIRLESIK.md
 │   └── synthesis-analysis-research_FULL.md
 │
-├── .github/workflows/test.yml     ← CI/CD (pytest + smoke test)
+├── .github/workflows/test.yml        ← CI/CD (pytest + smoke test)
+├── .pre-commit-config.yaml           ← ruff + mypy + hooks
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE
@@ -126,40 +132,40 @@ ATS-Friendly-CV-Modules/
 └── .gitignore
 ```
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### Kurulum
+### Installation
 
 ```bash
-# Temel kurulum (sıfır harici bağımlılık)
+# Basic install (zero external dependencies)
 pip install -e engine/
 
-# Geliştirici modu (pytest dahil)
+# Developer mode (pytest + ruff + mypy included)
 pip install -e "engine/[dev]"
 
-# Semantik benzerlik ile (opsiyonel, SBERT)
+# With semantic similarity (optional, SBERT)
 pip install -e "engine/[semantic]"
 ```
 
-### CLI Kullanımı
+### CLI Usage
 
 ```bash
-# JD-CV tam rapor (6 alan)
+# Full JD-CV report (6 fields)
 python -m ats_engine.cli report \
     --jd jobs/jd.txt \
     --framework cvs/framework_cv.md \
     --format json
 
-# Sadece skor
+# Score only
 python -m ats_engine.cli score \
     --jd jobs/jd.txt \
     --cv cvs/cv.txt \
-    --must "akreditif,incoterms,GTIP"
+    --must "letter of credit,incoterms,GTIP"
 
-# JD ayrıştırma (7 katman)
+# JD decomposition (7 layers)
 python -m ats_engine.cli parse --jd jobs/jd.txt
 
-# Framework CV → Kanıt bankası
+# Framework CV → Evidence bank
 python -m ats_engine.cli bank --cv cvs/framework_cv.md
 ```
 
@@ -168,127 +174,148 @@ python -m ats_engine.cli bank --cv cvs/framework_cv.md
 ```python
 from ats_engine import ats_match_score, parse_jd, build_report
 
-# Tek satırda hibrit skor
-result = ats_match_score(jd_text, cv_text, ["akreditif", "incoterms", "GTIP"])
-print(f"Skor: %{result['score_percent']}")
-print(f"Sonuç: {result['verdict']}")
-print(f"Bileşenler: {result['components']}")
-print(f"Eksikler: {result['gap']}")
+# One-line hybrid score
+result = ats_match_score(jd_text, cv_text, ["letter of credit", "incoterms", "GTIP"])
+print(f"Score: {result['score_percent']}%")
+print(f"Verdict: {result['verdict']}")
+print(f"Components: {result['components']}")
+print(f"Gaps: {result['gap']}")
 
-# 7-katman JD ayrıştırma
+# 7-layer JD decomposition
 jd = parse_jd(jd_text)
-print(jd["must_have"])      # zorunlu terimler
-print(jd["nice_to_have"])   # tercih edilen
+print(jd["must_have"])      # required terms
+print(jd["nice_to_have"])   # preferred terms
 
-# 6-alan tam rapor
-rapor = build_report(jd_text, framework_cv_text)
+# Full 6-field report
+report = build_report(jd_text, framework_cv_text)
 
-# 3-seviyeli skorlama
+# 3-level scoring
 from ats_engine import level1_gate, level2_final, level3_category, lang_gate
 
-l1 = level1_gate(jd_text, cv_text, must_terms)        # L1: tek araç kapısı
-l2 = level2_final(jd_text, tool_sections, must_terms)  # L2: 8-parça en-iyi
-l3 = level3_category(cv_text, jd_texts, must_terms)    # L3: kategori robustness
-lg = lang_gate(cv_text, jd_text)                       # dil tutarlılığı kapısı
+l1 = level1_gate(jd_text, cv_text, must_terms)        # L1: single tool gate
+l2 = level2_final(jd_text, tool_sections, must_terms)  # L2: 8-part best-of
+l3 = level3_category(cv_text, jd_texts, must_terms)    # L3: category robustness
+lg = lang_gate(cv_text, jd_text)                       # language consistency gate
+
+# v1.4 modules
+from ats_engine import (
+    evidence_recall,           # completeness guard
+    full_hygiene_check,        # format & metadata hygiene
+    detect_locale,             # locale consistency
+    quantification_audit,      # quantification scoring
+    detect_cliches,            # cliché/buzzword detection
+    create_calibration,        # score calibration
+)
 ```
 
-## 📐 Skorlama Formülü
+## 📐 Scoring Formula
 
 ```
 H(CV, JD) = LangGate × ParseGate × clamp(α·Lex + β·Sem + γ·Cov − ζ·Stuff, 0, 1)
 ```
 
-| Parametre | Değer | Açıklama |
-|-----------|-------|----------|
-| α | 0.35 | TF-IDF kosinüs (leksikal benzerlik) |
-| β | 0.30 | SBERT kosinüs (semantik benzerlik) |
-| γ | 0.35 | Zorunlu terim kapsamı |
-| ζ | 0.20 | Şişirme (keyword stuffing) cezası |
-| ParseGate | 0–1 | Biçim ayrıştırılabilirliği |
-| LangGate | 0–1 | Dil tutarlılığı kapısı |
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| α | 0.35 | Lexical: TF-IDF cosine (0.70) + BM25 (0.30) |
+| β | 0.30 | Semantic: SBERT cosine similarity |
+| γ | 0.35 | Coverage: must-have term coverage |
+| ζ | 0.20 | Stuffing: keyword stuffing penalty |
+| ParseGate | 0–1 | CV format parsability score |
+| LangGate | 0–1 | Language consistency gate |
 
-**Hedef bant:** %75–85 | >%90 = şişirme sinyali | <%50 = ciddi iyileştirme gerekli
+**Target band:** 75%–85% | >90% = stuffing signal | <50% = major improvement needed
 
-SBERT kurulu değilse β otomatik olarak α+γ'ya dağılır (graceful degradation).
+If SBERT is not installed, β is automatically redistributed to α+γ (graceful degradation).
 
-## 🔬 3-Seviyeli Skorlama
+## 🔬 3-Level Scoring
 
-| Seviye | İşlev | Eşik |
-|--------|-------|------|
-| L1: Araç Kapısı | Tek AI aracının CV'sini JD'ye karşı skorlar | τ = 0.70 |
-| L2: 8-Parça En-İyi | Her bölüm için en yüksek skoru seçer + dikiş cezası | κ = 0.15 |
-| L3: Kategori Robustness | Birleşik CV'yi 3+ ilana test eder | σ ≤ 0.10 |
+| Level | Function | Threshold |
+|-------|----------|-----------|
+| L1: Tool Gate | Scores a single AI tool's CV against JD | τ = 0.70 |
+| L2: 8-Part Best-of | Selects best section score + seam penalty | κ = 0.15 |
+| L3: Category Robustness | Tests combined CV against 3+ JDs | σ ≤ 0.10 |
 
-## 🛡️ Araç-Bağımsızlık İlkesi
+## 🛡️ Tool-Agnostic Principle
 
-Bu repo **hiçbir AI aracına bağımlı değildir**:
+This repo is **not dependent on any AI tool**:
 
-- Motor (`engine/`) saf Python — herhangi bir LLM'den bağımsız çalışır
-- Master Prompt herhangi bir LLM'e kopyalanabilir (ChatGPT, Claude, Gemini, Copilot, vb.)
-- AI araç adaptörleri (`prompts/adapters/`) her LLM'in güçlü yanına göre optimize eder
-- Otomasyon herhangi bir platformla entegre edilebilir (n8n, Make, Zapier vb.)
+- Engine (`engine/`) is pure Python — works independently of any LLM
+- Master Prompt can be copied to any LLM (ChatGPT, Claude, Gemini, Copilot, etc.)
+- AI tool adapters (`prompts/adapters/`) optimize for each LLM's strengths
+- Automation integrates with any platform (n8n, Make, Zapier, etc.)
 
-## 📚 Dokümantasyon
+## 📚 Documentation
 
-### Ana Dokümanlar (docs/)
+### Core Docs (docs/)
 
-| Dosya | Konu |
-|-------|------|
-| [00-mimari.md](docs/00-mimari.md) | Genel mimari |
-| [01-metodoloji.md](docs/01-metodoloji.md) | Diyalektik metodoloji |
-| [02-jd-decomposition.md](docs/02-jd-decomposition.md) | 7-katman JD ayrıştırma |
-| [03-skorlama-matematigi.md](docs/03-skorlama-matematigi.md) | Hibrit skor formülleri |
-| [04-sentez-kurallari.md](docs/04-sentez-kurallari.md) | XYZ/CAR sentez kuralları |
-| [05-grammarly-entegrasyonu.md](docs/05-grammarly-entegrasyonu.md) | Grammarly entegrasyonu |
-| [06-denetim-ve-duzeltmeler.md](docs/06-denetim-ve-duzeltmeler.md) | Denetim düzeltmeleri |
-| [07-workflow-multitool.md](docs/07-workflow-multitool.md) | Çok-araçlı iş akışı |
-| [08-kategorizasyon-taksonomisi.md](docs/08-kategorizasyon-taksonomisi.md) | İlan kategorizasyon sistemi |
-| [09-orkestrasyon-katmanlari.md](docs/09-orkestrasyon-katmanlari.md) | Pipeline orkestrasyon |
-| [10-sekiz-parca-skorlama.md](docs/10-sekiz-parca-skorlama.md) | 8-parça skorlama + QA |
-| [11-uc-seviyeli-skorlama.md](docs/11-uc-seviyeli-skorlama.md) | 3-seviyeli skor matematiği |
-| [12-dil-tutarliligi.md](docs/12-dil-tutarliligi.md) | Dil tutarlılığı + TR morfoloji |
-| [13-grammarly-kapisi.md](docs/13-grammarly-kapisi.md) | Grammarly kapısı |
+| File | Topic |
+|------|-------|
+| [00-mimari.md](docs/00-mimari.md) | System architecture |
+| [01-metodoloji.md](docs/01-metodoloji.md) | Dialectic methodology |
+| [02-jd-decomposition.md](docs/02-jd-decomposition.md) | 7-layer JD decomposition |
+| [03-skorlama-matematigi.md](docs/03-skorlama-matematigi.md) | Hybrid scoring formulas |
+| [04-sentez-kurallari.md](docs/04-sentez-kurallari.md) | XYZ/CAR synthesis rules |
+| [05-grammarly-entegrasyonu.md](docs/05-grammarly-entegrasyonu.md) | Grammarly integration |
+| [06-denetim-ve-duzeltmeler.md](docs/06-denetim-ve-duzeltmeler.md) | Audit fixes |
+| [07-workflow-multitool.md](docs/07-workflow-multitool.md) | Multi-tool workflow |
+| [08-kategorizasyon-taksonomisi.md](docs/08-kategorizasyon-taksonomisi.md) | Job posting categorization |
+| [09-orkestrasyon-katmanlari.md](docs/09-orkestrasyon-katmanlari.md) | Pipeline orchestration |
+| [10-sekiz-parca-skorlama.md](docs/10-sekiz-parca-skorlama.md) | 8-part scoring + QA |
+| [11-uc-seviyeli-skorlama.md](docs/11-uc-seviyeli-skorlama.md) | 3-level score math |
+| [12-dil-tutarliligi.md](docs/12-dil-tutarliligi.md) | Language consistency + TR morphology |
+| [13-grammarly-kapisi.md](docs/13-grammarly-kapisi.md) | Grammarly gate |
+| [14-pipeline-stages.md](docs/14-pipeline-stages.md) | Pipeline stages |
 
-### Ek Dokümanlar
+### Additional Docs
 
-| Klasör | İçerik |
-|--------|--------|
-| [docs/architecture/](docs/architecture/) | Sistem mimarisi + provenans/anti-halüsinasyon |
-| [docs/audits/](docs/audits/) | Kurulum bulguları ve denetim raporu |
-| [docs/migration/](docs/migration/) | Eski yapıdan geçiş rehberi |
-| [docs/research/](docs/research/) | ATS mimarisi, sentez analizi, SEO sözlük araştırmaları |
+| Folder | Content |
+|--------|---------|
+| [docs/architecture/](docs/architecture/) | System overview + provenance/anti-hallucination |
+| [docs/audits/](docs/audits/) | Setup findings and audit report |
+| [docs/migration/](docs/migration/) | Legacy migration guide |
+| [docs/research/](docs/research/) | ATS architecture, synthesis analysis, SEO glossary |
 
-### Bilgi Bankası (references/ats-kb/)
+### Knowledge Base (references/ats-kb/)
 
-| Dosya | İçerik |
-|-------|--------|
-| [ats-parser-rules.md](references/ats-kb/ats-parser-rules.md) | ATS parser kuralları, format cezaları |
-| [jd-taxonomy.md](references/ats-kb/jd-taxonomy.md) | JD 7-katman modeli detayları |
-| [keyword-ontology.md](references/ats-kb/keyword-ontology.md) | Keyword sınıflandırma ve eşanlamlı genişletme |
+| File | Content |
+|------|---------|
+| [ats-parser-rules.md](references/ats-kb/ats-parser-rules.md) | ATS parser rules, format penalties |
+| [jd-taxonomy.md](references/ats-kb/jd-taxonomy.md) | JD 7-layer model details |
+| [keyword-ontology.md](references/ats-kb/keyword-ontology.md) | Keyword classification & synonym expansion |
 
-## 🧪 Testler
+## 🧪 Tests
 
 ```bash
-# Testleri çalıştır
+# Run tests
 cd engine && pip install -e ".[dev]" && pytest tests/ -v
 ```
 
-19 test: clamp, gate, H1 durma koşulu, gap sınıflandırma, 6-alan çıktı, BM25, anti-stuffing ve daha fazlası.
+41 tests covering: clamp, gate, H1 stopping condition, gap classification, 6-field output, BM25 pipeline, anti-stuffing, parse gate auto-call, empty must_have, SBERT singleton, Jaccard dynamic threshold, domain packs, LangGate trigger, precision independence, completeness guard, format hygiene, locale detection, quantification audit, cliché detection, calibration.
 
-CI/CD: Her push'ta otomatik olarak Python 3.10, 3.11, 3.12 üzerinde test çalışır.
+CI/CD: Tests run automatically on Python 3.10, 3.11, 3.12 on every push.
 
-## ⚖️ Etik İlkeler
+## ⚖️ Ethical Principles
 
-- ❌ Deneyim, metrik veya sertifika **UYDURULMAZ**
-- ✅ Her CV maddesi Framework CV'ye dayalıdır (provenans)
-- ✅ Keyword stuffing tespit edilir ve cezalandırılır (ζ = 0.20)
-- ✅ %75–85 hedef bandı — aşırı optimizasyon uyarılır
-- ✅ LangGate dil tutarlılığını kontrol eder
+- ❌ Experience, metrics, or certifications are **NEVER fabricated**
+- ✅ Every CV bullet is backed by Framework CV (provenance)
+- ✅ Keyword stuffing is detected and penalized (ζ = 0.20)
+- ✅ 75%–85% target band — over-optimization is flagged
+- ✅ LangGate checks language consistency
+- ✅ Cliché/buzzword detection warns against generic language
 
-## 📦 Versiyon
+## 📦 Version
 
-Güncel: **v1.1.0** — [CHANGELOG.md](CHANGELOG.md)
+Current: **v1.4.0** — see [CHANGELOG.md](CHANGELOG.md) for full history.
 
-## 📄 Lisans
+### Version History
+| Version | Date | Highlights |
+|---------|------|------------|
+| v1.4.0 | 2026-06-13 | 6 new modules (calibration, cliché, completeness, format, locale, quantification) |
+| v1.3.0 | 2026-06-14 | BM25 pipeline, Jaccard dynamic, domain_packs, LangGate fix, ruff+mypy |
+| v1.2.0 | 2026-06-13 | 5 critical bug fixes (ParseGate, must_have, dual engine, data packaging, SBERT cache) |
+| v1.1.0 | 2026-06-12 | Initial full engine release |
+| v1.0.0 | 2026-06-11 | Repository creation |
 
-Proprietary — tüm hakları saklıdır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+## 📄 License
+
+Proprietary — all rights reserved. See [LICENSE](LICENSE) for details.
