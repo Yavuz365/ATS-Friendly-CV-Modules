@@ -1,35 +1,71 @@
 # Changelog
 
-## v1.1.0 — 2026-06-08
+Tüm önemli değişiklikler bu dosyada belgelenir.
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
-### Yeni Özellikler
-- **`multilevel.py`** — 3-seviyeli ATS skorlama: L1 araç kapısı → L2 8-parça en-iyi → L3 kategori robustness
-- **`cv_parser.py`** — CV bölüm tespiti + ATS parse güvenlik skoru
-- **LangGate** — Dil tutarlılığı kapısı (`scoring.py`'ye entegre)
-- **`prompts/master-prompt-EN.md`** — İngilizce Master Prompt
-- **`prompts/adapters/`** — 6 AI araç adaptörü (ChatGPT, Claude, Gemini, Copilot, Perplexity, DeepSeek)
-- **`domain-packs/foreign-trade-logistics/`** — TR/EN alan-özel terim paketleri
-- **`schemas/scoring_result.schema.json`** — Skor çıktı JSON şeması
-- **`.github/workflows/test.yml`** — CI/CD (pytest + CLI smoke test, Python 3.10-3.12)
-- **docs/08-13** — 6 yeni dokümantasyon dosyası
+## [1.3.0] — 2026-06-14
 
-### İyileştirmeler
-- `action_verbs.json`: 117 → 320 fiil (dış ticaret + lojistik + tedarik zinciri kategorileri)
-- `skill_synonyms.json`: 15 → 52 kanonikleme girdisi
-- Araç-bağımsızlaştırma: tüm Gemini/n8n referansları genelleştirildi
-- README tamamen yeniden yazıldı
+### Added — Yeni Özellikler
+- **domain_packs.py** modülü — Alan-özel anahtar kelime paketi yükleyici (ATSE-8)
+  - `load_pack()`, `list_packs()`, `all_keywords()`, `keywords_by_category()`
+  - `enrich_must_terms()` — zorunlu terimleri alan paketiyle zenginleştirir
+  - `detect_domain()` — JD metninden otomatik alan tespiti
+  - `__init__.py`'ye tam export
+- **ruff + mypy + pre-commit** yapılandırması (ATSE-13)
+  - `pyproject.toml`'a ruff lint/format, mypy strict, pytest config eklendi
+  - `.pre-commit-config.yaml` — ruff, mypy, trailing-whitespace, check-json hooks
 
-### Düzeltmeler
-- `scoring.py`: `lang_gate` parametresi eklendi (hibrit skor formülüne çarpan olarak)
+### Fixed — Düzeltmeler
+- **BM25 entegrasyonu** — `BM25.score()` artık scoring pipeline'da aktif (ATSE-5)
+  - `Lex = 0.70 × TF-IDF_cosünüs + 0.30 × BM25_normalize`
+  - Components çıktısına `Lex_tfidf` ve `Lex_bm25` eklendi
+- **Jaccard dinamik eşik** — Kısa terimlerde false positive önlendi (ATSE-7)
+  - 1 kelime → 0.80 eşik, 2 kelime → 0.50, 3+ kelime → 0.34
+- **LangGate düzeltmesi** — Karışık dilli CV'lerde artık gerçekten tetikleniyor (ATSE-9)
+  - Bilinmeyen kelimeler 0.5 ağırlıkla sayılıyor (eski: 1.0 → purity şişiyordu)
+- **Precision/Recall bağımsızlığı** — P artık R'nin proxy'si değil (ATSE-11)
+  - CV'den otomatik unigram tokenize → gerçek precision hesaplanıyor
 
-## v1.0.0 — 2026-06-07
+### Removed — Kaldırılan
+- 3 stale branch silindi (ATSE-12)
+- PR #1 ve Issue #2 kapatıldı (ATSE-10)
 
-### İlk Sürüm
-- Python motoru (engine/): BM25, TF-IDF, SBERT, kapsam, şişirme, 7-katman JD ayrıştırma
-- 19 birim testi (tümü geçiyor)
-- CLI: report/score/parse/bank komutları
-- Kanıt bankası + provenans doğrulama
-- Sentez: XYZ/CAR, gap sınıflandırma, anti-stuffing, H1 durma koşulu düzeltmesi
-- Dokümantasyon (docs/00-07)
-- Skills, templates, workflows, prompts
-- Makefile: install/dev/demo/test/score/clean
+### Tests
+- 7 yeni test eklendi (Sprint 2): BM25 components, Jaccard dynamic, domain_packs, LangGate, precision
+- **Toplam: 28/28 test geçiyor**
+
+---
+
+## [1.2.0] — 2026-06-13
+
+### Fixed — Sprint 1 "Temel Onarım" (5 CRITICAL/HIGH bug)
+- **cv_parser orphan** — ParseGate `None` → otomatik `parse_safety_score()` çağrısı (ATSE-1)
+- **must_have boş → skor çökmesi** — `coverage()` early return `1.0, []` (ATSE-2)
+- **Dual scoring engine drift** — `ats_score.py` thin wrapper olarak refactor (ATSE-3)
+- **Data dosyaları paketlenmiyordu** — `pyproject.toml` + `MANIFEST.in` düzeltmesi (ATSE-4)
+- **SBERT her çağrıda yeniden yüklüyordu** — `_get_sbert_model()` singleton (ATSE-6)
+
+### Tests
+- 3 yeni test eklendi (Sprint 1): parse_gate auto, empty must_have, SBERT singleton
+- **Toplam: 29/29 test geçiyor** (o dönem)
+
+---
+
+## [1.1.0] — 2026-06-12
+
+### Added
+- İlk tam motor sürümü: text, bm25, scoring, lexicons, jd_parser, evidence_bank, synthesis, report, multilevel, cv_parser
+- 7 katmanlı JD ayrıştırıcı
+- 3 seviyeli ATS skorlama (L1 gate, L2 best-of-8, L3 category robustness)
+- LangGate dil tutarlılığı kapısı
+- XYZ/CAR cümle sentezi + anti-stuffing
+- domain-packs/foreign-trade-logistics (EN + TR)
+- CI/CD (GitHub Actions)
+- 18 çekirdek test
+
+---
+
+## [1.0.0] — 2026-06-11
+
+### Added
+- İlk repo oluşturma ve temel yapı
