@@ -127,6 +127,33 @@ def test_beta_redistributed_when_no_sbert():
     assert w["alpha"] + w["gamma"] == pytest.approx(1.0, abs=1e-6)
 
 
+# ATSE-1: parse_gate=None → otomatik cv_parser.parse_safety_score çağrılır
+def test_parse_gate_auto_called_when_none():
+    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance"],
+                          parse_gate=None, use_sbert=False)
+    # Skor hesaplanmalı ve parse_gate 1.0'dan farklı olabilir
+    assert 0.0 <= res["score_percent"] <= 100.0
+    assert "Parse_gate" in res["components"]
+    # parse_gate otomatik hesaplandı, None değil
+    assert isinstance(res["components"]["Parse_gate"], (int, float))
+
+
+# ATSE-2: must_have boş → skor çökmemeli
+def test_empty_must_have_no_collapse():
+    res = ats_match_score(SAMPLE_JD, FRAMEWORK, [], use_sbert=False)
+    # Cov = 1.0 (nötr); skor > 0 olmalı
+    assert res["score_percent"] > 0.0
+    assert res["components"]["Cov"] == pytest.approx(1.0)
+
+
+# ATSE-6: SBERT singleton — fonksiyon var ve çağrılabilir
+def test_sbert_singleton_function_exists():
+    from ats_engine.scoring import _get_sbert_model
+    # SBERT kurulu olmasa bile None döner, hata vermez
+    result = _get_sbert_model()
+    assert result is None or hasattr(result, "encode")
+
+
 # ------------------------------------------------------------- synthesis
 def test_stopping_h1_no_closable_gap_stops_even_below_target():
     """H1 sonsuz-döngü düzeltmesi: skor hedefin altında ama kapatılabilir gap

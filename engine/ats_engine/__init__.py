@@ -35,7 +35,7 @@ from .multilevel import (
     SECTION_LABELS, L1_GATE_THRESHOLD, L2_SEAM_PENALTY,
 )
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 __all__ = [
     "ats_match_score", "tfidf_cosine", "coverage", "prf", "DEFAULTS", "THRESHOLDS",

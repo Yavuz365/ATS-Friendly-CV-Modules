@@ -28,6 +28,7 @@ from collections import Counter
 
 from . import lexicons
 from .bm25 import BM25
+from .cv_parser import parse_safety_score as _parse_safety
 from .text import tokenize
 
 # Önerilen varsayılan ağırlıklar (scoring-formulas.md ile birebir).
@@ -57,13 +58,30 @@ def tfidf_cosine(jd_tokens: list[str], cv_tokens: list[str], idf_fn) -> float:
 
 # ----------------------------- semantik (opsiyonel) -----------------------------
 
+_sbert_model = None
+
+
+def _get_sbert_model():
+    """SBERT modelini singleton olarak yükle (ATSE-6 fix: her çağrıda reload önlenir)."""
+    global _sbert_model
+    if _sbert_model is None:
+        try:
+            from sentence_transformers import SentenceTransformer  # type: ignore
+            _sbert_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+        except Exception:
+            _sbert_model = False  # sentinel: yükleme başarısız
+    return _sbert_model if _sbert_model is not False else None
+
+
 def sbert_cosine(jd_text: str, cv_text: str):
     """sentence-transformers VARSA çok-dilli SBERT kosinüsü [−1,1]; yoksa None."""
+    model = _get_sbert_model()
+    if model is None:
+        return None
     try:
-        from sentence_transformers import SentenceTransformer, util  # type: ignore
+        from sentence_transformers import util  # type: ignore
     except Exception:
         return None
-    model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
     emb = model.encode([jd_text, cv_text], convert_to_tensor=True, normalize_embeddings=True)
     return float(util.cos_sim(emb[0], emb[1]).item())
 
@@ -78,10 +96,15 @@ def coverage(must_have: list[str], cv_text: str, weights: dict | None = None,
     (Grammarly skill-normalization mantığı) — bu, ham substring'den daha gerçekçidir.
     """
     weights = weights or {}
+    # ATSE-2 fix: must_have boş ise coverage=1.0 (nötr), skor çökmesini önle.
+    if not must_have:
+        return 1.0, []
     num = den = 0.0
     gap: list[str] = []
     for term in must_have:
         t = term.strip()
+        if not t:
+            continue
         w = weights.get(t.lower(), 1.0)
         den += w
         present = (
@@ -93,7 +116,7 @@ def coverage(must_have: list[str], cv_text: str, weights: dict | None = None,
             num += w
         else:
             gap.append(term)
-    cov = num / den if den else 0.0
+    cov = num / den if den else 1.0
     return cov, gap
 
 
@@ -140,7 +163,7 @@ def ats_match_score(
     must_have: list[str],
     corpus_texts: list[str] | None = None,
     weights: dict | None = None,
-    parse_gate: float = 1.0,
+    parse_gate: float | None = None,
     lang_gate: float = 1.0,
     alpha: float = DEFAULTS["alpha"],
     beta: float = DEFAULTS["beta"],
@@ -154,7 +177,15 @@ def ats_match_score(
     Denetim-düzeltmeli hibrit ATS Match Score.
       RAW   = α·Lex + β·Sem + γ·Cov − ζ·Stuff
       Score = clamp(lang_gate × parse_gate × RAW, 0, 1)
+
+    ATSE-1 fix: parse_gate=None ise cv_parser.parse_safety_score() otomatik çağrılır.
+    Geriye dönük uyumluluk: parse_gate=1.0 geçirirseniz eski davranış korunur.
     """
+    # ATSE-1 fix: ParseGate artık otomatik bağlı — cv_parser orphan değil.
+    if parse_gate is None:
+        safety = _parse_safety(cv_text)
+        parse_gate = safety["score"]
+
     jd_tok = tokenize(jd_text)
     cv_tok = tokenize(cv_text)
 

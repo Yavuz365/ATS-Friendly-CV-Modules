@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ats-engine"
-version = "1.1.0"
+version = "1.2.0"
 description = "ATS-Friendly-CV-Modules — sentez+analiz tabanlı, audit-düzeltmeli ATS CV motoru"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,3 +21,11 @@ ats-engine = "ats_engine.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ats_engine*"]
+
+# ATSE-4 fix: data dosyaları (action_verbs.json, skill_synonyms.json, stopwords)
+# pip install ile birlikte paketlenir.
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.txt"]
+
+[tool.setuptools]
+include-package-data = true

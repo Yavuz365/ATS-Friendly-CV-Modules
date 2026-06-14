@@ -1,0 +1,2 @@
+# ATSE-4 fix: data dosyalarını sdist'e dahil et.
+recursive-include data *.json *.txt
