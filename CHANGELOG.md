@@ -27,7 +27,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ### Tests
 - Dead assertion düzeltildi (P0.2)
 - P0.1 acronym testi eklendi
-- **Total: 42+/42+ tests passing**
+- **Total: 43/43 tests passing**
 
 ---
 

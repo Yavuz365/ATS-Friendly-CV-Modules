@@ -1,4 +1,4 @@
-# ats_engine — ATS CV Engine (v1.4.0)
+# ats_engine — ATS CV Engine (v1.5.0)
 
 Synthesis-first, audit-corrected ATS-CV engine. **Core runs on standard library only** (zero required dependencies). SBERT is optional; if not installed, the engine gracefully redistributes β weight to α+γ.
 
@@ -22,7 +22,7 @@ python -m ats_engine.cli bank   --framework framework.md
 ## Demo + Tests
 ```bash
 python examples/run_demo.py
-pytest -q          # 41 tests
+pytest -q          # 43 tests
 ```
 
 ## Python API

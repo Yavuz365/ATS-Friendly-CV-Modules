@@ -17,7 +17,7 @@ Repo'nun mevcut aşaması tavsiyenin kapsamını ve agresifliğini belirler.
 
 ### 2. Developing (Gelişen) — v1.2–v1.4
 - **Durum:** Motor güvenilir, CI/CD var, ama pipeline boşlukları var
-- **Özellikler:** 41 test, 18 modül, lint+type-check, ama QA unwired
+- **Özellikler:** 43 test, 18 modül, lint+type-check, QA wired (v1.5.0)
 - **Odak:** Modülleri bağla, data kalitesini artır, test coverage yükselt
 - **Ne yapılmamalı:** LLM entegrasyonu, Streamlit, production deployment
 

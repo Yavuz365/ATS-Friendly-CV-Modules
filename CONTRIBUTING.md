@@ -35,7 +35,7 @@ Hooks: `ruff` (lint + format), `mypy` (type check), `trailing-whitespace`, `chec
 
 ## Rules
 
-1. `make test` must pass before any PR (41+ tests).
+1. `make test` must pass before any PR (43+ tests).
 2. New feature = new test. Do not break audit-corrections (clamp, ParseGate, gap classification).
 3. Data updates (`engine/data/*.json`) must include source documentation (Grammarly/ESCO/etc.).
 4. All new modules must be exported in `__init__.py` and added to `__all__`.
