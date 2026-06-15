@@ -18,6 +18,26 @@
 | [13-grammarly-kapisi.md](13-grammarly-kapisi.md) | Grammarly kapısı (AI-detector/rewriter) |
 | [14-pipeline-stages.md](14-pipeline-stages.md) | Pipeline aşamaları ve akış şeması |
 
+### v1.5.0 — Yeni Dokümanlar
+
+| Dosya | Konu |
+|-------|------|
+| [decision_engine.md](decision_engine.md) | 5-gate karar motoru mimarisi |
+| [diagnostic_tree.md](diagnostic_tree.md) | 7-dallı ATS tanı ağacı |
+| [module_status.md](module_status.md) | 5-seviyeli modül durum matrisi |
+| [maturity_model.md](maturity_model.md) | 4-aşamalı repo olgunluk modeli |
+
+### Mimari & Denetim & Migrasyon
+
+| Dosya | Konu |
+|-------|------|
+| [architecture/system-overview.md](architecture/system-overview.md) | Sistem genel mimari görünümü |
+| [architecture/provenance-and-anti-hallucination.md](architecture/provenance-and-anti-hallucination.md) | Köken takibi & anti-halüsinasyon |
+| [audits/ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md](audits/ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md) | Kurulum ve denetim bulguları |
+| [migration/legacy-map.md](migration/legacy-map.md) | Legacy yapı eşleme haritası |
+
+> İlgili konfigürasyon: [`config/user_profile.yaml`](../config/user_profile.yaml) — kullanıcı profili (Desen 8)
+
 ### Araştırma Notları
 
 | Dosya | Konu |
