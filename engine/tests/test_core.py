@@ -219,7 +219,10 @@ def test_domain_packs_list_and_load():
     # detect_domain test
     detected = detect_domain(SAMPLE_JD)
     # SAMPLE_JD foreign trade ile ilgili → detect edebilmeli
-    assert detected is not None or True  # paket olmasa bile hata vermemeli
+    # P0.2 fix: eski assertion (... or True) her zaman geçiyordu — ölü test.
+    # detect_domain None veya str dönmeli, hata fırlatmamalı.
+    assert detected is None or isinstance(detected, str), \
+        f"detect_domain str veya None dönmeli, dönen: {type(detected)}"
 
 
 # ATSE-8: enrich_must_terms çalışmalı
@@ -299,11 +302,12 @@ def test_cliche_verbs_detected():
     assert "managed" not in cv
 
 
-# Y36-13: TR-aware casefold
+# Y36-13: TR-aware casefold (P0.1 güncelleme: acronym-safe)
 def test_tr_lower_casefold():
     from ats_engine.text import tr_lower
     assert tr_lower("İSTANBUL") == "istanbul", "İ → i dönüşümü"
-    assert tr_lower("KISA") == "kısa", "I → ı dönüşümü"
+    # P0.1: I→i (EN standart) — I→ı yerine. INCOTERMS doğruluğu > KISA doğruluğu
+    assert tr_lower("KISA") == "kisa", "I → i (acronym-safe, EN standart)"
     assert tr_lower("GÜNEŞ") == "güneş", "diğer TR karakterler"
     assert tr_lower("HELLO") == "hello", "EN kelimeler"
 
@@ -432,3 +436,35 @@ def test_calibration():
 
     suggestions = suggest_weight_adjustment(report)
     assert len(suggestions["suggested_changes"]) > 0
+
+
+# P0.1: tr_lower acronym-safe test
+def test_tr_lower_acronym_safe():
+    """P0.1 fix: INCOTERMS, ERP, SAP gibi EN acronymler bozulmamalı."""
+    from ats_engine.text import tr_lower
+    # EN acronymler doğru dönüşmeli
+    assert tr_lower("INCOTERMS") == "incoterms", "INCOTERMS → incoterms olmalı"
+    assert tr_lower("ERP") == "erp", "ERP → erp olmalı"
+    assert tr_lower("SAP") == "sap", "SAP → sap olmalı"
+    assert tr_lower("ISO") == "iso", "ISO → iso olmalı"
+    # TR özel karakterler hala doğru dönüşmeli
+    assert tr_lower("İSTANBUL") == "istanbul", "İSTANBUL → istanbul olmalı"
+    assert tr_lower("GÜÇLÜ") == "güçlü", "GÜÇLÜ → güçlü olmalı"
+    assert tr_lower("ÖĞRENCİ") == "öğrenci", "ÖĞRENCİ → öğrenci olmalı"
+    assert tr_lower("ŞEKER") == "şeker", "ŞEKER → şeker olmalı"
+    assert tr_lower("ÇELİK") == "çelik", "ÇELİK → çelik olmalı"
+    # Karışık metin
+    assert "ıncoterms" not in tr_lower("INCOTERMS 2020"), "ıncoterms olmamalı"
+
+
+# P0.4: QA modülleri report'a bağlı mı testi
+def test_report_has_qa_checks():
+    """P0.4 fix: build_report() çıktısında qa_checks alanı olmalı."""
+    from ats_engine.report import build_report
+    result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
+    assert "qa_checks" in result, "build_report çıktısında qa_checks olmalı"
+    qa = result["qa_checks"]
+    # En az birkaç QA kontrol sonucu olmalı
+    expected_checks = ["completeness", "hygiene", "quantification", "cliches"]
+    for check in expected_checks:
+        assert check in qa, f"qa_checks içinde '{check}' olmalı"

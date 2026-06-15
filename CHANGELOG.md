@@ -3,6 +3,34 @@
 Tüm önemli değişiklikler bu dosyada belgelenir.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [1.5.0] — 2026-06-15
+
+### Fixed — P0 Critical (Viktor Hybrid Revizyon v2.0, 8+ AI çapraz-doğrulama)
+- **P0.1 tr_lower() acronym-safe** — `I`→`ı` eşlemesi kaldırıldı; `INCOTERMS`→`incoterms` artık doğru (text.py:26)
+- **P0.2 Dead assertion** — `assert detected is not None or True` → gerçek tip kontrolü (test_core.py:222)
+- **P0.3 ParseGate auto** — `build_report(parse_gate=None)` → `cv_parser.parse_safety_score()` otomatik çağrılır (report.py, cli.py)
+- **P0.4 6 QA modülü wired** — completeness_guard, format_metadata_hygiene, locale_consistency, quantification_score, cliche_tone, calibration artık `build_report()` çıktısına bağlı (`qa_checks` alanı)
+- **P0.8 CHANGELOG date** — v1.3.0 tarihi 2026-06-14→2026-06-12 düzeltildi (kronolojik sıra)
+
+### Added — New Documentation
+- **docs/decision_engine.md** — 5-gate karar motoru mimarisi
+- **docs/diagnostic_tree.md** — 7-dallı ATS tanı ağacı (Ads Toolkit'ten uyarlandı)
+- **docs/module_status.md** — 5-seviyeli modül durum matrisi
+- **docs/maturity_model.md** — 4-aşamalı repo olgunluk modeli
+- **config/user_profile.yaml** — Kullanıcı profili konfigürasyonu (Desen 8)
+
+### Changed
+- **report.py** — `parse_gate` default `1.0` → `None` (otomatik), QA modülleri entegre
+- **cli.py** — `--parse-gate` default `None` (report komutu otomatik, score komutu 1.0)
+- **__init__.py** — versiyon 1.4.0 → 1.5.0
+
+### Tests
+- Dead assertion düzeltildi (P0.2)
+- P0.1 acronym testi eklendi
+- **Total: 42+/42+ tests passing**
+
+---
+
 ## [1.4.0] — 2026-06-13
 
 ### Added — New Modules (Phase 0 + Phase 1)
@@ -28,7 +56,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ---
 
-## [1.3.0] — 2026-06-14
+## [1.3.0] — 2026-06-12
 
 ### Added — Yeni Özellikler
 - **domain_packs.py** modülü — Alan-özel anahtar kelime paketi yükleyici (ATSE-8)

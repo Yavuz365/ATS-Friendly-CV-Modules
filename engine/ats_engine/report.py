@@ -19,18 +19,35 @@ from __future__ import annotations
 import json
 
 from . import jd_parser, scoring, synthesis, evidence_bank, text
+# P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
+from . import cv_parser
+from .completeness_guard import evidence_recall
+from .format_metadata_hygiene import full_hygiene_check
+from .locale_consistency import detect_locale, locale_mismatches
+from .quantification_score import quantification_audit
+from .cliche_tone import detect_cliches
+from .calibration import create_calibration, suggest_weight_adjustment
 
 
 def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = None,
-                 parse_gate: float = 1.0, corpus_texts: list[str] | None = None,
+                 parse_gate: float | None = None, corpus_texts: list[str] | None = None,
                  use_sbert: bool = True, target_low: float = 75.0) -> dict:
-    """JD + Framework CV (+ opsiyonel mevcut CV) → 6 alanlık yapılandırılmış rapor."""
+    """JD + Framework CV (+ opsiyonel mevcut CV) → 6 alanlık yapılandırılmış rapor.
+
+    P0.3 fix: parse_gate=None → cv_parser.parse_safety_score() otomatik hesaplar.
+    P0.4 fix: 6 QA modülü rapora bağlandı (completeness, hygiene, locale, quant, cliché, calibration).
+    """
     analysis = jd_parser.parse_jd(jd_text)
     bank = evidence_bank.parse_bank(framework_cv_text)
 
     must_terms = analysis["_must_terms"]
     weights = analysis["_scoring_weights"]
     scored_text = cv_text if cv_text is not None else framework_cv_text
+
+    # P0.3 fix: parse_gate=None → otomatik ParseGate hesaplama
+    if parse_gate is None:
+        _pg_result = cv_parser.parse_safety_score(scored_text)
+        parse_gate = _pg_result["score"]
 
     score = scoring.ats_match_score(
         jd_text, scored_text, must_terms, corpus_texts=corpus_texts,
@@ -100,6 +117,43 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
             "resume_count": resume_count, "status": status,
         })
 
+    # ── P0.4: 6 QA modülü sonuçları ─────────────────────────────────────────
+    qa_checks = {}
+    try:
+        qa_checks["completeness"] = evidence_recall(framework_cv_text, scored_text)
+    except Exception:
+        qa_checks["completeness"] = {"error": "evidence_recall hesaplanamadı"}
+
+    try:
+        qa_checks["hygiene"] = full_hygiene_check(scored_text)
+    except Exception:
+        qa_checks["hygiene"] = {"error": "hygiene_check hesaplanamadı"}
+
+    try:
+        qa_checks["locale"] = locale_mismatches(jd_text, scored_text)
+    except Exception:
+        qa_checks["locale"] = {"error": "locale_mismatches hesaplanamadı"}
+
+    try:
+        qa_checks["quantification"] = quantification_audit(scored_text)
+    except Exception:
+        qa_checks["quantification"] = {"error": "quantification_audit hesaplanamadı"}
+
+    try:
+        qa_checks["cliches"] = detect_cliches(scored_text)
+    except Exception:
+        qa_checks["cliches"] = {"error": "detect_cliches hesaplanamadı"}
+
+    try:
+        qa_checks["calibration_hint"] = suggest_weight_adjustment(
+            create_calibration(
+                [{"jd_name": "current", "engine_score": score["score_percent"],
+                  "jobscan_score": score["score_percent"]}]
+            )
+        )
+    except Exception:
+        qa_checks["calibration_hint"] = {"error": "calibration hesaplanamadı"}
+
     return {
         "mode": "diagnostic" if cv_text is not None else "framework-baseline",
         "keywords": keywords,
@@ -116,6 +170,7 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         "match_score": match_score,
         "gap_analysis": gap_analysis,
         "skill_count_table": skill_count_table,
+        "qa_checks": qa_checks,
     }
 
 
@@ -175,6 +230,31 @@ def to_markdown(report: dict) -> str:
     for row in report.get("skill_count_table", []):
         lines.append(f"| {row['skill']} | {row['jd_count']} | {row['resume_count']} | {row['status']} |")
     lines.append("")
+
+    # P0.4: QA Checks bölümü
+    qa = report.get("qa_checks", {})
+    if qa:
+        lines.append("## QA Checks (v1.5 — 6 modül)")
+        if "completeness" in qa and "error" not in qa["completeness"]:
+            cr = qa["completeness"]
+            lines.append(f"- **Completeness (Evidence Recall):** {cr.get('recall', '?')}")
+        if "hygiene" in qa and "error" not in qa["hygiene"]:
+            hy = qa["hygiene"]
+            lines.append(f"- **Format Hygiene:** word_count={hy.get('word_budget', {}).get('word_count', '?')}, "
+                         f"special_chars={hy.get('special_characters', {}).get('count', 0)}")
+        if "locale" in qa and "error" not in qa["locale"]:
+            lo = qa["locale"]
+            lines.append(f"- **Locale:** JD={lo.get('jd_locale', '?')}, CV={lo.get('cv_locale', '?')}, "
+                         f"mismatches={lo.get('mismatch_count', 0)}")
+        if "quantification" in qa and "error" not in qa["quantification"]:
+            qu = qa["quantification"]
+            lines.append(f"- **Quantification:** found={qu.get('count', '?')}, "
+                         f"target={qu.get('target_min', 5)}, verdict={qu.get('verdict', '?')}")
+        if "cliches" in qa and "error" not in qa["cliches"]:
+            cl = qa["cliches"]
+            lines.append(f"- **Clichés:** count={cl.get('cliche_count', 0)}, "
+                         f"severity={cl.get('max_severity', 'none')}")
+        lines.append("")
 
     lines.append("## 6. gap_analysis")
     lines.append(f"- **Kapatılabilir gap:** {[g['term'] for g in ga['closable_gaps']] or '—'}")

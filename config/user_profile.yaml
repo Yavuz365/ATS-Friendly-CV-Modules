@@ -1,0 +1,54 @@
+# ATS-CV-Modules — Kullanıcı Profili Konfigürasyonu
+# Kaynak: Viktor Hybrid Revizyon v2.0, Desen 8 (Ads Toolkit Config Layer)
+# Bu dosya, motorun kullanıcı-spesifik davranışını yapılandırır.
+# P1 aşamasında motor tarafından okunacak.
+
+user:
+  name: "Ahmet Yavuz"
+  languages:
+    native: "tr"
+    proficient: ["en"]          # C1+
+    intermediate: ["de", "fr", "es"]  # B2
+    basic: ["ru"]               # A2
+  target_roles:
+    - "International Trade Specialist"
+    - "Supply Chain Manager"
+    - "Logistics Coordinator"
+    - "Foreign Trade Manager"
+  experience_years: 8
+  sectors:
+    - "energy"
+    - "construction"
+    - "automotive"
+    - "logistics"
+    - "manufacturing"
+
+scoring:
+  target_band: [75, 85]         # Hedef skor bandı
+  overopt_threshold: 90         # Üzeri = stuffing sinyali
+  serious_threshold: 50         # Altı = ciddi iyileştirme gerekli
+  jobscan_trust_weight: 0.25    # Jobscan'a güven ağırlığı
+  engine_trust_weight: 0.40     # Engine'e güven ağırlığı
+  grammarly_trust_weight: 0.15  # Grammarly'e güven ağırlığı
+  human_trust_weight: 0.20      # İnsan değerlendirmesine güven ağırlığı
+
+cv_preferences:
+  format: "docx"                # Çıktı formatı
+  layout: "single_column"       # Tek sütun
+  word_budget: [600, 1000]      # Kelime bütçesi
+  bullet_per_role: [3, 6]       # Her rol için bullet sayısı
+  quantification_target: 5      # Minimum ölçülebilir sonuç sayısı
+  cliche_max_ratio: 0.15        # Maksimum klişe oranı
+
+naming_conventions:
+  cv_file: "{role}_{company}_{date}.docx"
+  jd_file: "{role}_{company}.pdf"
+  analysis_file: "{role}_{company}_analysis.md"
+
+domain_packs:
+  primary: "foreign-trade-logistics"
+  secondary: []                 # Gelecekte: finance, it, healthcare
+
+approval:
+  mode: "approval-first"        # Tüm çıktılar onay gerektirir
+  channels: ["slack", "telegram"]

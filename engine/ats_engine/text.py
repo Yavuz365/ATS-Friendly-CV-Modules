@@ -18,16 +18,24 @@ from functools import lru_cache
 _TOKEN = re.compile(r"[a-zA-ZçÇğĞıİöÖşŞüÜ0-9]+")
 
 
-# ─── Y36-13: TR-aware casefold ─────────────────────────────────────────────
+# ─── Y36-13: TR-aware casefold (P0.1 fix — acronym-safe) ──────────────────
 # Python'un .lower() metodu Türkçe İ/ı dönüşümünü yanlış yapar:
 #   'İSTANBUL'.lower() → 'i̇stanbul' (yanlış)  |  Doğru: 'istanbul'
 #   'KISA'.lower()     → 'kisa' (yanlış)       |  Doğru: 'kısa'
-# Bu tablo, Python'un dotless ı ve dotted İ hatasını düzeltir.
-_TR_UPPER_TO_LOWER = str.maketrans("İIĞÜŞÖÇ", "iığüşöç")
+# Eski tablo İ+I → i+ı eşliyordu ama 'I'→'ı' EN kısaltmaları bozuyordu:
+#   'INCOTERMS' → 'ıncoterms' (YANLIŞ!)
+# P0.1 düzeltme: 'I' maketrans'tan çıkarıldı → .lower() standart 'I'→'i'
+# kullanır. TR 'KISA'→'kisa' (kısa yerine) küçük bir ödün ama ATS bağlamında
+# EN acronym doğruluğu (incoterms, ERP, SAP) daha kritik.
+_TR_UPPER_TO_LOWER = str.maketrans("İĞÜŞÖÇ", "iğüşöç")
 
 
 def tr_lower(text: str) -> str:
-    """Türkçe-bilinçli küçük harf dönüşümü. Python'un İ/ı hatasını düzeltir."""
+    """Türkçe-bilinçli küçük harf dönüşümü (acronym-safe).
+
+    İ→i (TR dotted capital), Ğ→ğ, Ü→ü, Ş→ş, Ö→ö, Ç→ç.
+    Standart I→i (EN) korunur — INCOTERMS→incoterms doğru çalışır.
+    """
     return text.translate(_TR_UPPER_TO_LOWER).lower()
 
 # Sayı / yüzde / para örüntüleri (niceleme tespiti için).

@@ -50,9 +50,11 @@ def cmd_report(args):
 def cmd_score(args):
     corpus = _load_corpus(args.corpus)
     must = [m.strip() for m in args.must.split(",") if m.strip()]
+    # score komutu için parse_gate=None → 1.0 (basit skor, auto-parse yok)
+    pg = args.parse_gate if args.parse_gate is not None else 1.0
     res = scoring.ats_match_score(
         _read(args.jd), _read(args.cv), must,
-        corpus_texts=corpus, parse_gate=args.parse_gate, use_sbert=not args.no_sbert,
+        corpus_texts=corpus, parse_gate=pg, use_sbert=not args.no_sbert,
     )
     print(json.dumps(res, ensure_ascii=False, indent=2))
 
@@ -77,7 +79,8 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--framework", required=True, help="etiketli Framework CV / kanıt bankası")
     r.add_argument("--cv", default=None, help="opsiyonel mevcut CV (teşhis modu)")
     r.add_argument("--corpus", default=None)
-    r.add_argument("--parse-gate", type=float, default=1.0)
+    r.add_argument("--parse-gate", type=float, default=None,
+                   help="ParseGate skoru (0-1). Verilmezse otomatik hesaplanır.")
     r.add_argument("--target", type=float, default=75.0)
     r.add_argument("--no-sbert", action="store_true")
     r.add_argument("--format", choices=["json", "md"], default="md")
@@ -88,7 +91,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--cv", required=True)
     s.add_argument("--must", default="")
     s.add_argument("--corpus", default=None)
-    s.add_argument("--parse-gate", type=float, default=1.0)
+    s.add_argument("--parse-gate", type=float, default=None,
+                   help="ParseGate skoru (0-1). Verilmezse 1.0 kullanılır.")
     s.add_argument("--no-sbert", action="store_true")
     s.set_defaults(func=cmd_score)
 

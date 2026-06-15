@@ -49,7 +49,7 @@ from .quantification_score import quantification_audit
 from .cliche_tone import detect_cliches
 from .calibration import create_calibration, suggest_weight_adjustment
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 __all__ = [
     "ats_match_score", "tfidf_cosine", "coverage", "prf", "DEFAULTS", "THRESHOLDS",

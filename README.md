@@ -6,8 +6,8 @@ A deterministic Python engine that measures job description (JD) to CV alignment
 
 [![CI](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions/workflows/test.yml/badge.svg)](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.4.0-green)
-![Tests](https://img.shields.io/badge/tests-41%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-1.5.0-green)
+![Tests](https://img.shields.io/badge/tests-43%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
 
 ---
@@ -32,7 +32,7 @@ Framework CV  ──────→  Evidence Bank  ──→  Provenance Check 
 ATS-Friendly-CV-Modules/
 ├── engine/                           ← Python engine (core)
 │   ├── ats_engine/
-│   │   ├── __init__.py               ← All API exports (v1.4.0)
+│   │   ├── __init__.py               ← All API exports (v1.5.0)
 │   │   ├── scoring.py                ← Hybrid ATS Match Score (TF-IDF+BM25+SBERT)
 │   │   ├── multilevel.py             ← 3-level scoring + LangGate
 │   │   ├── cv_parser.py              ← CV section detection + parse safety score
@@ -55,7 +55,7 @@ ATS-Friendly-CV-Modules/
 │   │   ├── action_verbs.json         ← 260+ action verbs (TR/EN, 13 categories, cliche_risk)
 │   │   ├── skill_synonyms.json       ← 61 canonicalization entries
 │   │   └── stopwords_tr_en.txt       ← Stopwords (TR + EN)
-│   ├── tests/test_core.py            ← 41 unit tests
+│   ├── tests/test_core.py            ← 43 unit tests
 │   ├── examples/
 │   │   ├── run_demo.py
 │   │   ├── sample_jd_foreign_trade.txt
@@ -65,8 +65,15 @@ ATS-Friendly-CV-Modules/
 │   ├── requirements.txt
 │   └── MANIFEST.in
 │
+├── config/                           ← Configuration (v1.5)
+│   └── user_profile.yaml            ← User profile config (scoring prefs, targets)
+│
 ├── docs/                             ← Methodology documentation
 │   ├── 00-mimari.md … 14-pipeline-stages.md  (15 main documents)
+│   ├── decision_engine.md            ← 5-gate karar motoru mimarisi (v1.5)
+│   ├── diagnostic_tree.md            ← 7-dallı ATS tanı ağacı (v1.5)
+│   ├── module_status.md              ← 5-seviyeli modül durum matrisi (v1.5)
+│   ├── maturity_model.md             ← 4-aşamalı repo olgunluk modeli (v1.5)
 │   ├── architecture/                 ← System architecture
 │   │   ├── system-overview.md
 │   │   └── provenance-and-anti-hallucination.md
@@ -266,6 +273,16 @@ This repo is **not dependent on any AI tool**:
 | [13-grammarly-kapisi.md](docs/13-grammarly-kapisi.md) | Grammarly gate |
 | [14-pipeline-stages.md](docs/14-pipeline-stages.md) | Pipeline stages |
 
+### v1.5 New Docs
+
+| File | Content |
+|------|---------|
+| [docs/decision_engine.md](docs/decision_engine.md) | 5-gate karar motoru mimarisi |
+| [docs/diagnostic_tree.md](docs/diagnostic_tree.md) | 7-dallı ATS tanı ağacı |
+| [docs/module_status.md](docs/module_status.md) | 5-seviyeli modül durum matrisi |
+| [docs/maturity_model.md](docs/maturity_model.md) | 4-aşamalı repo olgunluk modeli |
+| [config/user_profile.yaml](config/user_profile.yaml) | Kullanıcı profili konfigürasyonu |
+
 ### Additional Docs
 
 | Folder | Content |
@@ -290,7 +307,7 @@ This repo is **not dependent on any AI tool**:
 cd engine && pip install -e ".[dev]" && pytest tests/ -v
 ```
 
-41 tests covering: clamp, gate, H1 stopping condition, gap classification, 6-field output, BM25 pipeline, anti-stuffing, parse gate auto-call, empty must_have, SBERT singleton, Jaccard dynamic threshold, domain packs, LangGate trigger, precision independence, completeness guard, format hygiene, locale detection, quantification audit, cliché detection, calibration.
+43 tests covering: clamp, gate, H1 stopping condition, gap classification, 6-field output, BM25 pipeline, anti-stuffing, parse gate auto-call, empty must_have, SBERT singleton, Jaccard dynamic threshold, domain packs, LangGate trigger, precision independence, completeness guard, format hygiene, locale detection, quantification audit, cliché detection, calibration, acronym-safe tr_lower (P0.1), QA checks wiring (P0.4).
 
 CI/CD: Tests run automatically on Python 3.10, 3.11, 3.12 on every push.
 
@@ -305,13 +322,14 @@ CI/CD: Tests run automatically on Python 3.10, 3.11, 3.12 on every push.
 
 ## 📦 Version
 
-Current: **v1.4.0** — see [CHANGELOG.md](CHANGELOG.md) for full history.
+Current: **v1.5.0** — see [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ### Version History
 | Version | Date | Highlights |
 |---------|------|------------|
+| v1.5.0 | 2026-06-15 | P0 critical fixes (5), 6 QA modules wired, 4 new docs, config layer, 43 tests |
 | v1.4.0 | 2026-06-13 | 6 new modules (calibration, cliché, completeness, format, locale, quantification) |
-| v1.3.0 | 2026-06-14 | BM25 pipeline, Jaccard dynamic, domain_packs, LangGate fix, ruff+mypy |
+| v1.3.0 | 2026-06-12 | BM25 pipeline, Jaccard dynamic, domain_packs, LangGate fix, ruff+mypy |
 | v1.2.0 | 2026-06-13 | 5 critical bug fixes (ParseGate, must_have, dual engine, data packaging, SBERT cache) |
 | v1.1.0 | 2026-06-12 | Initial full engine release |
 | v1.0.0 | 2026-06-11 | Repository creation |
