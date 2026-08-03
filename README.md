@@ -52,8 +52,8 @@ ATS-Friendly-CV-Modules/
 │   │   ├── quantification_score.py   ← Quantification/metrics scoring (v1.4)
 │   │   ├── cli.py                    ← Command-line interface
 │   │   ├── data/                     ← P0-5 fix: moved INSIDE the package (was engine/data/)
-│   │   │   ├── action_verbs.json     ← 260+ action verbs (TR/EN, 13 categories, cliche_risk)
-│   │   │   ├── skill_synonyms.json   ← 61 canonicalization entries
+│   │   │   ├── action_verbs.json     ← 260 action verbs (TR/EN, 12 categories, cliche_risk)
+│   │   │   ├── skill_synonyms.json   ← 60 canonicalization entries
 │   │   │   └── stopwords_tr_en.txt   ← Stopwords (TR + EN)
 │   │   └── domain_pack_data/         ← P0-5 fix: moved INSIDE the package (was repo-root domain-packs/)
 │   │       └── foreign-trade-logistics/

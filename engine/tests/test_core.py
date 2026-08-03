@@ -593,6 +593,31 @@ def test_parse_gate_valid_value_unchanged_no_warning():
     assert not any("parse_gate" in w for w in result["warnings"])
 
 
+def test_action_verbs_meta_count_matches_actual_data():
+    """A11: action_verbs.json'un kendi _meta.total_verbs alanı fiili kategori
+    toplamıyla tutarlı olmalı (canlı denetimde 320 yazıyordu, gerçek toplam
+    260'tı — bu test gelecekte tekrar sapmayı CI'da yakalar)."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "ats_engine" / "data" / "action_verbs.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    categories = [k for k in data if not k.startswith("_")]
+    actual_total = sum(len(data[k]) for k in categories)
+    assert data["_meta"]["total_verbs"] == actual_total
+    assert len(categories) == 12
+
+
+def test_skill_synonyms_meta_count_matches_actual_data():
+    """A11: skill_synonyms.json'un _meta.total_entries alanı fiili anahtar
+    sayısıyla tutarlı olmalı (canlı denetimde 62 yazıyordu, gerçek 60'tı)."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "ats_engine" / "data" / "skill_synonyms.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    actual_total = len([k for k in data if k != "_meta"])
+    assert data["_meta"]["total_entries"] == actual_total
+
+
 def test_verdict_no_interview_ready_overclaim():
     """A11: motor artık verdict/interpretation alanlarında 'MÜLAKATA HAZIR' gibi
     garanti ima eden ifadeler döndürmüyor — güçlü bant hâlâ raporlanır ama

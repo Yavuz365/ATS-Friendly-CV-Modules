@@ -2,7 +2,7 @@
   "_meta": {
     "version": "1.2.0",
     "description": "Canonical skill normalization — maps variants/synonyms to canonical form",
-    "total_entries": 62
+    "total_entries": 60
   },
   "letter_of_credit": {
     "canonical": "letter of credit",
