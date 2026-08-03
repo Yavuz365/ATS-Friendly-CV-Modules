@@ -26,11 +26,17 @@ from . import evidence_bank, jd_parser, report, scoring
 
 # A9 (kalan parça): CLI eskiden hiçbir hatayı yakalamıyordu -- dosya bulunamadı,
 # bozuk girdi ya da beklenmeyen bir iç hata, hepsi aynı ham Python traceback +
-# exit code 1 olarak dışarı sızıyordu. Artık iki sınıf ayrılıyor:
-#   exit 0 -> başarı
-#   exit 2 -> kullanıcı/girdi hatası (düzeltilebilir: yanlış yol, okunamayan dosya)
-#             argparse'ın kendi kural-dışı-argüman exit code'uyla (2) tutarlı
-#   exit 1 -> beklenmeyen dahili hata (motor/programlama hatası)
+# exit code 1 olarak dışarı sızıyordu. Kanonik Blueprint'in (§9.3 P0.2) önerdiği
+# şemayla hizalı 3 sınıf ayrıldı:
+#   exit 0 -> geçerli rapor üretildi
+#   exit 2 -> kullanıcı/girdi hatası (düzeltilebilir: yanlış yol, okunamayan
+#             dosya) — argparse'ın kendi kural-dışı-argüman exit code'uyla (2) tutarlı
+#   exit 3 -> beklenmeyen dahili hata (motor/programlama hatası)
+# NOT: Blueprint ayrıca "exit 4 = blocking gate fail/review incomplete" öneriyor
+# (rapor kendisi başarıyla üretildi ama parse_gate/lang_gate REVIEW durumunda).
+# Bu, DecisionReport'un henüz var olmayan tipli status modelini (v2 C-008 gate
+# mimarisi) gerektirir — şimdiden CLI'da tahmin yürütmek yerine bilinçli olarak
+# v2'ye bırakıldı (bkz. PR #5 tartışması).
 
 
 class CLIInputError(Exception):
@@ -133,7 +139,7 @@ def main(argv=None) -> int:
         # dışına sızan HERHANGİ bir beklenmeyen hatayı burada durdurup kullanıcıya
         # ham traceback yerine tek satır + net exit code döndürüyoruz.
         print(f"Beklenmeyen dahili hata: {type(e).__name__}: {e}", file=sys.stderr)
-        return 1
+        return 3
     return 0
 
 

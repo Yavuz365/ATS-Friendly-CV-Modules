@@ -563,6 +563,25 @@ def test_markdown_includes_calibration_line():
     assert "Calibration" in md
 
 
+def test_markdown_qa_section_reads_real_field_names_not_defaults():
+    """A8/STAB-012..014 (gerçek durum): QA Checks bölümü canlıydı ama 5 modülün
+    TAMAMI .get(yanlış_anahtar, varsayılan) kullandığı için gerçek veri hiç
+    okunmuyordu -- ör. CV'de 3 gerçek klişe varken Markdown'da "count=0" basılıyordu.
+    Bu test, klişe içeren bir CV ile gerçek sayının (0 değil) Markdown'a
+    yansıdığını doğrular -- eskiden sessizce 0/? basardı."""
+    from ats_engine.report import build_report, to_markdown
+    cliche_cv = (
+        "Dış ticaret uzmanı olarak spearheaded ve leveraged ederek synergized "
+        "süreçler yürüttüm. Incoterms ve akreditif konusunda deneyimliyim."
+    )
+    result = build_report(SAMPLE_JD, FRAMEWORK, cv_text=cliche_cv, use_sbert=False)
+    real_total = result["qa_checks"]["cliches"]["total_cliches"]
+    assert real_total > 0, "test verisi gerçekten klişe içermeli"
+    md = to_markdown(result)
+    assert f"count={real_total}" in md, "Markdown'daki klişe sayısı gerçek total_cliches ile eşleşmeli"
+    assert "count=0, durum=none" not in md
+
+
 # ── A9 fix: sınır doğrulama + tipli hata sözleşmesi ────────────────────────
 
 def test_parse_gate_nan_is_fail_closed_with_warning():

@@ -2,7 +2,8 @@
 
 Öncesinde main() hiçbir hatayı yakalamıyordu; dosya bulunamadı da, beklenmeyen
 bir motor hatası da aynı ham traceback + exit code 1 olarak dışarı sızıyordu.
-Bu testler üç durumu da kilitler: 0=başarı, 2=girdi hatası, 1=beklenmeyen hata.
+Bu testler Kanonik Blueprint'in (§9.3 P0.2) önerdiği şemayı kilitler:
+0=başarı, 2=girdi hatası, 3=beklenmeyen dahili hata.
 """
 from __future__ import annotations
 
@@ -46,7 +47,7 @@ def test_main_returns_two_on_missing_file(tmp_path, capsys):
     assert "does_not_exist.txt" in err
 
 
-def test_main_returns_one_on_unexpected_internal_error(tmp_path, capsys, monkeypatch):
+def test_main_returns_three_on_unexpected_internal_error(tmp_path, capsys, monkeypatch):
     jd_path = _write(tmp_path, "jd.txt", JD)
 
     def _boom(_text):
@@ -54,7 +55,7 @@ def test_main_returns_one_on_unexpected_internal_error(tmp_path, capsys, monkeyp
 
     monkeypatch.setattr(cli.jd_parser, "parse_jd", _boom)
     code = cli.main(["parse", "--jd", jd_path])
-    assert code == 1
+    assert code == 3
     err = capsys.readouterr().err
     assert "Beklenmeyen dahili hata" in err
     assert "RuntimeError" in err

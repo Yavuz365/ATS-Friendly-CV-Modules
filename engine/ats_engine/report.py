@@ -267,28 +267,34 @@ def to_markdown(report: dict) -> str:
     lines.append("")
 
     # P0.4: QA Checks bölümü
+    # A8/STAB-012..014 düzeltmesi tamamlanmamıştı: bu bölüm var olsa da, altındaki
+    # 5 modülün TAMAMI .get(yanlış_anahtar, varsayılan) kullandığı için gerçek
+    # veri hiç okunmuyordu (ör. 3 gerçek klişe varken "count=0" basılıyordu —
+    # sessizce yanlış/temiz görünen bir rapor). Anahtarlar artık her modülün
+    # gerçek dönüş sözlüğüyle (completeness_guard/format_metadata_hygiene/
+    # locale_consistency/quantification_score/cliche_tone) birebir eşleşiyor.
     qa = report.get("qa_checks", {})
     if qa:
         lines.append("## QA Checks (v1.5 — 6 modül)")
         if "completeness" in qa and "error" not in qa["completeness"]:
             cr = qa["completeness"]
-            lines.append(f"- **Completeness (Evidence Recall):** {cr.get('recall', '?')}")
+            lines.append(f"- **Completeness (Evidence Recall):** %{cr.get('recall_percent', '?')}")
         if "hygiene" in qa and "error" not in qa["hygiene"]:
             hy = qa["hygiene"]
             lines.append(f"- **Format Hygiene:** word_count={hy.get('word_budget', {}).get('word_count', '?')}, "
-                         f"special_chars={hy.get('special_characters', {}).get('count', 0)}")
+                         f"special_chars={hy.get('special_characters', {}).get('total_special', 0)}")
         if "locale" in qa and "error" not in qa["locale"]:
             lo = qa["locale"]
             lines.append(f"- **Locale:** JD={lo.get('jd_locale', '?')}, CV={lo.get('cv_locale', '?')}, "
-                         f"mismatches={lo.get('mismatch_count', 0)}")
+                         f"mismatches={len(lo.get('mismatches', []))}")
         if "quantification" in qa and "error" not in qa["quantification"]:
             qu = qa["quantification"]
-            lines.append(f"- **Quantification:** found={qu.get('count', '?')}, "
-                         f"target={qu.get('target_min', 5)}, verdict={qu.get('verdict', '?')}")
+            lines.append(f"- **Quantification:** found={qu.get('total_quantified', '?')}, "
+                         f"target={qu.get('target', 5)}, verdict={qu.get('verdict', '?')}")
         if "cliches" in qa and "error" not in qa["cliches"]:
             cl = qa["cliches"]
-            lines.append(f"- **Clichés:** count={cl.get('cliche_count', 0)}, "
-                         f"severity={cl.get('max_severity', 'none')}")
+            lines.append(f"- **Clichés:** count={cl.get('total_cliches', 0)}, "
+                         f"durum={cl.get('tone_verdict', 'none')}")
         # P0-6 fix: calibration_hint JSON'da vardı ama Markdown raporunda hiç
         # görünmüyordu (rapor formatları birbirini tutmuyordu) — artık burada da basılıyor.
         if "calibration_hint" in qa and "error" not in qa["calibration_hint"]:
