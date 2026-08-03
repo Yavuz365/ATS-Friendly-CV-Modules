@@ -68,7 +68,8 @@ def load_pack(pack_name: str, lang: str = "en") -> dict:
         )
 
     with open(filepath, encoding="utf-8") as f:
-        return json.load(f)
+        pack: dict = json.load(f)
+        return pack
 
 
 def all_keywords(pack: dict) -> list[str]:

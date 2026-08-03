@@ -3,6 +3,59 @@
 Tüm önemli değişiklikler bu dosyada belgelenir.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [1.5.1] — 2026-08-03
+
+**Bağlam:** `1.5.0` hiçbir zaman gerçek bir GitHub tag/release olarak yayınlanmamıştı
+(`pyproject.toml` sürümü commit geçmişiyle uyumsuzdu — bkz. ADR-000). Bu sürüm, 5 turluk
+dış AI denetiminin (ChatGPT+Claude) kanonik P0 listesindeki (A1-A12) tüm kod-seviyesi
+maddeleri kapatan **v1.5.1 güven/stabilizasyon** sürümüdür. Bkz. `docs/decisions/ADR-000-pre-production-status.md`.
+
+### Fixed — P0 (PR #4, `fix/p0-stabilization`)
+- Boş `must_have` artık sahte `coverage=1.0` üretmiyor (fail-open kapatıldı)
+- `matches_semantically()` artık kelime sınırı kullanıyor ("SAP" ≠ "sapphire")
+- `action_verbs_by_intent()` artık asla sessizce `[]` dönmüyor
+- Motorun kendi skorunu kendisiyle karşılaştıran sahte kalibrasyon kaldırıldı
+- Wheel paketi artık runtime verisini (`data/`, `domain-packs/`) içeriyor
+- JD gövde-fallback artık anlamsız kısaltmaları ("MM" vb.) zorunlu şart saymıyor
+- Dil + seviye (CEFR) eşleştirmesi düzeltildi
+- Markdown/JSON rapor alan tutarsızlığı giderildi
+- Ruff: 41 bulgu → 0
+
+### Fixed — P1 (bu sürüm, `fix/p1-hardening`)
+- **Tipli hata sözleşmesi:** `report.py`/`scoring.py`'deki 7 sessiz `except Exception`
+  bloğu artık loglanıyor (`logging.warning`, traceback dahil) ve gerçek hata
+  tipi+mesajı rapora ekleniyor (`error_type`, `error_detail`) — eskiden yalnızca
+  sabit "hesaplanamadı" metni vardı, gerçek arıza bilgisi kayboluyordu.
+- **Sınır doğrulama:** `parse_gate`/`lang_gate` artık [0,1] dışı veya NaN değerleri
+  sessizce kabul etmiyor — NaN fail-closed (0.0) olarak ele alınıyor, [0,1] dışı
+  değer clamp ediliyor, her ikisi de rapora `warnings` olarak ekleniyor.
+- **Tip kontrolü:** `mypy` (zaten `pyproject.toml`'da yapılandırılmıştı ama hiç
+  çalıştırılmıyordu) artık CI + `make check`'in bir parçası; 8 tip hatası düzeltildi,
+  şu an 0 hata.
+- **Ürün dili dürüstlüğü:** "%75-85 mülakata hazır", "ATS'den/ATS'yi geçme" gibi
+  garanti ima eden ifadeler 6 docs dosyasında ("hizalanma sinyali, garanti değil"
+  çerçevesine) yeniden yazıldı (`03-skorlama-matematigi.md`, `11-uc-seviyeli-skorlama.md`,
+  `13-grammarly-kapisi.md`, `architecture/system-overview.md`, `research/R3-seo-ats-sozluk.md`,
+  `audits/ATS-CV-ARCHITECT_KURULUM-VE-BULGULAR.md`).
+
+### Added
+- `docs/decisions/ADR-000-pre-production-status.md` — dondurulmuş, dürüst durum beyanı
+- 4 yeni regresyon testi (`test_parse_gate_nan_is_fail_closed_with_warning`,
+  `test_parse_gate_out_of_range_is_clamped_with_warning`,
+  `test_parse_gate_valid_value_unchanged_no_warning`,
+  `test_qa_check_failure_surfaces_real_error_not_silent`)
+- CI: `ruff check` + `mypy` adımları (önceden yapılandırılmış ama hiç çalıştırılmıyordu)
+- `make typecheck` hedefi; `make check` artık lint+typecheck+test çalıştırıyor
+
+### Tests
+- **Total: 55/55 tests passing** (was 51)
+
+### Kapsam dışı (henüz yapılmadı, ayrı karar/faz gerektiriyor)
+- REG-001..015 numaralı resmi regresyon test kimlikleri (yerine yukarıdaki 4 test eklendi,
+  ama kanonik dokümanların önerdiği numaralandırma şeması uygulanmadı)
+- v2.0 contract-first mimarisi (B serisi, ADR-001+)
+- F1 canonical_id eşleme tablosu (Linear/Jira/Asana/Monday'a canlı yazma erişimi yok)
+
 ## [1.5.0] — 2026-06-15
 
 ### Fixed — P0 Critical (Viktor Hybrid Revizyon v2.0, 8+ AI çapraz-doğrulama)

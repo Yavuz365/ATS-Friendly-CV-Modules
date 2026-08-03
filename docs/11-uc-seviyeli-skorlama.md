@@ -91,11 +91,11 @@ LangGate = min(1.0, purity / p₀)    (p₀ = 0.85)
 - Saflık p₀ altında → orantılı ceza
 - Türkçe ilana İngilizce karışık CV → skor düşer
 
-## 6. Hedef Bantlar
+## 6. Teşhis Bantları (A11 fix: "mülakata hazır" garantisi kaldırıldı — bu bir hizalanma sinyalidir, işe alım sonucu tahmini değildir)
 
 | Bant | Aralık | Aksiyon |
 |------|--------|---------|
-| 🟢 Mülakata Hazır | %75 – 85 | Gönder |
+| 🟢 Güçlü Hizalanma | %75 – 85 | Gönderime uygun görülebilir (garanti değil) |
 | 🟡 Hedefin Altında | %50 – 75 | Sentez (revizyon) turu |
 | 🔴 Ciddi | < %50 | Framework CV gözden geçir |
 | ⚠️ Aşırı Optimizasyon | > %90 | Şişirme/geri tepme riski |

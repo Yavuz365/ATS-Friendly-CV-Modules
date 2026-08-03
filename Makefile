@@ -1,4 +1,4 @@
-.PHONY: install dev demo test score lint format check clean
+.PHONY: install dev demo test score lint typecheck format check clean
 
 install:
 	cd engine && pip install -e . --break-system-packages
@@ -12,9 +12,13 @@ score:
 	cd engine && python -m ats_engine.cli report --jd examples/sample_jd_foreign_trade.txt --framework examples/framework_cv.md --cv examples/sample_cv.txt --no-sbert --format md
 lint:
 	cd engine && python -m ruff check ats_engine/ tests/
+# A10 fix: mypy [tool.mypy] altında yapılandırılmıştı ama hiçbir make hedefi
+# çalıştırmıyordu (CI de öyle) — artık `make check`'in bir parçası.
+typecheck:
+	cd engine && python -m mypy ats_engine
 format:
 	cd engine && python -m ruff format ats_engine/ tests/
-check: lint test
+check: lint typecheck test
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} + ; find . -name '*.pyc' -delete
 	find . -type d -name .pytest_cache -prune -exec rm -rf {} +

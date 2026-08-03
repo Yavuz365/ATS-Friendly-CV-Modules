@@ -561,3 +561,58 @@ def test_markdown_includes_calibration_line():
     result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
     md = to_markdown(result)
     assert "Calibration" in md
+
+
+# ── A9 fix: sınır doğrulama + tipli hata sözleşmesi ────────────────────────
+
+def test_parse_gate_nan_is_fail_closed_with_warning():
+    """A9: NaN parse_gate artık sessizce skoru bozmuyor — 0.0'a fail-closed + uyarı."""
+    from ats_engine.scoring import ats_match_score
+    nan = float("nan")
+    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
+                              parse_gate=nan, use_sbert=False)
+    assert result["score_percent"] == 0.0, "NaN parse_gate fail-closed (0.0) olmalı, NaN yaymamalı"
+    assert any("NaN" in w for w in result["warnings"]), "NaN geçişi uyarı listesinde görünmeli"
+
+
+def test_parse_gate_out_of_range_is_clamped_with_warning():
+    """A9: parse_gate=1.5 gibi [0,1] dışı bir değer artık sessizce kabul edilmiyor — clamp + uyarı."""
+    from ats_engine.scoring import ats_match_score
+    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
+                              parse_gate=1.5, use_sbert=False)
+    assert result["components"]["Parse_gate"] == 1.0, "1.5 değeri 1.0'e clamp edilmeli"
+    assert any("aralık [0,1] dışında" in w for w in result["warnings"])
+
+
+def test_parse_gate_valid_value_unchanged_no_warning():
+    """A9: geçerli [0,1] aralığındaki bir parse_gate davranışı DEĞİŞTİRMEMELİ (geriye dönük uyumluluk)."""
+    from ats_engine.scoring import ats_match_score
+    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
+                              parse_gate=0.9, use_sbert=False)
+    assert result["components"]["Parse_gate"] == 0.9
+    assert not any("parse_gate" in w for w in result["warnings"])
+
+
+def test_verdict_no_interview_ready_overclaim():
+    """A11: motor artık verdict/interpretation alanlarında 'MÜLAKATA HAZIR' gibi
+    garanti ima eden ifadeler döndürmüyor — güçlü bant hâlâ raporlanır ama
+    bir sinyal olarak, garanti olarak değil (bkz. ADR-000)."""
+    from ats_engine.scoring import ats_match_score
+    result = ats_match_score(SAMPLE_JD, FRAMEWORK, ["dış ticaret", "ihracat"], use_sbert=False)
+    assert "MÜLAKATA HAZIR" not in result["verdict"]
+    assert "MÜLAKATA HAZIR" not in result["interpretation"]
+
+
+def test_qa_check_failure_surfaces_real_error_not_silent(monkeypatch):
+    """A9: bir QA alt-modülü çökerse artık sabit 'hesaplanamadı' metni değil,
+    gerçek exception tipi+mesajı rapora yazılır (sessiz yutma yerine gözlemlenebilir hata)."""
+    import ats_engine.report as report_mod
+
+    def _boom(*args, **kwargs):
+        raise ValueError("kasıtlı test hatası")
+
+    monkeypatch.setattr(report_mod, "evidence_recall", _boom)
+    result = report_mod.build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
+    completeness = result["qa_checks"]["completeness"]
+    assert completeness["error_type"] == "ValueError"
+    assert "kasıtlı test hatası" in completeness["error_detail"]

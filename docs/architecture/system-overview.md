@@ -22,7 +22,7 @@ Sistem **iki katmanlı diyalektik bir motordur**:
                               FINAL ATS CV ◄──┘
 ```
 
-**Hedef skor bandı:** `%75–85` · `>%90` şişirme sinyali · `<%50` ciddi iyileştirme gerekir.
+**Hedef skor bandı (teşhis sinyali, garanti değil):** `%75–85` güçlü hizalanma · `>%90` şişirme sinyali · `<%50` ciddi iyileştirme gerekir. (A11 fix: bu bantlar işe alım sonucunu veya "ATS'yi geçme"yi garanti etmez — bkz. `docs/03-skorlama-matematigi.md` "Dürüst statü".)
 
 ---
 

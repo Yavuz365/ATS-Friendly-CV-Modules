@@ -17,6 +17,8 @@ Bağımlılık: yalnızca standart kütüphane (+ ats_engine alt modülleri).
 from __future__ import annotations
 
 import json
+import logging
+from collections.abc import Callable
 
 # P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
 from . import cv_parser, evidence_bank, jd_parser, scoring, synthesis, text
@@ -26,9 +28,37 @@ from .format_metadata_hygiene import full_hygiene_check
 from .locale_consistency import locale_mismatches
 from .quantification_score import quantification_audit
 
+# A9 fix (hardening): QA alt modüllerinden gelen beklenmedik hatalar artık
+# sessizce yutulmuyor — logger'a (traceback dahil) yazılıyor ve gerçek hata
+# mesajı (yalnızca sabit "hesaplanamadı" değil) rapora da ekleniyor. Rapor
+# yine de üretilmeye devam eder (bir QA alt-modülünün çökmesi tüm raporu
+# düşürmemeli) ama artık arıza *görünür* — CI/log izleme bunu yakalayabilir.
+logger = logging.getLogger(__name__)
+
 # P0-4 fix: create_calibration/suggest_weight_adjustment artık build_report()
 # içinde çağrılmıyor (bkz. qa_checks["calibration_hint"] altındaki not) — gerçek
 # dış referans skoru olan ayrı bir kalibrasyon akışı için calibration.py'de dursunlar.
+
+
+def _run_qa_check(name: str, fn: Callable[..., dict], *args) -> dict:
+    """A9 fix: 6 QA alt-modülü çağrısı için ortak hata sözleşmesi.
+
+    Eskiden her çağrı kendi `except Exception: {"error": "<sabit metin>"}` bloğuna
+    sahipti — hangi hata tipi/mesajının oluştuğu tamamen kayboluyordu (sessiz yutma).
+    Artık: (1) beklenmedik hata `logger.warning` ile traceback dahil loglanır,
+    (2) rapora yalnızca "hesaplanamadı" değil gerçek exception tipi+mesajı da yazılır,
+    (3) tek bir QA alt-modülünün çökmesi tüm raporu düşürmez (kasıtlı fail-soft —
+    QA alanları rapora ek bilgi katar, ana skor/karar zincirinin parçası değildir).
+    """
+    try:
+        return fn(*args)
+    except Exception as exc:  # kasıtlı geniş yakalama, bkz. docstring
+        logger.warning("QA check '%s' failed: %s: %s", name, type(exc).__name__, exc, exc_info=True)
+        return {
+            "error": f"{name} hesaplanamadı",
+            "error_type": type(exc).__name__,
+            "error_detail": str(exc),
+        }
 
 
 def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = None,
@@ -120,31 +150,15 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         })
 
     # ── P0.4: 6 QA modülü sonuçları ─────────────────────────────────────────
-    qa_checks = {}
-    try:
-        qa_checks["completeness"] = evidence_recall(framework_cv_text, scored_text)
-    except Exception:
-        qa_checks["completeness"] = {"error": "evidence_recall hesaplanamadı"}
-
-    try:
-        qa_checks["hygiene"] = full_hygiene_check(scored_text)
-    except Exception:
-        qa_checks["hygiene"] = {"error": "hygiene_check hesaplanamadı"}
-
-    try:
-        qa_checks["locale"] = locale_mismatches(jd_text, scored_text)
-    except Exception:
-        qa_checks["locale"] = {"error": "locale_mismatches hesaplanamadı"}
-
-    try:
-        qa_checks["quantification"] = quantification_audit(scored_text)
-    except Exception:
-        qa_checks["quantification"] = {"error": "quantification_audit hesaplanamadı"}
-
-    try:
-        qa_checks["cliches"] = detect_cliches(scored_text)
-    except Exception:
-        qa_checks["cliches"] = {"error": "detect_cliches hesaplanamadı"}
+    # A9 fix: her alt-modül çağrısı artık ortak bir sarmalayıcıdan geçiyor —
+    # beklenmedik hata sessizce yutulmuyor; logger'a yazılıyor ve gerçek
+    # exception tipi+mesajı (yalnızca sabit metin değil) rapora ekleniyor.
+    qa_checks: dict = {}
+    qa_checks["completeness"] = _run_qa_check("completeness", evidence_recall, framework_cv_text, scored_text)
+    qa_checks["hygiene"] = _run_qa_check("hygiene", full_hygiene_check, scored_text)
+    qa_checks["locale"] = _run_qa_check("locale", locale_mismatches, jd_text, scored_text)
+    qa_checks["quantification"] = _run_qa_check("quantification", quantification_audit, scored_text)
+    qa_checks["cliches"] = _run_qa_check("cliches", detect_cliches, scored_text)
 
     # P0-4 fix: eskiden burada motorun KENDİ skoru hem "engine_score" hem
     # "jobscan_score" olarak calibration'a veriliyordu → delta her zaman 0,

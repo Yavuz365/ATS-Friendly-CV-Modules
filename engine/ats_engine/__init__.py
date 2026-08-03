@@ -63,7 +63,7 @@ from .synthesis import (
 )
 from .text import tr_lower
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 __all__ = [
     "DEFAULTS",

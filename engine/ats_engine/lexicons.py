@@ -34,14 +34,16 @@ _DATA_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "data"))
 def _load_action_verbs() -> dict:
     path = os.path.join(_DATA_DIR, "action_verbs.json")
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        data: dict = json.load(f)
+        return data
 
 
 @lru_cache(maxsize=1)
 def _load_synonyms() -> dict:
     path = os.path.join(_DATA_DIR, "skill_synonyms.json")
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        data: dict = json.load(f)
+        return data
 
 
 @lru_cache(maxsize=1)
@@ -135,7 +137,8 @@ def normalize_skill(term: str) -> str | None:
     key = idx.get((term or "").lower().strip())
     if not key:
         return None
-    return syn[key]["canonical"]
+    canonical: str = syn[key]["canonical"]
+    return canonical
 
 
 def expand_lsi(term: str) -> list[str]:

@@ -5,6 +5,16 @@
 - **Coverage > density:** no keyword stuffing.
 - **Score = proxy:** approximation of proprietary ATS formulas; never present as absolute truth.
 - **H1 rule:** revision loop stops at `score≥target OR closable_gap=0`; this is immutable.
+- **No universal pass/interview-readiness claims:** score bands (e.g. `%75-85`) describe an
+  *alignment signal*, never an ATS "pass" or interview guarantee. See
+  `docs/03-skorlama-matematigi.md` "Dürüst statü" and `docs/decisions/ADR-000-pre-production-status.md`.
+
+## Feature freeze (see ADR-000)
+This repo is in **stabilization mode**: only bug fixes, hardening, and honesty corrections
+(canonical A-series backlog) are accepted until all P0 items are closed and merged. New
+features (new domain packs, new integrations, the v2.0 contract-first rewrite) require an
+explicit decision to lift the freeze — check `docs/decisions/ADR-000-pre-production-status.md`
+before starting new feature work.
 
 ## Development Setup
 
