@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from collections.abc import Callable
 
 # P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
@@ -135,14 +136,24 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
     }
 
     # ── Y36-11: Jobscan-style Skill/JD/Resume sayım tablosu ──────────────
-    jd_tokens = text.tokenize(jd_text, ngram_max=3, drop_stopwords=True)
-    cv_tokens = text.tokenize(scored_text, ngram_max=3, drop_stopwords=True)
+    # B1/STAB-015 (kalan parça, 2026-08-03): bu tablo A1'in düzelttiği
+    # matches_semantically() yolunu KULLANMIYORDU -- ayrı, hala bozuk bir
+    # `t_low in tok` alt-string kontrolüyle sayıyordu. text.tokenize()
+    # 1..3-gram'lık HER PENCEREYİ tek tek üretir (üst üste biner); bir terim
+    # bu pencerelerin çoğunun içinde alt-string olarak da geçtiği için tek
+    # bir gerçek geçiş 3-6 kata kadar şişiyordu (canlı kanıt: JD'de 2 kez
+    # geçen "incoterms" bu yolla 12 olarak sayılıyordu). jd_parser.py'nin
+    # kendi freq hesaplaması (satır ~215) zaten doğru deseni kullanıyor --
+    # Counter üzerinden TAM eşleşme arama, alt-string değil. Aynı desen
+    # burada da uygulandı.
+    jd_gram_counts = Counter(text.tokenize(jd_text, ngram_max=3, drop_stopwords=True))
+    cv_gram_counts = Counter(text.tokenize(scored_text, ngram_max=3, drop_stopwords=True))
     skill_count_table = []
     all_terms = [m["term"] for m in (analysis["must_have"] + analysis["nice_to_have"])]
     for term in all_terms:
         t_low = text.tr_lower(term)
-        jd_count = sum(1 for tok in jd_tokens if t_low in tok)
-        resume_count = sum(1 for tok in cv_tokens if t_low in tok)
+        jd_count = jd_gram_counts.get(t_low, 0)
+        resume_count = cv_gram_counts.get(t_low, 0)
         status = "✅ Match" if resume_count > 0 else "❌ Missing"
         skill_count_table.append({
             "skill": term, "jd_count": jd_count,

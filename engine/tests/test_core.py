@@ -409,6 +409,29 @@ def test_report_has_skill_count_table():
         assert "status" in row
 
 
+# B1/STAB-015 (kalan parça, canlı bug): Skill Count tablosu eskiden
+# `t_low in tok` alt-string kontrolü kullanıyordu -- text.tokenize()'ın
+# ürettiği üst üste binen 1..3-gram pencerelerinin çoğunda bir terim alt-string
+# olarak da geçtiği için tek gerçek geçiş 3-6 kat şişiyordu. Kanıt: JD'de tam
+# 2 kez geçen "incoterms" eskiden 12 olarak sayılıyordu. Artık jd_parser.py'nin
+# kendi freq desenindeki gibi (Counter üzerinden TAM eşleşme) sayılıyor.
+def test_skill_count_table_uses_exact_match_not_substring_inflation():
+    jd = (
+        "Gümrük müşavirliği ve customs clearance deneyimi olan, incoterms bilen "
+        "dış ticaret uzmanı aranıyor. Incoterms kurallarını iyi bilmeli."
+    )
+    cv = (
+        "Dış ticaret operasyonlarında customs clearance süreçlerini yönettim. "
+        "Incoterms 2020 kurallarına hakimim. Incoterms eğitimi aldım. Incoterms uyguladım."
+    )
+    report = build_report(jd, "## Kanıt\n- customs clearance ve incoterms deneyimi var",
+                           cv_text=cv, use_sbert=False)
+    by_skill = {row["skill"]: row for row in report["skill_count_table"]}
+    assert by_skill["incoterms"]["jd_count"] == 2, "JD'de tam 2 kez geçiyor, 12 değil"
+    assert by_skill["incoterms"]["resume_count"] == 3, "CV'de tam 3 kez geçiyor"
+    assert by_skill["customs clearance"]["jd_count"] == 1, "JD'de tam 1 kez geçiyor, 3 değil"
+
+
 # Y36-12: skill_synonyms genişletilmiş
 def test_skill_synonyms_expanded():
     from ats_engine.lexicons import normalize_skill
@@ -660,3 +683,21 @@ def test_qa_check_failure_surfaces_real_error_not_silent(monkeypatch):
     completeness = result["qa_checks"]["completeness"]
     assert completeness["error_type"] == "ValueError"
     assert "kasıtlı test hatası" in completeness["error_detail"]
+
+
+# GAP-D (bilinen sınır, v1.5.1 — bkz. docs/02-jd-decomposition.md):
+# jd_parser OR-grup ("İşletme veya İktisat mezunu") gereksinimlerini modellemiyor.
+# Bu test bir "fix" değil, kanonik dokümanın kendi kararının (JOB-002 ekine
+# ertelendi, v2.0 kapsamı) davranış kilididir -- ileride bu sessizce değişirse
+# (ör. lexicon genişlemesiyle yanlışlıkla kısmi tanınmaya başlarsa) regresyon
+# olarak yakalanır.
+def test_or_group_education_requirement_is_currently_not_extracted():
+    from ats_engine import jd_parser
+    jd = "Gereksinimler: İşletme veya İktisat mezunu olmak. Dış ticaret deneyimi şart."
+    result = jd_parser.parse_jd(jd)
+    must_terms = {m["term"] for m in result["must_have"]}
+    # "İşletme" / "İktisat" / OR-grubun kendisi bilinen sözlükte olmadığı için
+    # hiçbir terim olarak üretilmiyor -- yanlış değil, tamamen atlanıyor.
+    assert not any("işletme" in t.lower() or "iktisat" in t.lower() for t in must_terms)
+    # Aynı JD'deki sözlükte tanınan terim (dış ticaret) normal şekilde çıkarılmaya devam eder.
+    assert "foreign trade" in must_terms
