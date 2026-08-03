@@ -6,7 +6,7 @@
 
 AI tarafından üretilen CV metinleri:
 - Tekrarlayan kalıplar içerir ("leveraged", "spearheaded", "orchestrated")
-- ATS'den geçse bile insan HR tarafından tespit edilebilir
+- Motor skoru yüksek çıksa bile insan HR tarafından tespit edilebilir (A11 fix: "ATS'den geçme" ikili/garanti çerçevesi değil, motor skorunun insan-okunabilirlik garantisi vermediği belirtiliyor)
 - Bazı şirketler AI-detection araçları kullanmaya başladı
 
 **Çözüm:** Motor (engine/) deterministik skor üretir → LLM CV yazar → Grammarly son katman.
@@ -14,7 +14,7 @@ AI tarafından üretilen CV metinleri:
 ## 2. Pipeline'daki Yeri
 
 ```
-Motor Skoru (%75-85 bandı) → CV onaylandı → Grammarly Kapısı
+Motor Skoru (%75-85 bandı = güçlü hizalanma sinyali, onay garantisi değil) → Grammarly Kapısı
                                                     │
                                     ┌───────────────┼───────────────┐
                                     ▼               ▼               ▼
@@ -64,7 +64,7 @@ Grammarly yeniden yazma sırasında JD terimlerini değiştirebilir. Koruma kura
 ## 5. Pratikte Kullanım
 
 ```
-Adım 1: Motor skoru hesapla → %78 (mülakata hazır bant)
+Adım 1: Motor skoru hesapla → %78 (güçlü hizalanma bandı, "mülakata hazır" garantisi değil)
 Adım 2: CV'yi Grammarly'ye yapıştır
 Adım 3: AI-detector → %45 (orta risk)
 Adım 4: Rewriter → bölüm bölüm yeniden yaz

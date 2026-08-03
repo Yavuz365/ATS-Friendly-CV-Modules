@@ -171,7 +171,7 @@ def _section_score(
     if not section_text or not section_text.strip():
         return 0.0
     result = scoring.ats_match_score(jd_text, section_text, must_terms, **score_kwargs)
-    return result["score_percent"] / 100.0
+    return float(result["score_percent"]) / 100.0
 
 
 def level2_best_of(

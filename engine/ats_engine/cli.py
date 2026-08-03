@@ -24,10 +24,31 @@ import sys
 
 from . import evidence_bank, jd_parser, report, scoring
 
+# A9 (kalan parça): CLI eskiden hiçbir hatayı yakalamıyordu -- dosya bulunamadı,
+# bozuk girdi ya da beklenmeyen bir iç hata, hepsi aynı ham Python traceback +
+# exit code 1 olarak dışarı sızıyordu. Kanonik Blueprint'in (§9.3 P0.2) önerdiği
+# şemayla hizalı 3 sınıf ayrıldı:
+#   exit 0 -> geçerli rapor üretildi
+#   exit 2 -> kullanıcı/girdi hatası (düzeltilebilir: yanlış yol, okunamayan
+#             dosya) — argparse'ın kendi kural-dışı-argüman exit code'uyla (2) tutarlı
+#   exit 3 -> beklenmeyen dahili hata (motor/programlama hatası)
+# NOT: Blueprint ayrıca "exit 4 = blocking gate fail/review incomplete" öneriyor
+# (rapor kendisi başarıyla üretildi ama parse_gate/lang_gate REVIEW durumunda).
+# Bu, DecisionReport'un henüz var olmayan tipli status modelini (v2 C-008 gate
+# mimarisi) gerektirir — şimdiden CLI'da tahmin yürütmek yerine bilinçli olarak
+# v2'ye bırakıldı (bkz. PR #5 tartışması).
+
+
+class CLIInputError(Exception):
+    """Kullanıcının düzeltebileceği girdi hatası (örn. dosya bulunamadı)."""
+
 
 def _read(path: str) -> str:
-    with open(path, encoding="utf-8") as f:
-        return f.read()
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError as e:
+        raise CLIInputError(f"Dosya okunamadı: {path!r} ({e.strerror or e})") from e
 
 
 def _load_corpus(path: str | None):
@@ -106,9 +127,20 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv=None):
+def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
-    args.func(args)
+    try:
+        args.func(args)
+    except CLIInputError as e:
+        print(f"Girdi hatası: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:  # kasıtlı geniş yakalama: CLI'nin son hata sınırı,
+        # motor katmanındaki (report.py/scoring.py) typed error sözleşmesinin
+        # dışına sızan HERHANGİ bir beklenmeyen hatayı burada durdurup kullanıcıya
+        # ham traceback yerine tek satır + net exit code döndürüyoruz.
+        print(f"Beklenmeyen dahili hata: {type(e).__name__}: {e}", file=sys.stderr)
+        return 3
+    return 0
 
 
 if __name__ == "__main__":

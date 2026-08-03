@@ -76,6 +76,8 @@ def _parse_language_requirements(text: str) -> list[dict]:
             lang = lm.group(0)
             # Önce dil adından SONRA gelen en yakın (kullanılmamış) seviyeyi tercih et
             # (en yaygın kalıp: "İngilizce (C1)"); yoksa en yakın öncesi seviyeye düş.
+            idx: int | None
+            vm: re.Match[str] | None
             after = [(i, vm) for i, vm in enumerate(level_matches)
                      if i not in used and vm.start() >= lm.start()]
             if after:
@@ -85,7 +87,7 @@ def _parse_language_requirements(text: str) -> list[dict]:
                 idx, vm = (min(before, key=lambda p: abs(p[1].start() - lm.start()))
                            if before else (None, None))
             level = None
-            if vm is not None:
+            if vm is not None and idx is not None:
                 level = vm.group(0)
                 used.add(idx)
             key = (tr_lower(lang), tr_lower(level or ""))
@@ -124,7 +126,7 @@ def _segment(text: str) -> dict[str, str]:
     """
     lines = [ln for ln in (text or "").splitlines()]
     region = "body"
-    buckets = {"must": [], "nice": [], "resp": [], "body": []}
+    buckets: dict[str, list[str]] = {"must": [], "nice": [], "resp": [], "body": []}
     for line in lines:
         stripped = line.strip()
         colon_idx = stripped.find(":")

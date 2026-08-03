@@ -6,7 +6,7 @@ A deterministic Python engine that measures job description (JD) to CV alignment
 
 [![CI](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions/workflows/test.yml/badge.svg)](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.5.0-green)
+![Version](https://img.shields.io/badge/version-1.5.1-green)
 ![Tests](https://img.shields.io/badge/tests-43%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
 
@@ -52,8 +52,8 @@ ATS-Friendly-CV-Modules/
 │   │   ├── quantification_score.py   ← Quantification/metrics scoring (v1.4)
 │   │   ├── cli.py                    ← Command-line interface
 │   │   ├── data/                     ← P0-5 fix: moved INSIDE the package (was engine/data/)
-│   │   │   ├── action_verbs.json     ← 260+ action verbs (TR/EN, 13 categories, cliche_risk)
-│   │   │   ├── skill_synonyms.json   ← 61 canonicalization entries
+│   │   │   ├── action_verbs.json     ← 260 action verbs (TR/EN, 12 categories, cliche_risk)
+│   │   │   ├── skill_synonyms.json   ← 60 canonicalization entries
 │   │   │   └── stopwords_tr_en.txt   ← Stopwords (TR + EN)
 │   │   └── domain_pack_data/         ← P0-5 fix: moved INSIDE the package (was repo-root domain-packs/)
 │   │       └── foreign-trade-logistics/
@@ -324,12 +324,16 @@ CI/CD: Tests run automatically on Python 3.10, 3.11, 3.12 on every push.
 
 ## 📦 Version
 
-Current: **v1.5.0** — see [CHANGELOG.md](CHANGELOG.md) for full history.
+Current: **v1.5.1** — see [CHANGELOG.md](CHANGELOG.md) for full history and
+[ADR-000](docs/decisions/ADR-000-pre-production-status.md) for the honest pre-production
+status statement (this is a research prototype; not validated against real commercial ATS
+tenants — see "Dürüst statü" in `docs/03-skorlama-matematigi.md`).
 
 ### Version History
 | Version | Date | Highlights |
 |---------|------|------------|
-| v1.5.0 | 2026-06-15 | P0 critical fixes (5), 6 QA modules wired, 4 new docs, config layer, 43 tests |
+| v1.5.1 | 2026-08-03 | Canonical P0 hardening: typed error contract, gate boundary validation, mypy in CI, honest product-language pass over score-band docs (see ADR-000) |
+| v1.5.0 | 2026-06-15 | P0 critical fixes (5), 6 QA modules wired, 4 new docs, config layer, 43 tests (never tagged as a real release — see ADR-000) |
 | v1.4.0 | 2026-06-13 | 6 new modules (calibration, cliché, completeness, format, locale, quantification) |
 | v1.3.0 | 2026-06-12 | BM25 pipeline, Jaccard dynamic, domain_packs, LangGate fix, ruff+mypy |
 | v1.2.0 | 2026-06-13 | 5 critical bug fixes (ParseGate, must_have, dual engine, data packaging, SBERT cache) |

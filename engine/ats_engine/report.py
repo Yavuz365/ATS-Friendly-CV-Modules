@@ -17,6 +17,9 @@ Bağımlılık: yalnızca standart kütüphane (+ ats_engine alt modülleri).
 from __future__ import annotations
 
 import json
+import logging
+from collections import Counter
+from collections.abc import Callable
 
 # P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
 from . import cv_parser, evidence_bank, jd_parser, scoring, synthesis, text
@@ -26,9 +29,37 @@ from .format_metadata_hygiene import full_hygiene_check
 from .locale_consistency import locale_mismatches
 from .quantification_score import quantification_audit
 
+# A9 fix (hardening): QA alt modüllerinden gelen beklenmedik hatalar artık
+# sessizce yutulmuyor — logger'a (traceback dahil) yazılıyor ve gerçek hata
+# mesajı (yalnızca sabit "hesaplanamadı" değil) rapora da ekleniyor. Rapor
+# yine de üretilmeye devam eder (bir QA alt-modülünün çökmesi tüm raporu
+# düşürmemeli) ama artık arıza *görünür* — CI/log izleme bunu yakalayabilir.
+logger = logging.getLogger(__name__)
+
 # P0-4 fix: create_calibration/suggest_weight_adjustment artık build_report()
 # içinde çağrılmıyor (bkz. qa_checks["calibration_hint"] altındaki not) — gerçek
 # dış referans skoru olan ayrı bir kalibrasyon akışı için calibration.py'de dursunlar.
+
+
+def _run_qa_check(name: str, fn: Callable[..., dict], *args) -> dict:
+    """A9 fix: 6 QA alt-modülü çağrısı için ortak hata sözleşmesi.
+
+    Eskiden her çağrı kendi `except Exception: {"error": "<sabit metin>"}` bloğuna
+    sahipti — hangi hata tipi/mesajının oluştuğu tamamen kayboluyordu (sessiz yutma).
+    Artık: (1) beklenmedik hata `logger.warning` ile traceback dahil loglanır,
+    (2) rapora yalnızca "hesaplanamadı" değil gerçek exception tipi+mesajı da yazılır,
+    (3) tek bir QA alt-modülünün çökmesi tüm raporu düşürmez (kasıtlı fail-soft —
+    QA alanları rapora ek bilgi katar, ana skor/karar zincirinin parçası değildir).
+    """
+    try:
+        return fn(*args)
+    except Exception as exc:  # kasıtlı geniş yakalama, bkz. docstring
+        logger.warning("QA check '%s' failed: %s: %s", name, type(exc).__name__, exc, exc_info=True)
+        return {
+            "error": f"{name} hesaplanamadı",
+            "error_type": type(exc).__name__,
+            "error_detail": str(exc),
+        }
 
 
 def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = None,
@@ -105,14 +136,24 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
     }
 
     # ── Y36-11: Jobscan-style Skill/JD/Resume sayım tablosu ──────────────
-    jd_tokens = text.tokenize(jd_text, ngram_max=3, drop_stopwords=True)
-    cv_tokens = text.tokenize(scored_text, ngram_max=3, drop_stopwords=True)
+    # B1/STAB-015 (kalan parça, 2026-08-03): bu tablo A1'in düzelttiği
+    # matches_semantically() yolunu KULLANMIYORDU -- ayrı, hala bozuk bir
+    # `t_low in tok` alt-string kontrolüyle sayıyordu. text.tokenize()
+    # 1..3-gram'lık HER PENCEREYİ tek tek üretir (üst üste biner); bir terim
+    # bu pencerelerin çoğunun içinde alt-string olarak da geçtiği için tek
+    # bir gerçek geçiş 3-6 kata kadar şişiyordu (canlı kanıt: JD'de 2 kez
+    # geçen "incoterms" bu yolla 12 olarak sayılıyordu). jd_parser.py'nin
+    # kendi freq hesaplaması (satır ~215) zaten doğru deseni kullanıyor --
+    # Counter üzerinden TAM eşleşme arama, alt-string değil. Aynı desen
+    # burada da uygulandı.
+    jd_gram_counts = Counter(text.tokenize(jd_text, ngram_max=3, drop_stopwords=True))
+    cv_gram_counts = Counter(text.tokenize(scored_text, ngram_max=3, drop_stopwords=True))
     skill_count_table = []
     all_terms = [m["term"] for m in (analysis["must_have"] + analysis["nice_to_have"])]
     for term in all_terms:
         t_low = text.tr_lower(term)
-        jd_count = sum(1 for tok in jd_tokens if t_low in tok)
-        resume_count = sum(1 for tok in cv_tokens if t_low in tok)
+        jd_count = jd_gram_counts.get(t_low, 0)
+        resume_count = cv_gram_counts.get(t_low, 0)
         status = "✅ Match" if resume_count > 0 else "❌ Missing"
         skill_count_table.append({
             "skill": term, "jd_count": jd_count,
@@ -120,31 +161,15 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         })
 
     # ── P0.4: 6 QA modülü sonuçları ─────────────────────────────────────────
-    qa_checks = {}
-    try:
-        qa_checks["completeness"] = evidence_recall(framework_cv_text, scored_text)
-    except Exception:
-        qa_checks["completeness"] = {"error": "evidence_recall hesaplanamadı"}
-
-    try:
-        qa_checks["hygiene"] = full_hygiene_check(scored_text)
-    except Exception:
-        qa_checks["hygiene"] = {"error": "hygiene_check hesaplanamadı"}
-
-    try:
-        qa_checks["locale"] = locale_mismatches(jd_text, scored_text)
-    except Exception:
-        qa_checks["locale"] = {"error": "locale_mismatches hesaplanamadı"}
-
-    try:
-        qa_checks["quantification"] = quantification_audit(scored_text)
-    except Exception:
-        qa_checks["quantification"] = {"error": "quantification_audit hesaplanamadı"}
-
-    try:
-        qa_checks["cliches"] = detect_cliches(scored_text)
-    except Exception:
-        qa_checks["cliches"] = {"error": "detect_cliches hesaplanamadı"}
+    # A9 fix: her alt-modül çağrısı artık ortak bir sarmalayıcıdan geçiyor —
+    # beklenmedik hata sessizce yutulmuyor; logger'a yazılıyor ve gerçek
+    # exception tipi+mesajı (yalnızca sabit metin değil) rapora ekleniyor.
+    qa_checks: dict = {}
+    qa_checks["completeness"] = _run_qa_check("completeness", evidence_recall, framework_cv_text, scored_text)
+    qa_checks["hygiene"] = _run_qa_check("hygiene", full_hygiene_check, scored_text)
+    qa_checks["locale"] = _run_qa_check("locale", locale_mismatches, jd_text, scored_text)
+    qa_checks["quantification"] = _run_qa_check("quantification", quantification_audit, scored_text)
+    qa_checks["cliches"] = _run_qa_check("cliches", detect_cliches, scored_text)
 
     # P0-4 fix: eskiden burada motorun KENDİ skoru hem "engine_score" hem
     # "jobscan_score" olarak calibration'a veriliyordu → delta her zaman 0,
@@ -253,28 +278,34 @@ def to_markdown(report: dict) -> str:
     lines.append("")
 
     # P0.4: QA Checks bölümü
+    # A8/STAB-012..014 düzeltmesi tamamlanmamıştı: bu bölüm var olsa da, altındaki
+    # 5 modülün TAMAMI .get(yanlış_anahtar, varsayılan) kullandığı için gerçek
+    # veri hiç okunmuyordu (ör. 3 gerçek klişe varken "count=0" basılıyordu —
+    # sessizce yanlış/temiz görünen bir rapor). Anahtarlar artık her modülün
+    # gerçek dönüş sözlüğüyle (completeness_guard/format_metadata_hygiene/
+    # locale_consistency/quantification_score/cliche_tone) birebir eşleşiyor.
     qa = report.get("qa_checks", {})
     if qa:
         lines.append("## QA Checks (v1.5 — 6 modül)")
         if "completeness" in qa and "error" not in qa["completeness"]:
             cr = qa["completeness"]
-            lines.append(f"- **Completeness (Evidence Recall):** {cr.get('recall', '?')}")
+            lines.append(f"- **Completeness (Evidence Recall):** %{cr.get('recall_percent', '?')}")
         if "hygiene" in qa and "error" not in qa["hygiene"]:
             hy = qa["hygiene"]
             lines.append(f"- **Format Hygiene:** word_count={hy.get('word_budget', {}).get('word_count', '?')}, "
-                         f"special_chars={hy.get('special_characters', {}).get('count', 0)}")
+                         f"special_chars={hy.get('special_characters', {}).get('total_special', 0)}")
         if "locale" in qa and "error" not in qa["locale"]:
             lo = qa["locale"]
             lines.append(f"- **Locale:** JD={lo.get('jd_locale', '?')}, CV={lo.get('cv_locale', '?')}, "
-                         f"mismatches={lo.get('mismatch_count', 0)}")
+                         f"mismatches={len(lo.get('mismatches', []))}")
         if "quantification" in qa and "error" not in qa["quantification"]:
             qu = qa["quantification"]
-            lines.append(f"- **Quantification:** found={qu.get('count', '?')}, "
-                         f"target={qu.get('target_min', 5)}, verdict={qu.get('verdict', '?')}")
+            lines.append(f"- **Quantification:** found={qu.get('total_quantified', '?')}, "
+                         f"target={qu.get('target', 5)}, verdict={qu.get('verdict', '?')}")
         if "cliches" in qa and "error" not in qa["cliches"]:
             cl = qa["cliches"]
-            lines.append(f"- **Clichés:** count={cl.get('cliche_count', 0)}, "
-                         f"severity={cl.get('max_severity', 'none')}")
+            lines.append(f"- **Clichés:** count={cl.get('total_cliches', 0)}, "
+                         f"durum={cl.get('tone_verdict', 'none')}")
         # P0-6 fix: calibration_hint JSON'da vardı ama Markdown raporunda hiç
         # görünmüyordu (rapor formatları birbirini tutmuyordu) — artık burada da basılıyor.
         if "calibration_hint" in qa and "error" not in qa["calibration_hint"]:

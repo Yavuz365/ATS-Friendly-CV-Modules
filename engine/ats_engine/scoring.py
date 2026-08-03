@@ -23,6 +23,7 @@ Bağımlılık: standart kütüphane zorunlu; sentence-transformers VARSA Sem he
 
 from __future__ import annotations
 
+import logging
 import math
 from collections import Counter
 
@@ -30,6 +31,8 @@ from . import lexicons
 from .bm25 import BM25
 from .cv_parser import parse_safety_score as _parse_safety
 from .text import tokenize, tr_lower
+
+logger = logging.getLogger(__name__)
 
 # Önerilen varsayılan ağırlıklar (scoring-formulas.md ile birebir).
 DEFAULTS = dict(alpha=0.35, beta=0.30, gamma=0.35, zeta=0.20, k1=1.5, b=0.75)
@@ -65,10 +68,19 @@ def _get_sbert_model():
     """SBERT modelini singleton olarak yükle (ATSE-6 fix: her çağrıda reload önlenir)."""
     global _sbert_model
     if _sbert_model is None:
+        # A9 fix: bu, isteğe bağlı bir bağımlılığın (paket kurulu değil, model
+        # indirilemedi, disk/ağ hatası vb.) beklenen bir graceful-degrade yoludur —
+        # sessizce None dönmek doğru davranıştır (Sem bileşeni opsiyoneldir).
+        # Ama artık NEDEN devre dışı kaldığı logger'a yazılıyor; eskiden bu bilgi
+        # tamamen kayboluyordu ve "SBERT neden hiç çalışmıyor" sorusu debug edilemiyordu.
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore
             _sbert_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "SBERT model yüklenemedi (%s: %s) — Sem bileşeni bu oturumda devre dışı, "
+                "skorlama Lex/Cov'a düşecek.", type(exc).__name__, exc, exc_info=True,
+            )
             _sbert_model = False  # sentinel: yükleme başarısız
     return _sbert_model if _sbert_model is not False else None
 
@@ -80,7 +92,11 @@ def sbert_cosine(jd_text: str, cv_text: str):
         return None
     try:
         from sentence_transformers import util  # type: ignore
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "sentence_transformers.util import edilemedi (%s: %s) — Sem None dönüyor.",
+            type(exc).__name__, exc, exc_info=True,
+        )
         return None
     emb = model.encode([jd_text, cv_text], convert_to_tensor=True, normalize_embeddings=True)
     return float(util.cos_sim(emb[0], emb[1]).item())
@@ -177,6 +193,30 @@ def prf(cv_text: str, must_have: list[str], cv_terms: list[str] | None = None) -
 
 # ----------------------------- hibrit skor -----------------------------
 
+def _validate_gate(name: str, value: float) -> tuple[float, str | None]:
+    """A9 fix: parse_gate/lang_gate için sınır doğrulama.
+
+    Bu çarpanlar RAW skorunu doğrudan çarpıyor; doğrulanmadan geçirilen bir NaN
+    veya [0,1] aralığı dışındaki bir değer skoru sessizce bozabilirdi (NaN her şeyi
+    NaN yapar; >1 skoru olması gerekenden yüksek gösterir). Geçersiz değer
+    fail-closed olarak ele alınır (NaN → 0.0, en güvenli/en muhafazakâr varsayım);
+    aralık dışı değer [0,1]'e clamp edilir. Her iki durumda da çağıran koda
+    görünür bir uyarı döner (rapora `warnings` alanına eklenir).
+    """
+    if value != value:  # NaN kontrolü (math.isnan yerine bağımlılıksız kısa yol)
+        return 0.0, (
+            f"{name}=NaN geçirildi — geçersiz sayısal değer fail-closed olarak 0.0 kabul edildi "
+            "(skor bu bileşenden dolayı 0'a çekildi; çağıran kodu kontrol edin)."
+        )
+    if value < 0.0 or value > 1.0:
+        clamped = max(0.0, min(1.0, value))
+        return clamped, (
+            f"{name}={value} aralık [0,1] dışında — {clamped}'e clamp edildi "
+            "(çağıran kod muhtemelen yüzde (0-100) veya hatalı bir değer geçiriyor)."
+        )
+    return value, None
+
+
 def ats_match_score(
     jd_text: str,
     cv_text: str,
@@ -205,6 +245,20 @@ def ats_match_score(
     if parse_gate is None:
         safety = _parse_safety(cv_text)
         parse_gate = safety["score"]
+
+    # A9 fix: sınır doğrulama. parse_gate/lang_gate çağıran koddan (dışarıdan)
+    # geliyor; NaN veya [0,1] dışı bir değer eskiden hiç kontrol edilmeden
+    # doğrudan RAW ile çarpılıyordu — NaN her şeyi NaN'a, >1 değeri skoru
+    # olması gerekenden yüksek göstermeye çevirebiliyordu (sessiz veri bozulması).
+    # Artık: NaN → fail-closed (0.0, en güvenli varsayım) + uyarı; [0,1] dışı
+    # değer → clamp edilir + uyarı. Geçerli [0,1] değerler davranışı değiştirmez.
+    warnings: list[str] = []
+    parse_gate, gate_warning = _validate_gate("parse_gate", parse_gate)
+    if gate_warning:
+        warnings.append(gate_warning)
+    lang_gate, lang_gate_warning = _validate_gate("lang_gate", lang_gate)
+    if lang_gate_warning:
+        warnings.append(lang_gate_warning)
 
     jd_tok = tokenize(jd_text)
     cv_tok = tokenize(cv_text)
@@ -250,7 +304,6 @@ def ats_match_score(
     else:
         sem_term = bb * Sem
 
-    warnings: list[str] = []
     if not cov_evaluable:
         # P0-1 fix: JD'den hiç zorunlu terim çıkarılamadıysa Cov bileşenini RAW'dan
         # tamamen çıkar (sahte cov=1.0 ile skoru şişirmek yerine α/β'ya yeniden dağıt),
@@ -298,16 +351,25 @@ def ats_match_score(
         "f1": F1,
         "coverage_evaluable": cov_evaluable,
         "warnings": warnings,
-        "interpretation": "hedef %75-85 | >%90 şişirme sinyali | <%50 ciddi iyileştirme",
+        # A11 fix: "hedef" ifadesi garanti çağrışımı yapıyordu; artık açıkça bir
+        # teşhis sinyali olduğu ve "mülakata hazır"/"ATS'yi geçme" anlamına
+        # gelmediği belirtiliyor (bkz. docs/decisions/ADR-000-pre-production-status.md).
+        "interpretation": (
+            "%75-85 = güçlü hizalanma sinyali (garanti değil) | >%90 şişirme sinyali | "
+            "<%50 ciddi iyileştirme gerekir"
+        ),
     }
 
 
 def _verdict(pct: float) -> str:
+    """A11 fix: eskiden bu fonksiyon doğrudan "MÜLAKATA HAZIR BANT" döndürüyordu —
+    her raporun `verdict` alanında görünen, motorun garanti veremeyeceği bir iddia.
+    Artık bant adı "güçlü hizalanma" (sinyal), sonuç garantisi değil (bkz. ADR-000)."""
     t = THRESHOLDS
     if pct >= t["overopt"]:
         return "AŞIRI OPTİMİZASYON ŞÜPHESİ (>%90) — şişirme/geri tepme riski"
     if pct >= t["target_low"]:
-        return "MÜLAKATA HAZIR BANT (%75-85 hedef)"
+        return "GÜÇLÜ HİZALANMA BANDI (%75-85 — garanti değil, sinyal)"
     if pct >= t["serious"]:
         return "HEDEFİN ALTINDA — sentez (revizyon) turu önerilir"
     return "CİDDİ İYİLEŞTİRME GEREKİR (<%50)"

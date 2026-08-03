@@ -409,6 +409,29 @@ def test_report_has_skill_count_table():
         assert "status" in row
 
 
+# B1/STAB-015 (kalan parça, canlı bug): Skill Count tablosu eskiden
+# `t_low in tok` alt-string kontrolü kullanıyordu -- text.tokenize()'ın
+# ürettiği üst üste binen 1..3-gram pencerelerinin çoğunda bir terim alt-string
+# olarak da geçtiği için tek gerçek geçiş 3-6 kat şişiyordu. Kanıt: JD'de tam
+# 2 kez geçen "incoterms" eskiden 12 olarak sayılıyordu. Artık jd_parser.py'nin
+# kendi freq desenindeki gibi (Counter üzerinden TAM eşleşme) sayılıyor.
+def test_skill_count_table_uses_exact_match_not_substring_inflation():
+    jd = (
+        "Gümrük müşavirliği ve customs clearance deneyimi olan, incoterms bilen "
+        "dış ticaret uzmanı aranıyor. Incoterms kurallarını iyi bilmeli."
+    )
+    cv = (
+        "Dış ticaret operasyonlarında customs clearance süreçlerini yönettim. "
+        "Incoterms 2020 kurallarına hakimim. Incoterms eğitimi aldım. Incoterms uyguladım."
+    )
+    report = build_report(jd, "## Kanıt\n- customs clearance ve incoterms deneyimi var",
+                           cv_text=cv, use_sbert=False)
+    by_skill = {row["skill"]: row for row in report["skill_count_table"]}
+    assert by_skill["incoterms"]["jd_count"] == 2, "JD'de tam 2 kez geçiyor, 12 değil"
+    assert by_skill["incoterms"]["resume_count"] == 3, "CV'de tam 3 kez geçiyor"
+    assert by_skill["customs clearance"]["jd_count"] == 1, "JD'de tam 1 kez geçiyor, 3 değil"
+
+
 # Y36-12: skill_synonyms genişletilmiş
 def test_skill_synonyms_expanded():
     from ats_engine.lexicons import normalize_skill
@@ -561,3 +584,120 @@ def test_markdown_includes_calibration_line():
     result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
     md = to_markdown(result)
     assert "Calibration" in md
+
+
+def test_markdown_qa_section_reads_real_field_names_not_defaults():
+    """A8/STAB-012..014 (gerçek durum): QA Checks bölümü canlıydı ama 5 modülün
+    TAMAMI .get(yanlış_anahtar, varsayılan) kullandığı için gerçek veri hiç
+    okunmuyordu -- ör. CV'de 3 gerçek klişe varken Markdown'da "count=0" basılıyordu.
+    Bu test, klişe içeren bir CV ile gerçek sayının (0 değil) Markdown'a
+    yansıdığını doğrular -- eskiden sessizce 0/? basardı."""
+    from ats_engine.report import build_report, to_markdown
+    cliche_cv = (
+        "Dış ticaret uzmanı olarak spearheaded ve leveraged ederek synergized "
+        "süreçler yürüttüm. Incoterms ve akreditif konusunda deneyimliyim."
+    )
+    result = build_report(SAMPLE_JD, FRAMEWORK, cv_text=cliche_cv, use_sbert=False)
+    real_total = result["qa_checks"]["cliches"]["total_cliches"]
+    assert real_total > 0, "test verisi gerçekten klişe içermeli"
+    md = to_markdown(result)
+    assert f"count={real_total}" in md, "Markdown'daki klişe sayısı gerçek total_cliches ile eşleşmeli"
+    assert "count=0, durum=none" not in md
+
+
+# ── A9 fix: sınır doğrulama + tipli hata sözleşmesi ────────────────────────
+
+def test_parse_gate_nan_is_fail_closed_with_warning():
+    """A9: NaN parse_gate artık sessizce skoru bozmuyor — 0.0'a fail-closed + uyarı."""
+    from ats_engine.scoring import ats_match_score
+    nan = float("nan")
+    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
+                              parse_gate=nan, use_sbert=False)
+    assert result["score_percent"] == 0.0, "NaN parse_gate fail-closed (0.0) olmalı, NaN yaymamalı"
+    assert any("NaN" in w for w in result["warnings"]), "NaN geçişi uyarı listesinde görünmeli"
+
+
+def test_parse_gate_out_of_range_is_clamped_with_warning():
+    """A9: parse_gate=1.5 gibi [0,1] dışı bir değer artık sessizce kabul edilmiyor — clamp + uyarı."""
+    from ats_engine.scoring import ats_match_score
+    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
+                              parse_gate=1.5, use_sbert=False)
+    assert result["components"]["Parse_gate"] == 1.0, "1.5 değeri 1.0'e clamp edilmeli"
+    assert any("aralık [0,1] dışında" in w for w in result["warnings"])
+
+
+def test_parse_gate_valid_value_unchanged_no_warning():
+    """A9: geçerli [0,1] aralığındaki bir parse_gate davranışı DEĞİŞTİRMEMELİ (geriye dönük uyumluluk)."""
+    from ats_engine.scoring import ats_match_score
+    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
+                              parse_gate=0.9, use_sbert=False)
+    assert result["components"]["Parse_gate"] == 0.9
+    assert not any("parse_gate" in w for w in result["warnings"])
+
+
+def test_action_verbs_meta_count_matches_actual_data():
+    """A11: action_verbs.json'un kendi _meta.total_verbs alanı fiili kategori
+    toplamıyla tutarlı olmalı (canlı denetimde 320 yazıyordu, gerçek toplam
+    260'tı — bu test gelecekte tekrar sapmayı CI'da yakalar)."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "ats_engine" / "data" / "action_verbs.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    categories = [k for k in data if not k.startswith("_")]
+    actual_total = sum(len(data[k]) for k in categories)
+    assert data["_meta"]["total_verbs"] == actual_total
+    assert len(categories) == 12
+
+
+def test_skill_synonyms_meta_count_matches_actual_data():
+    """A11: skill_synonyms.json'un _meta.total_entries alanı fiili anahtar
+    sayısıyla tutarlı olmalı (canlı denetimde 62 yazıyordu, gerçek 60'tı)."""
+    import json
+    from pathlib import Path
+    path = Path(__file__).parent.parent / "ats_engine" / "data" / "skill_synonyms.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    actual_total = len([k for k in data if k != "_meta"])
+    assert data["_meta"]["total_entries"] == actual_total
+
+
+def test_verdict_no_interview_ready_overclaim():
+    """A11: motor artık verdict/interpretation alanlarında 'MÜLAKATA HAZIR' gibi
+    garanti ima eden ifadeler döndürmüyor — güçlü bant hâlâ raporlanır ama
+    bir sinyal olarak, garanti olarak değil (bkz. ADR-000)."""
+    from ats_engine.scoring import ats_match_score
+    result = ats_match_score(SAMPLE_JD, FRAMEWORK, ["dış ticaret", "ihracat"], use_sbert=False)
+    assert "MÜLAKATA HAZIR" not in result["verdict"]
+    assert "MÜLAKATA HAZIR" not in result["interpretation"]
+
+
+def test_qa_check_failure_surfaces_real_error_not_silent(monkeypatch):
+    """A9: bir QA alt-modülü çökerse artık sabit 'hesaplanamadı' metni değil,
+    gerçek exception tipi+mesajı rapora yazılır (sessiz yutma yerine gözlemlenebilir hata)."""
+    import ats_engine.report as report_mod
+
+    def _boom(*args, **kwargs):
+        raise ValueError("kasıtlı test hatası")
+
+    monkeypatch.setattr(report_mod, "evidence_recall", _boom)
+    result = report_mod.build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
+    completeness = result["qa_checks"]["completeness"]
+    assert completeness["error_type"] == "ValueError"
+    assert "kasıtlı test hatası" in completeness["error_detail"]
+
+
+# GAP-D (bilinen sınır, v1.5.1 — bkz. docs/02-jd-decomposition.md):
+# jd_parser OR-grup ("İşletme veya İktisat mezunu") gereksinimlerini modellemiyor.
+# Bu test bir "fix" değil, kanonik dokümanın kendi kararının (JOB-002 ekine
+# ertelendi, v2.0 kapsamı) davranış kilididir -- ileride bu sessizce değişirse
+# (ör. lexicon genişlemesiyle yanlışlıkla kısmi tanınmaya başlarsa) regresyon
+# olarak yakalanır.
+def test_or_group_education_requirement_is_currently_not_extracted():
+    from ats_engine import jd_parser
+    jd = "Gereksinimler: İşletme veya İktisat mezunu olmak. Dış ticaret deneyimi şart."
+    result = jd_parser.parse_jd(jd)
+    must_terms = {m["term"] for m in result["must_have"]}
+    # "İşletme" / "İktisat" / OR-grubun kendisi bilinen sözlükte olmadığı için
+    # hiçbir terim olarak üretilmiyor -- yanlış değil, tamamen atlanıyor.
+    assert not any("işletme" in t.lower() or "iktisat" in t.lower() for t in must_terms)
+    # Aynı JD'deki sözlükte tanınan terim (dış ticaret) normal şekilde çıkarılmaya devam eder.
+    assert "foreign trade" in must_terms
