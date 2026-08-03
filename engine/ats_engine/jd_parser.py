@@ -18,7 +18,7 @@ import re
 from collections import Counter
 
 from . import lexicons
-from .text import tokenize, sentences
+from .text import sentences, tokenize, tr_lower
 
 # Bölüm başlığı ipuçları (TR + EN).
 _MUST_CUES = re.compile(r"(aranan nitelik|gerekli|gereklilik|zorunlu|şart|olmazsa olmaz|must[- ]?have|requirements?|required|qualifications?)", re.IGNORECASE)
@@ -39,7 +39,61 @@ _WORK_MODE = [
     (re.compile(r"\b(on[- ]?site|ofis|yerinde)\b", re.IGNORECASE), "on-site"),
 ]
 
-_LANG_REQ = re.compile(r"\b(ingilizce|english|almanca|german|fransızca|french|c1|c2|b2|akıcı|fluent|advanced)\b", re.IGNORECASE)
+# P0-8/9 fix: eskiden TEK bir regex hem dil adını hem seviye kodunu (c1/b2 vb.)
+# aynı düz listeye basıyordu → "dil: Almanca, B2, C1, İngilizce" gibi eşleşmemiş,
+# anlamsız bir liste üretiyordu (dil ile seviye HİÇ eşleştirilmiyordu). Artık iki
+# ayrı regex var; _parse_language_requirements() bunları segment bazında eşleştirir.
+_LANG_NAMES = re.compile(
+    r"\b(ingilizce|english|almanca|german|fransızca|french|ispanyolca|spanish|"
+    r"rusça|russian|arapça|arabic|çince|chinese|italyanca|italian|portekizce|portuguese)\b",
+    re.IGNORECASE,
+)
+_LANG_LEVEL = re.compile(
+    r"\b(c1|c2|b1|b2|a1|a2|akıcı|fluent|native|anadil|advanced|ileri|orta)\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_language_requirements(text: str) -> list[dict]:
+    """
+    Dil adlarını, en yakın segmentteki seviye kodlarıyla EŞLEŞTİRİR.
+
+    P0-8 fix: önceki tek-regex yaklaşımı "Almanca, B2, C1, İngilizce" gibi bir
+    ilan metninden ['almanca','b2','c1','ingilizce'] gibi 4 ayrı, eşleşmemiş öğe
+    üretiyordu (dil-seviye ilişkisi tamamen kayboluyordu). Bu fonksiyon metni
+    cümle/segment (nokta, satır, noktalı virgül) bazında bölüp her segmentteki
+    dil(ler)i, o segmentteki seviye kod(lar)ıyla eşleştirir.
+    """
+    out: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for seg in re.split(r"[.\n;]", text or ""):
+        lang_matches = list(_LANG_NAMES.finditer(seg))
+        if not lang_matches:
+            continue
+        level_matches = list(_LANG_LEVEL.finditer(seg))
+        used: set[int] = set()
+        for lm in lang_matches:
+            lang = lm.group(0)
+            # Önce dil adından SONRA gelen en yakın (kullanılmamış) seviyeyi tercih et
+            # (en yaygın kalıp: "İngilizce (C1)"); yoksa en yakın öncesi seviyeye düş.
+            after = [(i, vm) for i, vm in enumerate(level_matches)
+                     if i not in used and vm.start() >= lm.start()]
+            if after:
+                idx, vm = min(after, key=lambda p: p[1].start() - lm.start())
+            else:
+                before = [(i, vm) for i, vm in enumerate(level_matches) if i not in used]
+                idx, vm = (min(before, key=lambda p: abs(p[1].start() - lm.start()))
+                           if before else (None, None))
+            level = None
+            if vm is not None:
+                level = vm.group(0)
+                used.add(idx)
+            key = (tr_lower(lang), tr_lower(level or ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({"language": tr_lower(lang), "level": tr_lower(level) if level else None})
+    return out
 
 # Deneyim yılı.
 _YEARS = re.compile(r"(\d+\s?[-–+]?\s?\d*)\s?(yıl|sene|years?|yr)", re.IGNORECASE)
@@ -48,25 +102,67 @@ _YEARS = re.compile(r"(\d+\s?[-–+]?\s?\d*)\s?(yıl|sene|years?|yr)", re.IGNORE
 _ACRONYM = re.compile(r"\b([A-ZÇĞİÖŞÜ]{2,6}(?:[/-][A-ZÇĞİÖŞÜ]{1,5})?)\b")
 _CERTS = ["pmp", "cpa", "cfa", "scrum master", "six sigma", "prince2", "itil", "aws", "iso 9001", "yys", "aeo"]
 
+# P0-10 fix: _ACRONYM regex'i büyük harfli her 2-6 harfi yakalar (birim, kısaltma,
+# rastgele büyük harfli kelime dahil). Bir "must" bölge başlığı bulunamayıp gövdeden
+# zorunlu terim türetilirken bu tür anlamsız/gürültü kısaltmaların önerilen listeye
+# girmesini önlemek için küçük bir kara liste (birim/bağlaç kısaltmaları).
+_NOISE_ACRONYMS = {"mm", "cm", "km", "kg", "gr", "lt", "ml", "vb", "vs", "no"}
+
 # Knockout (ikili eler) ipuçları.
 _KNOCKOUT = re.compile(r"(çalışma izni|work permit|askerlik|ehliyet|driver.?s license|seyahat engeli|relocat|vatandaş|citizen)", re.IGNORECASE)
 
 
 def _segment(text: str) -> dict[str, str]:
-    """JD'yi kaba bölgelere ayırır: must / nice / resp / body (başlık satırlarına göre)."""
-    lines = [l for l in (text or "").splitlines()]
+    """JD'yi kaba bölgelere ayırır: must / nice / resp / body (başlık satırlarına göre).
+
+    P0-10b fix: eskiden yalnız "satırın TAMAMI kısa VEYA ':' ile biter" kalıbı başlık
+    sayılıyordu. Çok yaygın tek-satırlık "Zorunlu: A, B, C." biçimi (etiket + aynı
+    satırda içerik, satır 8 kelimeden uzun) bu şartı hiç sağlamıyordu → JD'de açıkça
+    yazan zorunlu şartlar bile "explicit" değil "inferred_from_body" sayılıyordu.
+    Artık satırın ilk ':' karakterinden ÖNCEKİ kısa etiket ayrıca kontrol edilir; eşleşirse
+    ':'den SONRAKİ içerik o bölgeye eklenir (atlanmaz).
+    """
+    lines = [ln for ln in (text or "").splitlines()]
     region = "body"
     buckets = {"must": [], "nice": [], "resp": [], "body": []}
     for line in lines:
         stripped = line.strip()
-        # başlık tespiti: kısa satır + ipucu
+        colon_idx = stripped.find(":")
+        label = stripped[:colon_idx].strip() if 0 <= colon_idx <= 40 else None
+
+        if label and _MUST_CUES.search(label):
+            region = "must"
+            remainder = stripped[colon_idx + 1:].strip()
+            if remainder:
+                buckets["must"].append(remainder)
+                buckets["body"].append(remainder)
+            continue
+        if label and _NICE_CUES.search(label):
+            region = "nice"
+            remainder = stripped[colon_idx + 1:].strip()
+            if remainder:
+                buckets["nice"].append(remainder)
+                buckets["body"].append(remainder)
+            continue
+        if label and _RESP_CUES.search(label):
+            region = "resp"
+            remainder = stripped[colon_idx + 1:].strip()
+            if remainder:
+                buckets["resp"].append(remainder)
+                buckets["body"].append(remainder)
+            continue
+
+        # eski davranış: yalnız-başlık satırı (kısa satır, ':' yok veya içerik yok)
         is_heading = len(stripped) <= 80 and (stripped.endswith(":") or len(stripped.split()) <= 8)
         if is_heading and _MUST_CUES.search(stripped):
-            region = "must"; continue
+            region = "must"
+            continue
         if is_heading and _NICE_CUES.search(stripped):
-            region = "nice"; continue
+            region = "nice"
+            continue
         if is_heading and _RESP_CUES.search(stripped):
-            region = "resp"; continue
+            region = "resp"
+            continue
         buckets[region].append(line)
         buckets["body"].append(line)
     return {k: "\n".join(v) for k, v in buckets.items()}
@@ -75,7 +171,7 @@ def _segment(text: str) -> dict[str, str]:
 def _known_skills(text: str) -> list[str]:
     """Bilinen kanonik becerileri (skill_synonyms tabanlı) ve sertifika/akronimleri çıkarır."""
     found: dict[str, None] = {}
-    low = (text or "").lower()
+    low = tr_lower(text or "")
     # kanonik beceriler: her n-gram'ı normalize etmeye çalış
     toks = tokenize(text, ngram_max=3)
     for t in toks:
@@ -88,14 +184,14 @@ def _known_skills(text: str) -> list[str]:
             found[c.upper() if len(c) <= 4 else c.title()] = None
     # serbest akronimler (SAP, GTIP, REACH, KPI...)
     for m in _ACRONYM.findall(text or ""):
-        if m.lower() not in ("cv", "ats", "ik", "hr"):
+        if tr_lower(m) not in ("cv", "ats", "ik", "hr"):
             found[m] = None
     return list(found.keys())
 
 
 def _intent(text: str, must: list[str], resp_verbs: list[str]) -> str:
     """Rolün özünü tek cümlede tahmin eden heuristik (denetçi mi memur mu vb.)."""
-    low = (text or "").lower()
+    low = tr_lower(text or "")
     audit_signals = sum(low.count(w) for w in ["denetim", "denetle", "uyum", "compliance", "audit", "raporla", "report", "kontrol", "control", "iyileştir", "optimi"])
     strategy_signals = sum(low.count(w) for w in ["strateji", "strategy", "büyüme", "growth", "yönet", "manage", "lead", "liderlik"])
     base = "Bu rol esasen "
@@ -113,15 +209,14 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
     Çıktı şeması jd-decomposition.md ile uyumludur ve scoring/synthesis'in girdisidir.
     """
     seg = _segment(text)
-    full_low = (text or "").lower()
-    head_words = " ".join((text or "").split()[:first_window]).lower()
+    head_words = tr_lower(" ".join((text or "").split()[:first_window]))
     freq = Counter(tokenize(text, ngram_max=3))
 
     # --- Katman 1: Kimlik ---
-    first_line = next((l.strip() for l in (text or "").splitlines() if l.strip()), "")
+    first_line = next((ln.strip() for ln in (text or "").splitlines() if ln.strip()), "")
     seniority = next((label for rx, label in _SENIORITY if rx.search(text or "")), "unspecified")
     work_mode = next((label for rx, label in _WORK_MODE if rx.search(text or "")), "unspecified")
-    lang = sorted({m.lower() for m in _LANG_REQ.findall(text or "")}) or []
+    lang = _parse_language_requirements(text or "")
     years = _YEARS.search(text or "")
     identity = {
         "title_guess": first_line[:120],
@@ -132,17 +227,26 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
     }
 
     # --- Katman 2/3: Zorunlu / Tercih ---
-    must_skills = _known_skills(seg["must"]) if seg["must"].strip() else []
+    # P0-10 fix: eskiden "must" bölge başlığı (ör. "Aranan Nitelikler:") hiç
+    # bulunamazsa, ilanın GÖVDESİNDEN çıkan HERHANGİ bir 2-6 harfli büyük harf
+    # kısaltma (ör. anlamsız "MM") doğrudan modality=1.0 "zorunlu" sayılıyordu.
+    # Artık: (a) has_explicit_must=False ise bu terimler modality=0.6 (rapor
+    # katmanında "tercih" bandına düşer, "zorunlu" DENMEZ) ile işaretlenir,
+    # (b) tek başına anlamsız/gürültü kısaltmalar (ölçü birimleri vb.) filtrelenir.
+    has_explicit_must = bool(seg["must"].strip())
+    must_skills = _known_skills(seg["must"]) if has_explicit_must else []
     nice_skills = _known_skills(seg["nice"]) if seg["nice"].strip() else []
     body_skills = _known_skills(seg["body"])
-    # must bölgesinde hiç ipucu yoksa, gövdedeki yüksek-sinyalli terimleri zorunlu say
     if not must_skills:
-        must_skills = [s for s in body_skills if s not in nice_skills][:12]
+        must_skills = [
+            s for s in body_skills
+            if s not in nice_skills and tr_lower(s) not in _NOISE_ACRONYMS
+        ][:12]
     # knockouts
     knockouts = sorted({m.group(0) for m in _KNOCKOUT.finditer(text or "")})
 
     def classify(term: str) -> str:
-        low = term.lower()
+        low = tr_lower(term)
         if low in [c for c in _CERTS] or any(c in low for c in ["pmp", "cpa", "cfa", "iso", "aeo", "yys"]):
             return "cert"
         if any(k in low for k in ["sap", "erp", "python", "sql", "aws", "excel", "tableau", "power bi"]):
@@ -154,21 +258,25 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
     resp_text = seg["resp"] if seg["resp"].strip() else (text or "")
     resp_verbs = []
     for s in sentences(resp_text):
-        for w in re.findall(r"[a-zA-ZçÇğĞıİöÖşŞüÜ]+", s.lower()):
+        for w in re.findall(r"[a-zA-ZçÇğĞıİöÖşŞüÜ]+", tr_lower(s)):
             if w in verbs and w not in resp_verbs:
                 resp_verbs.append(w)
     # TR sorumluluk fiilleri (kaba): -er/-ir ile biten yönetimsel fiiller
-    for m in re.findall(r"\b(yönet\w*|koordine\w*|denetle\w*|raporla\w*|optimi\w*|planla\w*|geliştir\w*|takip\w*)\b", resp_text.lower()):
+    for m in re.findall(r"\b(yönet\w*|koordine\w*|denetle\w*|raporla\w*|optimi\w*|planla\w*|geliştir\w*|takip\w*)\b", tr_lower(resp_text)):
         if m not in resp_verbs:
             resp_verbs.append(m)
 
     # --- Katman 7: Ağırlık metası (her terim için) ---
     def weight_meta(term: str, region: str) -> dict:
-        low = term.lower()
-        f = freq.get(low, 0) or sum(freq.get(v.lower(), 0) for v in lexicons.expand_lsi(low)) or 1
+        low = tr_lower(term)
+        f = freq.get(low, 0) or sum(freq.get(tr_lower(v), 0) for v in lexicons.expand_lsi(low)) or 1
         # modality: bölge + tekrar/merkezîlik
         if region == "must":
-            modality = 1.0
+            # P0-10 fix: ilanda açık bir "Aranan Nitelikler/Zorunlu" bölümü YOKSA,
+            # gövdeden türetilen terimler artık tam "zorunlu" (1.0) sayılmıyor —
+            # 0.6 ile işaretlenir (report.py'de "tercih" bandına düşer, "zorunlu"
+            # etiketi YALNIZCA ilanda açıkça yazan şartlara verilir).
+            modality = 1.0 if has_explicit_must else 0.6
         elif region == "nice":
             modality = 0.3
         else:
@@ -194,8 +302,11 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
         "intent": intent,
         "lsi": lsi,
         "knockouts": knockouts,
+        # P0-10 fix: şeffaflık alanı — "must_have" listesinin ilanda AÇIKÇA yazan bir
+        # zorunlu-şartlar bölümünden mi geldiği, yoksa gövdeden mi TAHMİN edildiği.
+        "must_have_source": "explicit" if has_explicit_must else "inferred_from_body",
         "_scoring_weights": {  # scoring.coverage() için doğrudan kullanılabilir ağırlık tablosu
-            m["term"].lower(): round(m["modality"] * m["positional_weight"], 3) for m in must_meta
+            tr_lower(m["term"]): round(m["modality"] * m["positional_weight"], 3) for m in must_meta
         },
         "_must_terms": [m["term"] for m in must_meta],
     }

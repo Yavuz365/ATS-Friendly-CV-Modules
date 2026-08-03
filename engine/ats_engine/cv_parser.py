@@ -121,7 +121,7 @@ def section_detect(text_input: str) -> dict[str, str]:
 
     # Bölümden önceki satırlar → unmatched
     pre_lines = lines[:sections[0][1]]
-    if any(l.strip() for l in pre_lines):
+    if any(ln.strip() for ln in pre_lines):
         unmatched_lines.extend(pre_lines)
 
     for idx, (label, start) in enumerate(sections):
@@ -150,7 +150,7 @@ def parse(text_input: str) -> CVSchema:
 
     for label, content in raw_sections.items():
         if label == "unmatched":
-            schema.unmatched_lines = [l for l in content.split("\n") if l.strip()]
+            schema.unmatched_lines = [ln for ln in content.split("\n") if ln.strip()]
             continue
 
         # Satır numaralarını bul

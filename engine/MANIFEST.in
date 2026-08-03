@@ -1,2 +1,5 @@
-# ATSE-4 fix: data dosyalarını sdist'e dahil et.
-recursive-include data *.json *.txt
+# P0-5 fix: data ve domain_pack_data artık ats_engine/ paketinin İÇİNDE
+# (eskiden engine/data ve repo-kökü domain-packs/ idi — paket ağacı dışında
+# kaldığı için wheel'e hiç girmiyorlardı).
+recursive-include ats_engine/data *.json *.txt
+recursive-include ats_engine/domain_pack_data *.json

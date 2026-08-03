@@ -10,7 +10,7 @@ Bağımlılık: yalnızca standart kütüphane + ats_engine.text
 
 from __future__ import annotations
 
-from .text import sentences, has_quantification
+from .text import has_quantification, sentences
 
 
 def quantification_audit(

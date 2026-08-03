@@ -41,7 +41,8 @@ def tr_lower(text: str) -> str:
 # Sayı / yüzde / para örüntüleri (niceleme tespiti için).
 _QUANT = re.compile(r"(%\s?\d+([.,]\d+)?|\d+([.,]\d+)?\s?%|[$€₺£]\s?\d|\b\d{2,}\b|\b\d+([.,]\d+)?\s?(x|kat|adet|gün|saat|ay|yıl|day|days|month|months|year|years)\b)", re.IGNORECASE)
 
-_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+# P0-5 fix (packaging): bkz. lexicons.py — veri artık paketin içinde.
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 
 @lru_cache(maxsize=1)
@@ -50,7 +51,7 @@ def load_stopwords() -> frozenset[str]:
     path = os.path.normpath(os.path.join(_DATA_DIR, "stopwords_tr_en.txt"))
     words: set[str] = set()
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#"):

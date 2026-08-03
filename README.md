@@ -50,11 +50,15 @@ ATS-Friendly-CV-Modules/
 │   │   ├── format_metadata_hygiene.py← Format & metadata hygiene (v1.4)
 │   │   ├── locale_consistency.py     ← Language consistency check (v1.4)
 │   │   ├── quantification_score.py   ← Quantification/metrics scoring (v1.4)
-│   │   └── cli.py                    ← Command-line interface
-│   ├── data/
-│   │   ├── action_verbs.json         ← 260+ action verbs (TR/EN, 13 categories, cliche_risk)
-│   │   ├── skill_synonyms.json       ← 61 canonicalization entries
-│   │   └── stopwords_tr_en.txt       ← Stopwords (TR + EN)
+│   │   ├── cli.py                    ← Command-line interface
+│   │   ├── data/                     ← P0-5 fix: moved INSIDE the package (was engine/data/)
+│   │   │   ├── action_verbs.json     ← 260+ action verbs (TR/EN, 13 categories, cliche_risk)
+│   │   │   ├── skill_synonyms.json   ← 61 canonicalization entries
+│   │   │   └── stopwords_tr_en.txt   ← Stopwords (TR + EN)
+│   │   └── domain_pack_data/         ← P0-5 fix: moved INSIDE the package (was repo-root domain-packs/)
+│   │       └── foreign-trade-logistics/
+│   │           ├── keywords_en.json  ← 65 keywords (English)
+│   │           └── keywords_tr.json  ← 73 keywords (Turkish)
 │   ├── tests/test_core.py            ← 43 unit tests
 │   ├── examples/
 │   │   ├── run_demo.py
@@ -113,10 +117,8 @@ ATS-Friendly-CV-Modules/
 │       ├── SKILL.md
 │       └── references/
 │
-├── domain-packs/                     ← Domain-specific term packs
-│   └── foreign-trade-logistics/
-│       ├── keywords_en.json          ← 65 keywords (English)
-│       └── keywords_tr.json          ← 73 keywords (Turkish)
+│   (domain-packs moved → engine/ats_engine/domain_pack_data/, see below;
+│    P0-5 packaging fix: data must live inside the installable package)
 │
 ├── templates/                        ← JD/CV templates
 │   ├── jd-etiketli-sablon.md

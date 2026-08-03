@@ -24,7 +24,6 @@ from collections import Counter
 
 from . import scoring, text
 
-
 # ─── Sabitler ────────────────────────────────────────────────────────────────
 
 L1_GATE_THRESHOLD: float = 0.70   # τ — araç-CV geçiş eşiği

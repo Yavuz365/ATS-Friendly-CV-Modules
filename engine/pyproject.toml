@@ -22,10 +22,14 @@ ats-engine = "ats_engine.cli:main"
 where = ["."]
 include = ["ats_engine*"]
 
-# ATSE-4 fix: data dosyaları (action_verbs.json, skill_synonyms.json, stopwords)
-# pip install ile birlikte paketlenir.
+# P0-5 fix: ATSE-4'ün "*.json/*.txt her yerde dahil et" kuralı sdist için
+# çalışıyordu ama data/ ve domain-packs/ paket ağacının (ats_engine/) DIŞINDA
+# olduğu için wheel'e hiç girmiyordu (clean-room kurulumda FileNotFoundError
+# ile doğrulandı). Veriler artık ats_engine/data/ ve
+# ats_engine/domain_pack_data/ altında — paketin kendi içinde — bu yüzden
+# glob'u paket-göreli ve recursive olarak açıkça tanımlıyoruz.
 [tool.setuptools.package-data]
-"*" = ["*.json", "*.txt"]
+ats_engine = ["data/*.json", "data/*.txt", "domain_pack_data/**/*.json"]
 
 [tool.setuptools]
 include-package-data = true

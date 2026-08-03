@@ -9,10 +9,8 @@ Bağımlılık: yalnızca standart kütüphane + ats_engine.lexicons
 
 from __future__ import annotations
 
-import re
-from .text import tr_lower
 from .lexicons import cliche_verbs
-
+from .text import tr_lower
 
 # Ek buzzword/klişe kalıplar (fiil dışı)
 _BUZZWORD_PATTERNS: list[str] = [

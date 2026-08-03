@@ -29,7 +29,7 @@ from collections import Counter
 from . import lexicons
 from .bm25 import BM25
 from .cv_parser import parse_safety_score as _parse_safety
-from .text import tokenize
+from .text import tokenize, tr_lower
 
 # Önerilen varsayılan ağırlıklar (scoring-formulas.md ile birebir).
 DEFAULTS = dict(alpha=0.35, beta=0.30, gamma=0.35, zeta=0.20, k1=1.5, b=0.75)
@@ -89,42 +89,55 @@ def sbert_cosine(jd_text: str, cv_text: str):
 # ----------------------------- kapsam & şişirme -----------------------------
 
 def coverage(must_have: list[str], cv_text: str, weights: dict | None = None,
-             synonym_aware: bool = True) -> tuple[float, list[str]]:
+             synonym_aware: bool = True) -> tuple[float, list[str], bool]:
     """
     Zorunlu terimlerin CV'de ağırlıklı kapsanma oranı + eksik (gap) listesi.
     synonym_aware=True iken birebir değil, eşanlamlı/varyant/fuzzy eşleşme de sayılır
     (Grammarly skill-normalization mantığı) — bu, ham substring'den daha gerçekçidir.
+
+    Dönüş: (cov, gap, evaluable)
+      evaluable=False ⟺ must_have boş geldi (JD'den hiç zorunlu terim çıkarılamadı).
+
+    P0-1 fix (ATSE-2'nin kendisi bug'dı): Eskiden must_have boşsa cov=1.0 (sahte
+    'tam uyum') dönüyordu — alakasız bir CV bile bu sayede yüksek skor alabiliyordu.
+    Artık boş durumda cov=0.0 VE evaluable=False dönülür; çağıran taraf (ats_match_score)
+    bu bileşeni RAW hesaplamasından tamamen ÇIKARIR (Sem yoksa β'nın yeniden dağıtılması
+    gibi) ve raporda 'kapsam değerlendirilemedi' uyarısı gösterir — sahte yüksek puan yerine
+    dürüst bir 'değerlendirilemedi' durumu.
     """
     weights = weights or {}
-    # ATSE-2 fix: must_have boş ise coverage=1.0 (nötr), skor çökmesini önle.
     if not must_have:
-        return 1.0, []
+        return 0.0, [], False
     num = den = 0.0
     gap: list[str] = []
     for term in must_have:
         t = term.strip()
         if not t:
             continue
-        w = weights.get(t.lower(), 1.0)
+        # P0-9 fix: weights sözlüğünün anahtarları jd_parser'da artık tr_lower()
+        # ile üretiliyor (İ→i, standart .lower() değil) — burada da tr_lower
+        # kullanılmazsa Türkçe büyük harfli terimler (İngilizce, İhracat...) için
+        # ağırlık her zaman bulunamaz (varsayılan 1.0'a düşerdi, sessizce yanlış).
+        w = weights.get(tr_lower(t), 1.0)
         den += w
         present = (
             lexicons.matches_semantically(t, cv_text)
             if synonym_aware
-            else (t.lower() in cv_text.lower())
+            else (tr_lower(t) in tr_lower(cv_text))
         )
         if present:
             num += w
         else:
             gap.append(term)
     cov = num / den if den else 1.0
-    return cov, gap
+    return cov, gap, True
 
 
 def stuffing_penalty(cv_tokens: list[str], max_density: float = 0.05) -> float:
     """En sık içerik teriminin yoğunluğu eşiği aşarsa orantılı ceza [0,1]."""
     if not cv_tokens:
         return 0.0
-    top, freq = Counter(cv_tokens).most_common(1)[0]
+    _top, freq = Counter(cv_tokens).most_common(1)[0]
     d = freq / len(cv_tokens)
     if d <= max_density:
         return 0.0
@@ -222,7 +235,7 @@ def ats_match_score(
         Sem = max(0.0, Sem)
 
     # Cov (eşanlamlı-duyarlı)
-    Cov, gap = coverage(must_have, cv_text, weights)
+    Cov, gap, cov_evaluable = coverage(must_have, cv_text, weights)
 
     # Stuff
     Stuff = stuffing_penalty(cv_tok)
@@ -237,20 +250,44 @@ def ats_match_score(
     else:
         sem_term = bb * Sem
 
-    RAW = a * Lex + sem_term + g * Cov - zeta * Stuff
+    warnings: list[str] = []
+    if not cov_evaluable:
+        # P0-1 fix: JD'den hiç zorunlu terim çıkarılamadıysa Cov bileşenini RAW'dan
+        # tamamen çıkar (sahte cov=1.0 ile skoru şişirmek yerine α/β'ya yeniden dağıt),
+        # ve bunu açıkça bir uyarı olarak işaretle.
+        cov_term = 0.0
+        if Sem is None:
+            a = 1.0  # yalnızca Lex kaldı
+        else:
+            denom = alpha + beta
+            a, bb = alpha / denom, beta / denom
+            sem_term = bb * Sem
+        g = 0.0
+        warnings.append(
+            "Kapsam (Cov) DEĞERLENDİRİLEMEDİ: ilan metninden hiçbir zorunlu terim (must_have) "
+            "çıkarılamadı. Skor yalnızca Lex/Sem bileşenlerine dayanıyor — 'hedef bant' verdiğine "
+            "güvenmeden önce ilan ayrıştırmasını (jd_parser) elle kontrol edin."
+        )
+    else:
+        cov_term = g * Cov
+
+    RAW = a * Lex + sem_term + cov_term - zeta * Stuff
     Score = max(0.0, min(1.0, lang_gate * parse_gate * RAW))
 
     P, R, F1 = prf(cv_text, must_have)
     pct = round(Score * 100, 1)
+    verdict = _verdict(pct)
+    if not cov_evaluable:
+        verdict = "⚠️ KISMİ DEĞERLENDİRME (Cov yok) — " + verdict
     return {
         "score_percent": pct,
-        "verdict": _verdict(pct),
+        "verdict": verdict,
         "components": {
             "Lex": round(Lex, 3),
             "Lex_tfidf": round(Lex_raw, 3),
             "Lex_bm25": round(Bm25_norm, 3),
             "Sem": (round(Sem, 3) if Sem is not None else "yok (SBERT kurulu değil)"),
-            "Cov": round(Cov, 3),
+            "Cov": (round(Cov, 3) if cov_evaluable else "değerlendirilemedi (must_have boş)"),
             "Parse_gate": parse_gate,
             "Stuffing": round(Stuff, 3),
         },
@@ -259,6 +296,8 @@ def ats_match_score(
         "precision": P,
         "recall": R,
         "f1": F1,
+        "coverage_evaluable": cov_evaluable,
+        "warnings": warnings,
         "interpretation": "hedef %75-85 | >%90 şişirme sinyali | <%50 ciddi iyileştirme",
     }
 
