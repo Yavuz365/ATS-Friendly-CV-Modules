@@ -9,8 +9,6 @@ Bağımlılık: yalnızca standart kütüphane.
 
 from __future__ import annotations
 
-import re
-
 # Yaygın AmE/BrE farkları — ATS'de eşleşme kaçırma riski yüksek
 _LOCALE_PAIRS: list[tuple[str, str]] = [
     # (AmE, BrE)

@@ -22,9 +22,12 @@ import json
 import os
 from functools import lru_cache
 
-
+# P0-5 fix (packaging): domain-packs/ eskiden repo KÖKÜNDE (engine/'in bile
+# dışında) idi — hiçbir wheel/sdist bunu paketleyemezdi (paket ağacının tamamen
+# dışında). Artık ats_engine/domain_pack_data/ içine taşındı; dizin adı
+# domain_packs.py modülüyle çakışmasın diye "domain_pack_data" seçildi.
 _PACKS_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "domain-packs")
+    os.path.join(os.path.dirname(__file__), "domain_pack_data")
 )
 
 
@@ -64,7 +67,7 @@ def load_pack(pack_name: str, lang: str = "en") -> dict:
             f"Dil dosyası bulunamadı: {filename} ({pack_name} paketi)"
         )
 
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -72,7 +75,7 @@ def all_keywords(pack: dict) -> list[str]:
     """Paketteki tüm kategorilerdeki anahtar kelimeleri düz liste olarak döndürür."""
     keywords: list[str] = []
     categories = pack.get("categories", {})
-    for cat, terms in categories.items():
+    for _cat, terms in categories.items():
         if isinstance(terms, list):
             keywords.extend(terms)
     return keywords

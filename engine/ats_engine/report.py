@@ -18,15 +18,17 @@ from __future__ import annotations
 
 import json
 
-from . import jd_parser, scoring, synthesis, evidence_bank, text
 # P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
-from . import cv_parser
+from . import cv_parser, evidence_bank, jd_parser, scoring, synthesis, text
+from .cliche_tone import detect_cliches
 from .completeness_guard import evidence_recall
 from .format_metadata_hygiene import full_hygiene_check
-from .locale_consistency import detect_locale, locale_mismatches
+from .locale_consistency import locale_mismatches
 from .quantification_score import quantification_audit
-from .cliche_tone import detect_cliches
-from .calibration import create_calibration, suggest_weight_adjustment
+
+# P0-4 fix: create_calibration/suggest_weight_adjustment artık build_report()
+# içinde çağrılmıyor (bkz. qa_checks["calibration_hint"] altındaki not) — gerçek
+# dış referans skoru olan ayrı bir kalibrasyon akışı için calibration.py'de dursunlar.
 
 
 def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = None,
@@ -144,15 +146,23 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
     except Exception:
         qa_checks["cliches"] = {"error": "detect_cliches hesaplanamadı"}
 
-    try:
-        qa_checks["calibration_hint"] = suggest_weight_adjustment(
-            create_calibration(
-                [{"jd_name": "current", "engine_score": score["score_percent"],
-                  "jobscan_score": score["score_percent"]}]
-            )
-        )
-    except Exception:
-        qa_checks["calibration_hint"] = {"error": "calibration hesaplanamadı"}
+    # P0-4 fix: eskiden burada motorun KENDİ skoru hem "engine_score" hem
+    # "jobscan_score" olarak calibration'a veriliyordu → delta her zaman 0,
+    # sonuç her zaman "✅ mükemmel korelasyon" (sahte kalibrasyon — motor kendi
+    # kendisiyle karşılaştırılıyordu, dış bir referans yoktu). create_calibration()/
+    # suggest_weight_adjustment() GERÇEK bir dış (ör. Jobscan) skoru verildiğinde
+    # anlamlıdır (bkz. calibration.py — ayrı bir kalibrasyon script'inde kullanılabilir);
+    # build_report() burada dış referans ALMADIĞI için sahte veri üretmek yerine
+    # dürüstçe "N/A" işaretliyoruz.
+    qa_checks["calibration_hint"] = {
+        "adjustment": "not_available",
+        "note": (
+            "Bu alan yalnızca GERÇEK bir dış referans skoru (ör. Jobscan) verildiğinde "
+            "anlamlıdır. build_report() dış referans almıyor; motorun kendi skorunu "
+            "kendisiyle karşılaştırıp sahte '✅ mükemmel korelasyon' üretmek yerine bu "
+            "alan boş bırakıldı (P0-4 fix)."
+        ),
+    }
 
     return {
         "mode": "diagnostic" if cv_text is not None else "framework-baseline",
@@ -164,6 +174,7 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
             "responsibilities": analysis["responsibilities"],
             "knockouts": analysis["knockouts"],
             "intent": analysis["intent"],
+            "must_have_source": analysis["must_have_source"],
         },
         "summary": summary,
         "synthesis": synth,
@@ -192,7 +203,13 @@ def to_markdown(report: dict) -> str:
 
     lines.append("## 2. analysis (7 katman özeti)")
     idn = a["identity"]
-    lines.append(f"- **Kimlik:** {idn['title_guess']} · kıdem: {idn['seniority']} · çalışma: {idn['work_mode']} · dil: {', '.join(idn['language_req']) or '—'} · deneyim: {idn['experience_years'] or '—'}")
+    # P0-8 fix: language_req artık [{"language":..,"level":..}, ...] (dil+seviye
+    # eşleşmiş) — eskiden düz bir string listesiydi ve dil/seviye hiç eşleşmiyordu.
+    lang_str = ", ".join(
+        f"{lr['language']} ({lr['level']})" if lr.get("level") else lr["language"]
+        for lr in idn["language_req"]
+    ) or "—"
+    lines.append(f"- **Kimlik:** {idn['title_guess']} · kıdem: {idn['seniority']} · çalışma: {idn['work_mode']} · dil: {lang_str} · deneyim: {idn['experience_years'] or '—'}")
     lines.append(f"- **Zorunlu:** {', '.join(m['term'] for m in a['must_have']) or '—'}")
     lines.append(f"- **Tercih:** {', '.join(m['term'] for m in a['nice_to_have']) or '—'}")
     lines.append(f"- **Sorumluluk fiilleri:** {', '.join(a['responsibilities'][:12]) or '—'}")
@@ -221,6 +238,10 @@ def to_markdown(report: dict) -> str:
                  f"Stuffing={ms['components']['Stuffing']}")
     lines.append(f"- **Ağırlıklar:** {ms['weights_used']}")
     lines.append(f"- **P/R/F1:** {ms['precision']} / {ms['recall']} / {ms['f1']}")
+    if ms.get("warnings"):
+        lines.append("- **⚠️ Uyarılar:**")
+        for w in ms["warnings"]:
+            lines.append(f"  - {w}")
     lines.append("")
 
     # Y36-11: Jobscan-style sayım tablosu
@@ -254,6 +275,11 @@ def to_markdown(report: dict) -> str:
             cl = qa["cliches"]
             lines.append(f"- **Clichés:** count={cl.get('cliche_count', 0)}, "
                          f"severity={cl.get('max_severity', 'none')}")
+        # P0-6 fix: calibration_hint JSON'da vardı ama Markdown raporunda hiç
+        # görünmüyordu (rapor formatları birbirini tutmuyordu) — artık burada da basılıyor.
+        if "calibration_hint" in qa and "error" not in qa["calibration_hint"]:
+            ch = qa["calibration_hint"]
+            lines.append(f"- **Calibration:** {ch.get('adjustment', '?')} — {ch.get('note', '')}")
         lines.append("")
 
     lines.append("## 6. gap_analysis")

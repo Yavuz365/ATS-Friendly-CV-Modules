@@ -21,9 +21,8 @@ Bağımlılık: yalnızca standart kütüphane (+ ats_engine.lexicons, text, evi
 from __future__ import annotations
 
 from . import lexicons
-from .text import has_quantification, looks_passive
 from .evidence_bank import Evidence, find_support
-
+from .text import has_quantification, looks_passive
 
 # ----------------------------- başarı cümlesi inşası -----------------------------
 

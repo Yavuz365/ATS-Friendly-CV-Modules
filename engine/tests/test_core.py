@@ -21,8 +21,16 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from ats_engine import (  # noqa: E402
-    text, bm25, scoring, jd_parser, synthesis, lexicons, evidence_bank,
-    parse_jd, parse_bank, ats_match_score, build_report,
+    ats_match_score,
+    bm25,
+    build_report,
+    evidence_bank,
+    lexicons,
+    parse_bank,
+    parse_jd,
+    scoring,
+    synthesis,
+    text,
 )
 
 
@@ -73,6 +81,32 @@ def test_jaccard_bounds():
     assert 0.0 <= lexicons.jaccard("abc", "xyz") <= 1.0
 
 
+# P0-2 fix: "SAP" kelime-sınırı olmadan "sapphire" içinde yanlış eşleşiyordu
+def test_matches_semantically_word_boundary_no_false_positive():
+    assert not lexicons.matches_semantically("SAP", "I love sapphire gemstones")
+    assert lexicons.matches_semantically("SAP", "I use SAP daily for ERP work")
+    # tireli terimlerde de sınır doğru çalışmalı
+    assert lexicons.matches_semantically("sap", "customs-cleared via sap-mm module")
+
+
+# P0-3 fix: action_verbs_by_intent artık gerçek JSON anahtarlarına eşleniyor (hiçbir zaman [] değil)
+def test_action_verbs_by_intent_never_empty_for_known_intents():
+    for intent in ["leadership", "achievement", "improvement", "growth", "reduction",
+                   "creation", "analysis", "negotiation", "operations", "communication"]:
+        verbs = lexicons.action_verbs_by_intent(intent)
+        assert len(verbs) > 0, f"intent={intent} için boş liste dönmemeli"
+    # bilinmeyen intent de genel havuza (en_tier1_impact) düşmeli, boş dönmemeli
+    assert len(lexicons.action_verbs_by_intent("unknown-intent-xyz")) > 0
+
+
+def test_synthesis_build_xyz_uses_real_verb_not_always_achieved():
+    # P0-3 fix'ten önce her intent sessizce "achieved"e düşüyordu.
+    sentence_leadership = synthesis.build_xyz("ekip performansı", "%20 verimlilik", "haftalık 1:1'lerle", intent="leadership")
+    assert "(" in sentence_leadership  # fiil parantez içinde raporlanıyor
+    # leadership havuzundan (managed/led/directed/...) bir fiil gelmeli, achieved DEĞİL
+    assert "(achieved)" not in sentence_leadership
+
+
 # --------------------------------------------------------------- jd_parser
 SAMPLE_JD = """Kıdemli Dış Ticaret Uzmanı (Hibrit)
 Zorunlu: Customs Clearance, Incoterms, SAP MM, Regulatory Compliance.
@@ -87,6 +121,33 @@ def test_parse_jd_returns_layers():
     assert "_scoring_weights" in parsed
     assert isinstance(parsed["_must_terms"], list)
     assert len(parsed["_must_terms"]) >= 1
+    # P0-10 fix: SAMPLE_JD'de açık "Zorunlu:" başlığı var → source "explicit" olmalı
+    assert parsed["must_have_source"] == "explicit"
+    assert all(m["modality"] == 1.0 for m in parsed["must_have"])
+
+
+# P0-8 fix: dil adı + seviye kodu artık eşleştiriliyor (eskiden ayrı ayrı, eşleşmemiş çıkardı)
+def test_language_requirements_paired_with_level():
+    jd = "Aranan Nitelikler: İngilizce (C1) ve Almanca (B2) gerekmektedir."
+    parsed = parse_jd(jd)
+    langs = parsed["identity"]["language_req"]
+    assert any(x["language"] == "ingilizce" and x["level"] == "c1" for x in langs)
+    assert any(x["language"] == "almanca" and x["level"] == "b2" for x in langs)
+    # Türkçe büyük "İ" doğru küçültülmeli (P0-9: eski .lower() "i̇ngilizce" üretiyordu)
+    assert all("̇" not in x["language"] for x in langs)
+
+
+# P0-10 fix: "must" bölge başlığı yoksa gövdeden türetilen terimler artık 1.0 (zorunlu)
+# değil, 0.6 (tercih bandı) — ve anlamsız kısaltmalar (MM gibi) filtrelenir.
+def test_no_explicit_must_section_infers_lower_modality_and_filters_noise():
+    jd_no_must_header = (
+        "Şirketimiz İstanbul ofisinde çalışacak bir Lojistik Uzmanı arıyor. "
+        "MM birimi cinsinden ölçüm yapılan sevkiyatlarda SAP ve Incoterms deneyimi önemlidir."
+    )
+    parsed = parse_jd(jd_no_must_header)
+    assert parsed["must_have_source"] == "inferred_from_body"
+    assert all(m["modality"] == 0.6 for m in parsed["must_have"])
+    assert "MM" not in parsed["_must_terms"]
 
 
 # ----------------------------------------------------------- evidence_bank
@@ -140,10 +201,25 @@ def test_parse_gate_auto_called_when_none():
 
 # ATSE-2: must_have boş → skor çökmemeli
 def test_empty_must_have_no_collapse():
+    # P0-1 fix: bu test eskiden "must_have boşsa Cov=1.0 (sahte tam-uyum)" davranışını
+    # DOĞRU sanıp test ediyordu — bu davranışın ta kendisi P0 bug'dı (alakasız bir CV
+    # bile yüksek skor alabiliyordu). Artık: skor çökmüyor (Lex/Sem'e dayanarak hâlâ
+    # >0 üretebilir) AMA Cov "değerlendirilemedi" olarak işaretleniyor, sahte 1.0 DEĞİL,
+    # ve motor açık bir uyarı üretiyor.
     res = ats_match_score(SAMPLE_JD, FRAMEWORK, [], use_sbert=False)
-    # Cov = 1.0 (nötr); skor > 0 olmalı
-    assert res["score_percent"] > 0.0
-    assert res["components"]["Cov"] == pytest.approx(1.0)
+    assert res["score_percent"] >= 0.0
+    assert res["coverage_evaluable"] is False
+    assert res["components"]["Cov"] == "değerlendirilemedi (must_have boş)"
+    assert any("DEĞERLENDİRİLEMEDİ" in w for w in res["warnings"])
+    assert "KISMİ DEĞERLENDİRME" in res["verdict"]
+
+
+def test_nonempty_must_have_still_evaluable():
+    # Kontrol testi: must_have DOLU olduğunda eski davranış (Cov sayısal, uyarı yok) korunur.
+    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["python", "sql"], use_sbert=False)
+    assert res["coverage_evaluable"] is True
+    assert isinstance(res["components"]["Cov"], float)
+    assert res["warnings"] == []
 
 
 # ATSE-6: SBERT singleton — fonksiyon var ve çağrılabilir
@@ -209,7 +285,7 @@ def test_jaccard_short_term_no_false_positive():
 
 # ATSE-8: domain_packs yüklenebilmeli
 def test_domain_packs_list_and_load():
-    from ats_engine.domain_packs import list_packs, load_pack, all_keywords, detect_domain
+    from ats_engine.domain_packs import all_keywords, detect_domain, list_packs, load_pack
     packs = list_packs()
     assert "foreign-trade-logistics" in packs, "foreign-trade-logistics paketi olmalı"
     pack = load_pack("foreign-trade-logistics", lang="en")
@@ -227,7 +303,7 @@ def test_domain_packs_list_and_load():
 
 # ATSE-8: enrich_must_terms çalışmalı
 def test_domain_packs_enrich():
-    from ats_engine.domain_packs import load_pack, enrich_must_terms
+    from ats_engine.domain_packs import enrich_must_terms, load_pack
     pack = load_pack("foreign-trade-logistics", lang="en")
     must = ["customs clearance", "incoterms"]
     enriched = enrich_must_terms(must, pack, max_additions=3)
@@ -237,7 +313,7 @@ def test_domain_packs_enrich():
 
 # ATSE-9: LangGate karışık dilde tetiklenmeli
 def test_lang_gate_triggers_on_mixed():
-    from ats_engine.multilevel import lang_gate, language_purity
+    from ats_engine.multilevel import language_purity
     # Saf Türkçe metin → yüksek purity
     tr_text = "Gümrük süreçlerini yönettim ve ihracat operasyonlarını koordine ettim"
     tr_purity = language_purity(tr_text, "tr")
@@ -347,7 +423,7 @@ def test_sample_cv_clean():
     sample_path = os.path.join(
         os.path.dirname(__file__), "..", "examples", "sample_cv.txt"
     )
-    with open(sample_path, "r", encoding="utf-8") as f:
+    with open(sample_path, encoding="utf-8") as f:
         content = f.read()
     assert "·" not in content, "middle dot temizlenmeli"
     assert "—" not in content, "em-dash temizlenmeli"
@@ -468,3 +544,20 @@ def test_report_has_qa_checks():
     expected_checks = ["completeness", "hygiene", "quantification", "cliches"]
     for check in expected_checks:
         assert check in qa, f"qa_checks içinde '{check}' olmalı"
+
+
+# P0-4 fix: calibration_hint artık motorun kendi skorunu kendisiyle karşılaştırmıyor
+def test_calibration_hint_not_self_referential():
+    from ats_engine.report import build_report
+    result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
+    ch = result["qa_checks"]["calibration_hint"]
+    assert ch["adjustment"] == "not_available"
+    assert "dış referans" in ch["note"]
+
+
+# P0-6 fix: Markdown raporu artık calibration_hint'i de göstermeli (JSON/MD tutarlılığı)
+def test_markdown_includes_calibration_line():
+    from ats_engine.report import build_report, to_markdown
+    result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
+    md = to_markdown(result)
+    assert "Calibration" in md

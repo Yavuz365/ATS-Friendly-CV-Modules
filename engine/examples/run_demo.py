@@ -26,7 +26,7 @@ from ats_engine import build_report, to_json, to_markdown  # noqa: E402
 
 
 def _read(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 

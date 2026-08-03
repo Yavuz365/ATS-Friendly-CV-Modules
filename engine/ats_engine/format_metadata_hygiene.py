@@ -12,9 +12,8 @@ Bağımlılık: yalnızca standart kütüphane + ats_engine.text
 
 from __future__ import annotations
 
-import re
-from .text import sentences, tr_lower
 from .cv_parser import _SPECIAL_CHARS
+from .text import sentences
 
 
 def check_word_budget(cv_text: str, min_words: int = 600, max_words: int = 1000) -> dict:
@@ -68,7 +67,7 @@ def check_special_characters(cv_text: str) -> dict:
 def check_bullet_count(cv_text: str, min_per_role: int = 3, max_per_role: int = 6) -> dict:
     """Bullet point sayısı kontrolü (deneyim bölümlerinde)."""
     lines = cv_text.split("\n")
-    bullet_lines = [l.strip() for l in lines if l.strip().startswith(("-", "•", "–"))]
+    bullet_lines = [ln.strip() for ln in lines if ln.strip().startswith(("-", "•", "–"))]
     return {
         "total_bullets": len(bullet_lines),
         "recommended_per_role": f"{min_per_role}-{max_per_role}",

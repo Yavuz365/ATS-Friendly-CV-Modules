@@ -22,11 +22,11 @@ import json
 import os
 import sys
 
-from . import jd_parser, scoring, evidence_bank, report
+from . import evidence_bank, jd_parser, report, scoring
 
 
 def _read(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
