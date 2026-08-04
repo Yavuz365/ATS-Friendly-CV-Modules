@@ -175,7 +175,7 @@ python -m ats_engine.cli score \
 python -m ats_engine.cli parse --jd jobs/jd.txt
 
 # Framework CV → Evidence bank
-python -m ats_engine.cli bank --cv cvs/framework_cv.md
+python -m ats_engine.cli bank --framework cvs/framework_cv.md
 ```
 
 ### Python API
