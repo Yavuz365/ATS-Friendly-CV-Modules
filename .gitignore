@@ -36,3 +36,12 @@ Thumbs.db
 
 # Sentence-transformers cache
 .cache/
+
+# Kişisel/gizli konfigürasyon (2026-08-05 privacy fix)
+config/user_profile.local.yaml
+*.local.yaml
+.env
+.env.*
+*.pem
+*.key
+secrets/

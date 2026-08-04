@@ -2,26 +2,33 @@
 # Kaynak: Viktor Hybrid Revizyon v2.0, Desen 8 (Ads Toolkit Config Layer)
 # Bu dosya, motorun kullanıcı-spesifik davranışını yapılandırır.
 # P1 aşamasında motor tarafından okunacak.
+#
+# ⚠️ GİZLİLİK NOTU (2026-08-05 düzeltmesi):
+# Bu dosya PUBLIC bir repoda tutulduğu için gerçek kişisel bilgiler
+# (ad-soyad, hedef roller, dil seviyeleri, sektör hedefleri) buraya
+# YAZILMAMALIDIR. Aşağıdaki değerler placeholder'dır. Kendi gerçek
+# değerlerinizi, git tarafından TAKİP EDİLMEYEN bir kopyada tutun,
+# örn. `config/user_profile.local.yaml` (bkz. .gitignore) ve motoru
+# o dosyayı okuyacak şekilde yapılandırın.
+#
+# NOT: Bu dosyanın önceki commit geçmişinde gerçek kişisel veriler
+# yer alıyordu. Bu commit yalnızca HEAD'i temizler; geçmiş commitlerden
+# tam kaldırma (history rewrite) ayrı, geri döndürülemez bir işlemdir ve
+# repo sahibinin ayrı onayını gerektirir.
 
 user:
-  name: "Ahmet Yavuz"
+  name: "PLACEHOLDER_NAME"
   languages:
-    native: "tr"
-    proficient: ["en"]          # C1+
-    intermediate: ["de", "fr", "es"]  # B2
-    basic: ["ru"]               # A2
+    native: "xx"
+    proficient: []          # C1+
+    intermediate: []         # B2
+    basic: []                # A2
   target_roles:
-    - "International Trade Specialist"
-    - "Supply Chain Manager"
-    - "Logistics Coordinator"
-    - "Foreign Trade Manager"
-  experience_years: 8
+    - "PLACEHOLDER_ROLE_1"
+    - "PLACEHOLDER_ROLE_2"
+  experience_years: 0
   sectors:
-    - "energy"
-    - "construction"
-    - "automotive"
-    - "logistics"
-    - "manufacturing"
+    - "PLACEHOLDER_SECTOR"
 
 scoring:
   target_band: [75, 85]         # Hedef skor bandı
