@@ -3,6 +3,11 @@
 Bu belge, eski (kök düzey) dosya konumlarını yeni kanonik konumlarına eşler.
 Referans kırılmalarını önlemek için geçiş sürecinde kullanın.
 
+> **Düzeltme (2026-08-05):** Aşağıdaki "Yeni Eklenen Dosyalar" tablosu bazı yolları
+> repoda zaten var gibi listeliyordu; canlı repo ağacı taranarak kontrol edildi ve
+> bir kısmının hiç oluşturulmadığı görüldü. Tablo artık gerçek durumu (Var / Planlandı)
+> ayrı bir sütunda gösteriyor.
+
 ---
 
 ## Dosya Eşlem Tablosu
@@ -22,28 +27,28 @@ Referans kırılmalarını önlemek için geçiş sürecinde kullanın.
 
 ## Yeni Eklenen Dosyalar (kök konumda olmayan)
 
-| Yeni konum | İçerik |
-|-----------|--------|
-| `skills/ats-cv-architect/references/jd-decomposition.md` | JD 7 katman şeması |
-| `skills/ats-cv-architect/references/synthesis-rules.md` | Sentez kuralları |
-| `skills/ats-cv-architect/references/workflow-drive-multitool.md` | Drive + çok-LLM akışı |
-| `skills/ats-cv-architect/assets/output-fields-template.md` | 6 alan çıktı şablonu |
-| `skills/ats-cv-architect/scripts/ats_score.py` | Deterministik skorlayıcı |
-| `docs/architecture/system-overview.md` | Genel mimari |
-| `docs/architecture/provenance-and-anti-hallucination.md` | Provenans sistemi |
-| `references/ats-kb/keyword-ontology.md` | ATS keyword ontolojisi |
-| `references/ats-kb/ats-parser-rules.md` | ATS ayrıştırıcı kuralları |
-| `references/ats-kb/jd-taxonomy.md` | JD taksonomisi |
-| `references/ats-kb/quality-gates.md` | Kalite kapıları |
-| `assets/templates/jd-tagged-template.md` | Etiketli JD şablonu |
-| `assets/templates/evidence-bank-template.md` | Kanıt bankası şablonu |
-| `integrations/drive.md` | Google Drive entegrasyonu |
-| `integrations/onedrive.md` | OneDrive entegrasyonu |
-| `integrations/box-dropbox.md` | Box/Dropbox entegrasyonu |
-| `integrations/jira.md` | Jira JD birleştirme |
-| `integrations/linear.md` | Linear iş akışı |
-| `integrations/slack-qa.md` | Slack QA kontrolleri |
-| `integrations/final-gates-jobscan-grammarly.md` | Jobscan + Grammarly son kapılar |
+| Yeni konum | İçerik | Repoda mevcut mu? (2026-08-05 kontrolü) |
+|-----------|--------|-------------------------------|
+| `skills/ats-cv-architect/references/jd-decomposition.md` | JD 7 katman şeması | ✅ Var |
+| `skills/ats-cv-architect/references/synthesis-rules.md` | Sentez kuralları | ✅ Var |
+| `skills/ats-cv-architect/references/workflow-drive-multitool.md` | Drive + çok-LLM akışı | ✅ Var |
+| `skills/ats-cv-architect/assets/output-fields-template.md` | 6 alan çıktı şablonu | ✅ Var |
+| `skills/ats-cv-architect/scripts/ats_score.py` | Deterministik skorlayıcı | ✅ Var |
+| `docs/architecture/system-overview.md` | Genel mimari | ✅ Var |
+| `docs/architecture/provenance-and-anti-hallucination.md` | Provenans sistemi | ✅ Var |
+| `references/ats-kb/keyword-ontology.md` | ATS keyword ontolojisi | ✅ Var |
+| `references/ats-kb/ats-parser-rules.md` | ATS ayrıştırıcı kuralları | ✅ Var |
+| `references/ats-kb/jd-taxonomy.md` | JD taksonomisi | ✅ Var |
+| `references/ats-kb/quality-gates.md` | Kalite kapıları | ❌ **Planlandı, henüz oluşturulmadı** |
+| `assets/templates/jd-tagged-template.md` | Etiketli JD şablonu | ❌ **Planlandı, henüz oluşturulmadı** (`assets/` dizini repoda yok) |
+| `assets/templates/evidence-bank-template.md` | Kanıt bankası şablonu | ❌ **Planlandı, henüz oluşturulmadı** |
+| `integrations/drive.md` | Google Drive entegrasyonu | ❌ **Planlandı, henüz oluşturulmadı** (`integrations/` dizini repoda yok) |
+| `integrations/onedrive.md` | OneDrive entegrasyonu | ❌ **Planlandı, henüz oluşturulmadı** |
+| `integrations/box-dropbox.md` | Box/Dropbox entegrasyonu | ❌ **Planlandı, henüz oluşturulmadı** |
+| `integrations/jira.md` | Jira JD birleştirme | ❌ **Planlandı, henüz oluşturulmadı** |
+| `integrations/linear.md` | Linear iş akışı | ❌ **Planlandı, henüz oluşturulmadı** |
+| `integrations/slack-qa.md` | Slack QA kontrolleri | ❌ **Planlandı, henüz oluşturulmadı** |
+| `integrations/final-gates-jobscan-grammarly.md` | Jobscan + Grammarly son kapılar | ❌ **Planlandı, henüz oluşturulmadı** |
 
 ---
 
@@ -53,3 +58,6 @@ Referans kırılmalarını önlemek için geçiş sürecinde kullanın.
 2. **Kök düzey kopya**lar yalnızca geriye uyumluluk için; düzenleme yapma.
 3. **Arşiv** dosyalarına asla yeni içerik ekleme; referans olarak kullanma.
 4. **Kök düzey kopyalar** ileride (bağlantı doğrulaması sonrası) kaldırılacak.
+5. **"Planlandı" olarak işaretli satırlar** — bu dosyalar henüz yok; onlara link veren başka
+   belgeler (örn. bu dosyanın kendisi) kırık referans üretebilir. Gerçekten ihtiyaç yoksa bu
+   satırları kaldırmayı, varsa dosyaları oluşturmayı değerlendirin.
