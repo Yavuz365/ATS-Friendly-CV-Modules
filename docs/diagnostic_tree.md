@@ -65,7 +65,8 @@ Bir CV düşük skor aldığında dalları sırayla kontrol ederek kök nedeni b
 ## Kullanım
 
 ```bash
-# Gelecek: diagnostic komutu (P1)
+# HENÜZ UYGULANMADI — bu komut çalıştırılamaz (P1, C-008 gate mimarisi sonrası planlanıyor).
+# Şu an desteklenen alt-komutlar: report, score, parse, bank.
 python -m ats_engine.cli diagnose --jd jd.txt --cv cv.txt --framework framework_cv.md
 ```
 
