@@ -1,4 +1,4 @@
-# ats_engine — ATS CV Engine (v1.5.0)
+# ats_engine — ATS CV Engine (v1.5.1)
 
 Synthesis-first, audit-corrected ATS-CV engine. **Core runs on standard library only** (zero required dependencies). SBERT is optional; if not installed, the engine gracefully redistributes β weight to α+γ.
 
@@ -22,7 +22,7 @@ python -m ats_engine.cli bank   --framework framework.md
 ## Demo + Tests
 ```bash
 python examples/run_demo.py
-pytest -q          # 43 tests
+pytest -q          # 64 tests (test_core.py: 61, test_cli.py: 3)
 ```
 
 ## Python API
@@ -47,6 +47,6 @@ from ats_engine import (
 **Quality (v1.4):** `calibration` · `cliche_tone` · `completeness_guard` · `format_metadata_hygiene` · `locale_consistency` · `quantification_score`
 
 ## Data
-- `data/action_verbs.json` — 260+ verbs (TR/EN, 13 categories, cliche_risk tags)
-- `data/skill_synonyms.json` — 61 canonicalization entries (LSI/normalize)
+- `data/action_verbs.json` — 260 verbs (TR/EN, 12 categories, cliche_risk tags)
+- `data/skill_synonyms.json` — 60 canonicalization entries (LSI/normalize)
 - `data/stopwords_tr_en.txt` — Stopwords (TR + EN)

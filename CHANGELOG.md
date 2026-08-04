@@ -50,11 +50,29 @@ maddeleri kapatan **v1.5.1 güven/stabilizasyon** sürümüdür. Bkz. `docs/deci
 ### Tests
 - **Total: 55/55 tests passing** (was 51)
 
+> **📌 2026-08-04 canlı doğrulama düzeltmesi:** `v1.5.1` tag'inin kendi commit'i
+> (`git show v1.5.1:engine/tests/`) fiilen **64 test** içeriyor
+> (`test_core.py`: 61, `test_cli.py`: 3) — üstteki "55/55" rakamı, bu satırı yazan
+> commit'in (`f3ee0fd`) kendi mesajıyla bile tutarsızdı (o da "61/61" diyordu).
+> Taze `git clone` + izole venv'de `pytest engine/tests/ -q` ile doğrulandı: **64 passed**.
+> Bu not, geçmiş kaydı silmeden düzeltme şeffaflığı için eklendi.
+>
+> Ayrıca: yukarıdaki "CI: `ruff check` + `mypy` adımları... artık CI'nin bir parçası"
+> maddesi **canlı `.github/workflows/test.yml` ile uyuşmuyor** — o dosya şu an
+> yalnızca `pytest` + CLI smoke test çalıştırıyor, ruff/mypy adımı içermiyor. Bu,
+> muhtemelen workflow dosyası push'unun GitHub Actions izniyle reddedilmesi
+> yüzünden hiç uygulanamamış bir değişiklik (bkz. Viktor'un kullanıcı notları —
+> "2 Ruff+mypy YAML satırı bekliyor, önerildi, hiç gönderilmedi"). Lint/typecheck
+> hâlâ yalnızca yerelde `make check` ile veya pre-commit hook'uyla çalışıyor, CI'da
+> zorunlu değil. Manuel eklenecek YAML parçası ayrıca sunulabilir.
+
 ### Kapsam dışı (henüz yapılmadı, ayrı karar/faz gerektiriyor)
 - REG-001..015 numaralı resmi regresyon test kimlikleri (yerine yukarıdaki 4 test eklendi,
   ama kanonik dokümanların önerdiği numaralandırma şeması uygulanmadı)
 - v2.0 contract-first mimarisi (B serisi, ADR-001+)
 - F1 canonical_id eşleme tablosu (Linear/Jira/Asana/Monday'a canlı yazma erişimi yok)
+- **CI'ya `ruff check` + `mypy` adımlarının fiilen eklenmesi** (yukarıdaki düzeltme
+  notuna bakınız — bu hâlâ açık bir madde, `v1.5.1`'de kapanmadı)
 
 ## [1.5.0] — 2026-06-15
 

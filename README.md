@@ -7,7 +7,7 @@ A deterministic Python engine that measures job description (JD) to CV alignment
 [![CI](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions/workflows/test.yml/badge.svg)](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Version](https://img.shields.io/badge/version-1.5.1-green)
-![Tests](https://img.shields.io/badge/tests-43%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-64%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
 
 ---
@@ -59,7 +59,8 @@ ATS-Friendly-CV-Modules/
 │   │       └── foreign-trade-logistics/
 │   │           ├── keywords_en.json  ← 65 keywords (English)
 │   │           └── keywords_tr.json  ← 73 keywords (Turkish)
-│   ├── tests/test_core.py            ← 43 unit tests
+│   ├── tests/test_core.py            ← 61 unit tests
+│   ├── tests/test_cli.py             ← 3 unit tests (CLI exit-code contract)
 │   ├── examples/
 │   │   ├── run_demo.py
 │   │   ├── sample_jd_foreign_trade.txt
@@ -309,7 +310,7 @@ This repo is **not dependent on any AI tool**:
 cd engine && pip install -e ".[dev]" && pytest tests/ -v
 ```
 
-43 tests covering: clamp, gate, H1 stopping condition, gap classification, 6-field output, BM25 pipeline, anti-stuffing, parse gate auto-call, empty must_have, SBERT singleton, Jaccard dynamic threshold, domain packs, LangGate trigger, precision independence, completeness guard, format hygiene, locale detection, quantification audit, cliché detection, calibration, acronym-safe tr_lower (P0.1), QA checks wiring (P0.4).
+64 tests covering: clamp, gate, H1 stopping condition, gap classification, 6-field output, BM25 pipeline, anti-stuffing, parse gate auto-call, empty must_have, SBERT singleton, Jaccard dynamic threshold, domain packs, LangGate trigger, precision independence, completeness guard, format hygiene, locale detection, quantification audit, cliché detection, calibration, acronym-safe tr_lower (P0.1), QA checks wiring (P0.4), parse-gate fail-closed boundaries (NaN/out-of-range), data-correctness of `_meta` counters vs actual JSON content, and CLI exit-code contract (0=success, 2=input error, 1=unexpected internal error).
 
 CI/CD: Tests run automatically on Python 3.10, 3.11, 3.12 on every push.
 
