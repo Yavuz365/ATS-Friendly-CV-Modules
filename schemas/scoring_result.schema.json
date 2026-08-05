@@ -1,33 +1,37 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ATS Match Score Result",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yavuz365.github.io/ats-cv-modules/schemas/scoring-result.schema.json",
+  "title": "ATS Match Diagnostic Result",
   "type": "object",
-  "required": ["score_percent", "verdict", "components", "gap"],
+  "additionalProperties": false,
+  "required": ["score_percent", "verdict", "evaluation_status", "process_status", "legacy_diagnostic_percent", "components", "weights_used", "gap", "precision", "recall", "f1", "coverage_evaluable", "warnings", "interpretation"],
   "properties": {
-    "score_percent": {"type": "number", "minimum": 0, "maximum": 100},
+    "score_percent": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
     "verdict": {"type": "string"},
+    "evaluation_status": {"enum": ["EVALUATED", "NOT_EVALUATED"]},
+    "process_status": {"enum": ["PASS", "FAIL", "REVIEW", "WARN", "ERROR", "NOT_RUN"]},
+    "legacy_diagnostic_percent": {"type": "number", "minimum": 0, "maximum": 100},
     "components": {
       "type": "object",
+      "additionalProperties": false,
+      "required": ["Lex", "Lex_tfidf", "Lex_bm25", "Sem", "Cov", "Parse_gate", "Stuffing"],
       "properties": {
         "Lex": {"type": "number", "minimum": 0, "maximum": 1},
-        "Sem": {},
-        "Cov": {"type": "number", "minimum": 0, "maximum": 1},
+        "Lex_tfidf": {"type": "number", "minimum": 0, "maximum": 1},
+        "Lex_bm25": {"type": "number", "minimum": 0, "maximum": 1},
+        "Sem": {"type": ["number", "string"]},
+        "Cov": {"type": ["number", "string"]},
         "Parse_gate": {"type": "number", "minimum": 0, "maximum": 1},
         "Stuffing": {"type": "number", "minimum": 0, "maximum": 1}
       }
     },
-    "weights_used": {
-      "type": "object",
-      "properties": {
-        "alpha": {"type": "number"},
-        "beta": {"type": "number"},
-        "gamma": {"type": "number"},
-        "zeta": {"type": "number"}
-      }
-    },
+    "weights_used": {"type": "object", "additionalProperties": false, "required": ["alpha", "beta", "gamma", "zeta"], "properties": {"alpha": {"type": "number"}, "beta": {"type": "number"}, "gamma": {"type": "number"}, "zeta": {"type": "number"}}},
     "gap": {"type": "array", "items": {"type": "string"}},
     "precision": {"type": "number", "minimum": 0, "maximum": 1},
     "recall": {"type": "number", "minimum": 0, "maximum": 1},
-    "f1": {"type": "number", "minimum": 0, "maximum": 1}
+    "f1": {"type": "number", "minimum": 0, "maximum": 1},
+    "coverage_evaluable": {"type": "boolean"},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "interpretation": {"type": "string"}
   }
 }

@@ -18,32 +18,39 @@ Bağımlılık: yalnızca standart kütüphane.
 from __future__ import annotations
 
 import json
-import os
 import re
 from functools import lru_cache
+from importlib.resources import files
 
-# P0-5 fix (packaging): veri artık paketin İÇİNDE (ats_engine/data/), bir üst
-# dizinde değil. Eski "../data" yolu yalnızca kaynak-kontrolünden çalışırken
-# işe yarıyordu; `pip install` ile kurulan wheel'de bu dizin hiç yoktu
-# (clean-room testte doğrulandı: FileNotFoundError). Artık __file__'ın kendi
-# dizini kullanılıyor — hem dev-mode hem kurulu pakette çalışır.
-_DATA_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "data"))
+from .errors import ResourceMissingError
 
 
 @lru_cache(maxsize=1)
 def _load_action_verbs() -> dict:
-    path = os.path.join(_DATA_DIR, "action_verbs.json")
-    with open(path, encoding="utf-8") as f:
-        data: dict = json.load(f)
-        return data
+    resource = files("ats_engine").joinpath("data").joinpath("action_verbs.json")
+    try:
+        with resource.open("r", encoding="utf-8") as f:
+            data: dict = json.load(f)
+            return data
+    except FileNotFoundError as exc:
+        raise ResourceMissingError(
+            "Paketlenmiş action verb kaynağı bulunamadı.",
+            field="ats_engine/data/action_verbs.json",
+        ) from exc
 
 
 @lru_cache(maxsize=1)
 def _load_synonyms() -> dict:
-    path = os.path.join(_DATA_DIR, "skill_synonyms.json")
-    with open(path, encoding="utf-8") as f:
-        data: dict = json.load(f)
-        return data
+    resource = files("ats_engine").joinpath("data").joinpath("skill_synonyms.json")
+    try:
+        with resource.open("r", encoding="utf-8") as f:
+            data: dict = json.load(f)
+            return data
+    except FileNotFoundError as exc:
+        raise ResourceMissingError(
+            "Paketlenmiş skill synonym kaynağı bulunamadı.",
+            field="ats_engine/data/skill_synonyms.json",
+        ) from exc
 
 
 @lru_cache(maxsize=1)

@@ -47,7 +47,7 @@ Using Framework CV + Analysis output:
 
 ## PHASE 3: SCORING
 
-Target band: **75–85%**
+No universal target band. Use a threshold only inside a source/date/language/domain/comparator-versioned evaluation profile; otherwise return `NOT_EVALUATED`.
 - > 90% = stuffing signal — pull back
 - < 50% = serious improvement needed
 

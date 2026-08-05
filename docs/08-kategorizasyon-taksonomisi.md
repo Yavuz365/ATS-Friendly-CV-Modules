@@ -1,5 +1,7 @@
 # docs/08 — İlan Kategorizasyon Taksonomisi
 
+> **Legacy taksonomi:** Gövde terimleri açık gereksinim sayılmaz; v2 durum sözleşmesi önceliklidir.
+
 > İş ilanlarını standart bir etiketleme sistemiyle sınıflandırma kuralları.
 
 ## 1. Etiket Yapısı

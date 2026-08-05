@@ -4,19 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ats-engine"
-version = "1.5.1"
-description = "ATS-Friendly-CV-Modules — sentez+analiz tabanlı, audit-düzeltmeli ATS CV motoru"
+version = "2.0.0a1"
+description = "Evidence-first ATS CV research engine with versioned contracts and explicit review gates"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Proprietary" }
-dependencies = []
+license = "LicenseRef-Proprietary"
+dependencies = ["pypdf>=5.0,<7"]
 
 [project.optional-dependencies]
 semantic = ["sentence-transformers>=2.2.0"]
 # A10 fix: ruff + mypy zaten [tool.ruff]/[tool.mypy] altında yapılandırılmıştı
 # ama hiçbir yerde (ne yerel dev kurulumunda ne CI'da) çalıştırılmıyorlardı —
 # yapılandırma "ölü" idi. Artık dev extra'sının bir parçası ve CI'da çalışıyorlar.
-dev = ["pytest>=7.0", "ruff>=0.6", "mypy>=1.10"]
+dev = [
+    "build>=1.2",
+    "jsonschema>=4.23",
+    "mypy>=1.10",
+    "pip-audit>=2.7",
+    "pytest>=7.0",
+    "ruff>=0.6",
+]
 
 [project.scripts]
 ats-engine = "ats_engine.cli:main"

@@ -3,6 +3,38 @@
 Tüm önemli değişiklikler bu dosyada belgelenir.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [2.0.0-alpha.1] — 2026-08-05
+
+### Added
+
+- Kabul edilmiş ADR-001 ve SHA-bağlı v2 baseline manifesti
+- 12 tipli Python contract, ortak enum/hata taksonomisi, G0–G4 `DecisionReport`
+- Kapalı Draft 2020-12 JSON şemaları ve tüm contract tipleri için golden payload’lar
+- Gerçek DOCX OOXML ve PDF text-layer ingestion; scanned/mixed PDF explicit durumları
+- Evidence ID + allowlist + protected-fact kontrollü `SynthesisChangeSet`
+- CLI `ingest` komutu ve exit `4=blocking/review` sözleşmesi
+- Paket manifest snapshot, clean-wheel smoke, schema/golden ve güvenlik CI kapıları
+
+### Changed
+
+- Boş explicit must listesi artık genel skor üretmiyor: `NOT_EVALUATED/REVIEW`
+- Geçersiz gate değerleri clamp edilmek yerine tipli `INVALID_INPUT` hatası veriyor
+- Gövde becerileri must listesine terfi etmiyor; advisory/nice olarak kalıyor
+- Lexical evidence overlap artık “doğrulandı/PASS” değil `UNVERIFIED/REVIEW`
+- Runtime kaynakları `importlib.resources` ile yükleniyor; eksik paket verisi sessiz fallback yapmıyor
+- LangGate `report.py` akışına bağlandı; JSON/Markdown/CLI ortak karar payload’ı kullanıyor
+- Aktif dokümanlar v2 ürün sözleşmesiyle senkronlandı; v1.x metodoloji açıkça legacy işaretlendi
+
+### Verification
+
+- 87 unit/contract/ingestion/regression testi; resmi `REG-001..015` matrisi
+- Ruff lint + format, mypy, wheel/sdist, clean install ve schema validation
+
+### Known limits
+
+- OCR adapter, commercial ATS tenant ölçümü, hiring outcome çalışması, production export,
+  kalıcı evidence/event store ve UI/otomasyon bu alpha’da yoktur.
+
 ## [1.5.1] — 2026-08-03
 
 **Bağlam:** `1.5.0` hiçbir zaman gerçek bir GitHub tag/release olarak yayınlanmamıştı

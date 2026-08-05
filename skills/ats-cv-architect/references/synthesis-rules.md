@@ -53,7 +53,9 @@ Teslimden önce her CV maddesini Framework CV'deki bir girdiye (id) bağla. **E�
 ```
 | CV maddesi | Framework CV girdi-id | JD'de karşılığı | durum |
 |------------|------------------------|------------------|-------|
-| "...%30 kısalttım" | EXP-07 | "gümrükleme/KPI" | doğrulandı |
+| "...%30 kısalttım" | EXP-07 | "gümrükleme/KPI" | LEXICAL_SUPPORT / UNVERIFIED / REVIEW |
 ```
 
-Madde bu tabloya giremiyorsa CV'ye de giremez.
+Madde bu tabloya giremiyorsa CV'ye de giremez. Tabloya girmesi tek başına olgusal
+doğrulama değildir; locator/hash ve insan incelemesi olmadan `VERIFIED` veya `PASS`
+verilmez. Değişiklik ayrıca allowlist yol, evidence ID ve insan onayı taşır.

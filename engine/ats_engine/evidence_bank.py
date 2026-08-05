@@ -114,18 +114,48 @@ def provenance_check(cv_bullets: list[str], bank: list[Evidence]) -> dict:
     Her CV maddesini kanıt bankasına bağlamaya çalışır. Çıktı:
       table: [{cv_bullet, framework_cv_id, support_score, status}]
       unverified: bağlanamayan maddeler (CV'den çıkarılmalı/işaretlenmeli)
-      pass: tüm maddeler bağlandıysa True (dürüstlük geçişi)
+      pass: yalnız lexical eşleşmeyle hiçbir zaman True olmaz
+
+    Bu fonksiyon kaynak belgesini olgusal olarak incelemez. Dolayısıyla eşleşen
+    satırlar VERIFIED değil LEXICAL_SUPPORT/UNVERIFIED olarak döner ve insan
+    incelemesi ister.
     """
     table = []
     unverified = []
     for bullet in cv_bullets:
         ev, score = find_support(bullet, bank)
         if ev:
-            table.append({"cv_bullet": bullet, "framework_cv_id": ev.id,
-                          "support_score": score, "status": "doğrulandı"})
+            table.append(
+                {
+                    "cv_bullet": bullet,
+                    "framework_cv_id": ev.id,
+                    "support_score": score,
+                    "support_type": "LEXICAL_SUPPORT",
+                    "verification_status": "UNVERIFIED",
+                    "status": "REVIEW",
+                }
+            )
         else:
-            table.append({"cv_bullet": bullet, "framework_cv_id": None,
-                          "support_score": score, "status": "İŞARETLİ — kanıt yok"})
+            table.append(
+                {
+                    "cv_bullet": bullet,
+                    "framework_cv_id": None,
+                    "support_score": score,
+                    "support_type": "UNSUPPORTED",
+                    "verification_status": "UNVERIFIED",
+                    "status": "REVIEW",
+                }
+            )
             unverified.append(bullet)
-    return {"table": table, "unverified": unverified, "pass": len(unverified) == 0,
-            "bank_entries": [asdict(e) for e in bank]}
+    return {
+        "table": table,
+        "unverified": unverified,
+        "pass": False,
+        "process_status": "REVIEW",
+        "ready_for_human_review": len(unverified) == 0,
+        "limitation": (
+            "Sözcüksel örtüşme olgusal doğrulama değildir. Kaynak locator/hash ve "
+            "insan incelemesi olmadan VERIFIED veya PASS üretilemez."
+        ),
+        "bank_entries": [asdict(e) for e in bank],
+    }

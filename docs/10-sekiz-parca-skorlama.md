@@ -1,5 +1,7 @@
 # docs/10 — Sekiz-Parça Skorlama + QA Pipeline
 
+> **Legacy diagnostic:** Tek skor ürün kararı değildir; QA hataları v2’de `ERROR/REVIEW` olarak görünür.
+
 > CV'yi 8 bölüme ayırıp her bölümü ayrı skorlama ve kalite kontrol süreci.
 
 ## 1. Sekiz Bölüm

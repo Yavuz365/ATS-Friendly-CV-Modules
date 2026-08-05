@@ -1,5 +1,7 @@
 # docs/09 — Orkestrasyon Katmanları
 
+> **Legacy tasarım:** Güncel orkestratör G0–G4 `DecisionReport` sözleşmesidir.
+
 > Araç-bağımsız, rol-bazlı ATS-CV pipeline orkestrasyon mimarisi.
 
 ## 1. Genel Akış

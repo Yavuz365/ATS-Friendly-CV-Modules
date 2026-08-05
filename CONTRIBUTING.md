@@ -3,18 +3,16 @@
 ## Principles (non-negotiable)
 - **Honesty/Provenance:** every CV bullet must trace back to the evidence bank.
 - **Coverage > density:** no keyword stuffing.
-- **Score = proxy:** approximation of proprietary ATS formulas; never present as absolute truth.
+- **Score = diagnostic:** not an approximation claim about any proprietary vendor formula.
 - **H1 rule:** revision loop stops at `score≥target OR closable_gap=0`; this is immutable.
-- **No universal pass/interview-readiness claims:** score bands (e.g. `%75-85`) describe an
-  *alignment signal*, never an ATS "pass" or interview guarantee. See
-  `docs/03-skorlama-matematigi.md` "Dürüst statü" and `docs/decisions/ADR-000-pre-production-status.md`.
+- **No universal thresholds or outcome claims:** thresholds require a source/date/language/
+  domain/comparator-versioned evaluation profile. See ADR-001 and `docs/limitations.md`.
 
-## Feature freeze (see ADR-000)
-This repo is in **stabilization mode**: only bug fixes, hardening, and honesty corrections
-(canonical A-series backlog) are accepted until all P0 items are closed and merged. New
-features (new domain packs, new integrations, the v2.0 contract-first rewrite) require an
-explicit decision to lift the freeze — check `docs/decisions/ADR-000-pre-production-status.md`
-before starting new feature work.
+## Product contract
+
+ADR-001 was accepted on 2026-08-05. New changes must preserve the evidence-first status,
+verification and G0–G4 contracts. UI/vendor automation and production claims remain out of
+scope until their own evidence gates are met.
 
 ## Development Setup
 
@@ -45,12 +43,14 @@ Hooks: `ruff` (lint + format), `mypy` (type check), `trailing-whitespace`, `chec
 
 ## Rules
 
-1. `make test` must pass before any PR (43+ tests).
+1. `make check` and `make package-check` must pass before any PR.
 2. New feature = new test. Do not break audit-corrections (clamp, ParseGate, gap classification).
 3. Data updates (`engine/data/*.json`) must include source documentation (Grammarly/ESCO/etc.).
 4. All new modules must be exported in `__init__.py` and added to `__all__`.
 5. Update `CHANGELOG.md` for every version bump.
-6. README structure section must reflect actual file layout.
+6. README/module status must reflect actual file layout and limits.
+7. New public payloads require a closed Draft 2020-12 schema and golden example.
+8. Unknown/missing/error states may not be replaced by numeric fallbacks.
 
 ## Module Architecture
 

@@ -19,26 +19,30 @@ Bağımlılık: yalnızca standart kütüphane.
 from __future__ import annotations
 
 import json
-import os
 from functools import lru_cache
+from importlib.resources import files
+
+from .errors import ResourceMissingError
+
 
 # P0-5 fix (packaging): domain-packs/ eskiden repo KÖKÜNDE (engine/'in bile
 # dışında) idi — hiçbir wheel/sdist bunu paketleyemezdi (paket ağacının tamamen
 # dışında). Artık ats_engine/domain_pack_data/ içine taşındı; dizin adı
 # domain_packs.py modülüyle çakışmasın diye "domain_pack_data" seçildi.
-_PACKS_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "domain_pack_data")
-)
+def _packs_root():
+    return files("ats_engine").joinpath("domain_pack_data")
 
 
 def list_packs() -> list[str]:
     """Mevcut alan paketi adlarını listeler (dizin adları)."""
-    if not os.path.isdir(_PACKS_DIR):
-        return []
-    return sorted(
-        d for d in os.listdir(_PACKS_DIR)
-        if os.path.isdir(os.path.join(_PACKS_DIR, d)) and not d.startswith(".")
-    )
+    root = _packs_root()
+    try:
+        return sorted(item.name for item in root.iterdir() if item.is_dir() and not item.name.startswith("."))
+    except FileNotFoundError as exc:
+        raise ResourceMissingError(
+            "Domain pack kökü paket artefaktında bulunamadı; boş liste fallback'i uygulanmadı.",
+            field="ats_engine/domain_pack_data",
+        ) from exc
 
 
 @lru_cache(maxsize=16)
@@ -56,20 +60,17 @@ def load_pack(pack_name: str, lang: str = "en") -> dict:
     Raises:
         FileNotFoundError: Paket veya dil dosyası bulunamazsa.
     """
-    pack_dir = os.path.join(_PACKS_DIR, pack_name)
-    if not os.path.isdir(pack_dir):
-        raise FileNotFoundError(f"Domain pack bulunamadı: {pack_name}")
-
     filename = f"keywords_{lang}.json"
-    filepath = os.path.join(pack_dir, filename)
-    if not os.path.isfile(filepath):
-        raise FileNotFoundError(
-            f"Dil dosyası bulunamadı: {filename} ({pack_name} paketi)"
-        )
-
-    with open(filepath, encoding="utf-8") as f:
-        pack: dict = json.load(f)
-        return pack
+    resource = _packs_root().joinpath(pack_name).joinpath(filename)
+    try:
+        with resource.open("r", encoding="utf-8") as f:
+            pack: dict = json.load(f)
+            return pack
+    except FileNotFoundError as exc:
+        raise ResourceMissingError(
+            f"Domain pack kaynağı bulunamadı: {pack_name}/{filename}",
+            field=f"ats_engine/domain_pack_data/{pack_name}/{filename}",
+        ) from exc
 
 
 def all_keywords(pack: dict) -> list[str]:
@@ -149,9 +150,9 @@ def detect_domain(text: str, threshold: float = 0.10) -> str | None:
             # Önce İngilizce dene, yoksa Türkçe
             try:
                 pack = load_pack(pack_name, lang="en")
-            except FileNotFoundError:
+            except (FileNotFoundError, ResourceMissingError):
                 pack = load_pack(pack_name, lang="tr")
-        except FileNotFoundError:
+        except (FileNotFoundError, ResourceMissingError):
             continue
 
         keywords = all_keywords(pack)

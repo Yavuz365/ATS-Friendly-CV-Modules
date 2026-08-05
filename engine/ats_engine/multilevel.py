@@ -26,8 +26,8 @@ from . import scoring, text
 
 # ─── Sabitler ────────────────────────────────────────────────────────────────
 
-L1_GATE_THRESHOLD: float = 0.70   # τ — araç-CV geçiş eşiği
-L2_SEAM_PENALTY: float = 0.15     # κ — dikiş cezası katsayısı
+L1_GATE_THRESHOLD: float = 0.70  # τ — araç-CV geçiş eşiği
+L2_SEAM_PENALTY: float = 0.15  # κ — dikiş cezası katsayısı
 LANG_PURITY_THRESHOLD: float = 0.85  # p₀ — dil saflık eşiği
 
 # Dil tespiti için regex havuzları
@@ -59,6 +59,7 @@ SECTION_LABELS: list[str] = [
 
 
 # ─── Dil Tespiti ve Kapısı ──────────────────────────────────────────────────
+
 
 def detect_language(doc: str) -> str:
     """
@@ -105,18 +106,18 @@ def language_purity(doc: str, expected_lang: str) -> float:
 
         if expected_lang == "tr":
             if is_tr_char or is_tr_word:
-                weighted_hits += 1.0   # kesin Türkçe sinyal
+                weighted_hits += 1.0  # kesin Türkçe sinyal
             elif is_en_word:
-                weighted_hits += 0.0   # kesin yabancı dil
+                weighted_hits += 0.0  # kesin yabancı dil
             else:
-                weighted_hits += 0.5   # bilinmeyen → nötr (yarım ağırlık)
+                weighted_hits += 0.5  # bilinmeyen → nötr (yarım ağırlık)
         else:  # en
             if is_en_word:
-                weighted_hits += 1.0   # kesin İngilizce sinyal
+                weighted_hits += 1.0  # kesin İngilizce sinyal
             elif is_tr_char or is_tr_word:
-                weighted_hits += 0.0   # kesin yabancı dil
+                weighted_hits += 0.0  # kesin yabancı dil
             else:
-                weighted_hits += 0.5   # bilinmeyen → nötr (yarım ağırlık)
+                weighted_hits += 0.5  # bilinmeyen → nötr (yarım ağırlık)
 
     return weighted_hits / total if total else 1.0
 
@@ -135,6 +136,7 @@ def lang_gate(cv_text: str, jd_text: str, p0: float = LANG_PURITY_THRESHOLD) -> 
 
 # ─── Level 1: Araç-CV Kapısı ────────────────────────────────────────────────
 
+
 def level1_gate(
     jd_text: str,
     cv_text: str,
@@ -150,6 +152,14 @@ def level1_gate(
         {"score": float, "passed": bool, "detail": dict}
     """
     result = scoring.ats_match_score(jd_text, cv_text, must_terms, **score_kwargs)
+    if result["score_percent"] is None:
+        return {
+            "score": None,
+            "passed": False,
+            "threshold": threshold,
+            "process_status": "REVIEW",
+            "detail": result,
+        }
     score = result["score_percent"] / 100.0
     return {
         "score": round(score, 4),
@@ -161,6 +171,7 @@ def level1_gate(
 
 # ─── Level 2: Sekiz-Parça En-İyi Seçimi ─────────────────────────────────────
 
+
 def _section_score(
     jd_text: str,
     section_text: str,
@@ -171,7 +182,7 @@ def _section_score(
     if not section_text or not section_text.strip():
         return 0.0
     result = scoring.ats_match_score(jd_text, section_text, must_terms, **score_kwargs)
-    return float(result["score_percent"]) / 100.0
+    return float(result["score_percent"]) / 100.0 if result["score_percent"] is not None else 0.0
 
 
 def level2_best_of(
@@ -269,7 +280,7 @@ def level2_final(
     # Birleşik CV'yi yeniden skorla
     if combined.strip():
         res = scoring.ats_match_score(jd_text, combined, must_terms, **score_kwargs)
-        raw_score = res["score_percent"] / 100.0
+        raw_score = res["score_percent"] / 100.0 if res["score_percent"] is not None else 0.0
     else:
         raw_score = 0.0
 
@@ -288,6 +299,7 @@ def level2_final(
 
 
 # ─── Level 3: Kategori / Sentetik İlan Robustness ───────────────────────────
+
 
 def level3_category(
     cv_text: str,
@@ -311,19 +323,35 @@ def level3_category(
     """
     if not jd_texts:
         return {
-            "scores": [], "mean": 0.0, "std": 0.0,
-            "min": 0.0, "max": 0.0, "robust": False,
+            "scores": [],
+            "mean": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "robust": False,
         }
 
     scores = []
     for jd in jd_texts:
         res = scoring.ats_match_score(jd, cv_text, must_terms, **score_kwargs)
-        scores.append(res["score_percent"] / 100.0)
+        if res["score_percent"] is not None:
+            scores.append(res["score_percent"] / 100.0)
+
+    if not scores:
+        return {
+            "scores": [],
+            "mean": None,
+            "std": None,
+            "min": None,
+            "max": None,
+            "robust": False,
+            "process_status": "REVIEW",
+        }
 
     n = len(scores)
     mean = sum(scores) / n
     variance = sum((s - mean) ** 2 for s in scores) / n
-    std = variance ** 0.5
+    std = variance**0.5
 
     return {
         "scores": [round(s, 4) for s in scores],

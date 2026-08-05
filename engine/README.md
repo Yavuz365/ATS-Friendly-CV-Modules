@@ -1,52 +1,30 @@
-# ats_engine — ATS CV Engine (v1.5.1)
+# ats_engine — 2.0.0-alpha.1
 
-Synthesis-first, audit-corrected ATS-CV engine. **Core runs on standard library only** (zero required dependencies). SBERT is optional; if not installed, the engine gracefully redistributes β weight to α+γ.
+Evidence-first CV analysis contract alpha. It is not a commercial ATS pass or hiring-outcome
+predictor.
 
-## Installation
 ```bash
-cd engine
-pip install -e .              # basic (no external deps)
-pip install -e ".[semantic]"  # with SBERT (sentence-transformers)
-pip install -e ".[dev]"       # tests (pytest) + linting (ruff, mypy)
+pip install -e .
+pip install -e ".[dev]"
+
+ats-engine ingest --document cv.docx
+ats-engine parse --jd job.txt
+ats-engine report --jd job.txt --framework framework.md --cv cv.txt --format json --no-sbert
+ats-engine score --jd job.txt --cv cv.txt --must "SAP,Incoterms" --no-sbert
 ```
 
-## Quick Usage (CLI)
+Exit codes: `0=success`, `2=invalid input`, `3=internal error`, `4=blocking/review`.
+
+Public Python contracts live in `ats_engine/contracts.py`; language-neutral closed Draft
+2020-12 schemas and golden payloads live in repository `schemas/v2/`. Binary ingestion is in
+`ingestion.py`, G0–G4 orchestration in `decision.py`, and evidence-bound changes in
+`safe_synthesis.py`.
+
 ```bash
-python -m ats_engine.cli report --jd examples/sample_jd_foreign_trade.txt \
-    --framework examples/framework_cv.md --cv examples/sample_cv.txt --no-sbert --format md
-python -m ats_engine.cli score  --jd jd.txt --cv cv.txt --must "SAP,Incoterms,Customs Clearance"
-python -m ats_engine.cli parse  --jd jd.txt
-python -m ats_engine.cli bank   --framework framework.md
+pytest -q tests
+ruff check ats_engine tests
+ruff format --check ats_engine tests
+mypy ats_engine
 ```
 
-## Demo + Tests
-```bash
-python examples/run_demo.py
-pytest -q          # 64 tests (test_core.py: 61, test_cli.py: 3)
-```
-
-## Python API
-```python
-from ats_engine import build_report, to_markdown
-rep = build_report(jd_text, framework_cv_text, cv_text, use_sbert=False)
-print(to_markdown(rep))   # 6 fields: keywords/analysis/summary/synthesis/match_score/gap_analysis
-
-# v1.4 quality modules
-from ats_engine import (
-    detect_cliches,         # buzzword/cliché detection
-    quantification_audit,   # metrics counting
-    full_hygiene_check,     # format & metadata check
-    evidence_recall,        # completeness guard
-    detect_locale,          # language consistency
-    create_calibration,     # score calibration
-)
-```
-
-## 18 Modules
-**Core:** `text` · `bm25` · `lexicons` · `scoring` · `jd_parser` · `evidence_bank` · `synthesis` · `report` · `cli` · `multilevel` · `cv_parser` · `domain_packs`
-**Quality (v1.4):** `calibration` · `cliche_tone` · `completeness_guard` · `format_metadata_hygiene` · `locale_consistency` · `quantification_score`
-
-## Data
-- `data/action_verbs.json` — 260 verbs (TR/EN, 12 categories, cliche_risk tags)
-- `data/skill_synonyms.json` — 60 canonicalization entries (LSI/normalize)
-- `data/stopwords_tr_en.txt` — Stopwords (TR + EN)
+See repository `docs/limitations.md` before interpreting any diagnostic.

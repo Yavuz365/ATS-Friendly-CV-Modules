@@ -15,6 +15,7 @@
 ## ATS uyum
 - Parse_gate / format okunabilirliği; keyword stuffing cezası (density anomaly).
 - E-E-A-T (Trust), provenans/dürüstlük.
-- Coverage > density; %75–85 güçlü hizalanma sinyali (garanti değil), >%90 aşırı-optimizasyon. (A11 fix)
+- Coverage > density; evrensel eşik yoktur. Threshold yalnız sürümlü evaluation profile
+  içinde tanı amaçlı kullanılabilir.
 
 > Not: Bu sözlük "ne aktarıldı + nereye" indeksidir; karşılaştırmanın gerekçesi `docs/05-grammarly-entegrasyonu.md`'dedir.

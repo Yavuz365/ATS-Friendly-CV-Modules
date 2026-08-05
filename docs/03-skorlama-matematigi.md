@@ -1,5 +1,8 @@
 # 03 — Skorlama Matematiği (denetim-düzeltmeli)
 
+> **Legacy diagnostic (v1.x):** Bu eşik ve formüller ticari ATS geçişi veya hiring outcome değildir.
+> v2’de boş açık gereksinim `NOT_EVALUATED`; kanonik karar `DecisionReport` içindedir.
+
 Tam türetim: `skills/ats-cv-architect/references/scoring-formulas.md`. Çalışan kod: `engine/ats_engine/scoring.py` + `bm25.py`.
 
 ## Bileşenler ([0,1]'e normalize)
@@ -33,4 +36,6 @@ değildir. >%90 bandı olası aşırı-optimizasyon (stuffing) sinyali; <%50 ban
 iyileştirme alanı olduğunu gösterir. Tek bir bant, işe alım sonucunu tahmin etmez.
 
 ## Dürüst statü
-Skor, tescilli ATS iç formüllerinin (Workday/Greenhouse/iCIMS) **yaklaşıklamasıdır** (proxy) — mutlak gerçek değil, göreli pusula. Evrensel bir "ATS puanı" ya da "mülakata hazır" iddiası değildir; teşhis amaçlı, bilgilendirici bir sinyaldir.
+Skor, bu repository’nin kendi lexical/semantic **araştırma tanısıdır**. Workday,
+Greenhouse, iCIMS veya başka bir ticari ATS’nin iç formülünü yaklaşık hesapladığı iddia
+edilmez. Evrensel ATS puanı, mülakat veya hiring outcome olasılığı değildir.

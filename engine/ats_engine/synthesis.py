@@ -26,6 +26,7 @@ from .text import has_quantification, looks_passive
 
 # ----------------------------- başarı cümlesi inşası -----------------------------
 
+
 def build_xyz(x_result: str, y_metric: str, z_method: str, intent: str = "achievement") -> str:
     """
     Google XYZ formülü (TR): '[Z yöntemiyle] yaparak, [Y ölçüsüyle] [X sonucunu] başardım.'
@@ -33,12 +34,24 @@ def build_xyz(x_result: str, y_metric: str, z_method: str, intent: str = "achiev
     """
     verb = (lexicons.action_verbs_by_intent(intent) or ["achieved"])[0]
     tr_verb = {
-        "led": "yöneterek", "directed": "yöneterek", "orchestrated": "koordine ederek",
-        "achieved": "gerçekleştirerek", "delivered": "teslim ederek",
-        "improved": "iyileştirerek", "optimized": "optimize ederek", "streamlined": "sadeleştirerek",
-        "increased": "artırarak", "grew": "büyüterek", "reduced": "azaltarak", "cut": "düşürerek",
-        "built": "kurarak", "created": "oluşturarak", "developed": "geliştirerek",
-        "analyzed": "analiz ederek", "negotiated": "müzakere ederek", "executed": "yürüterek",
+        "led": "yöneterek",
+        "directed": "yöneterek",
+        "orchestrated": "koordine ederek",
+        "achieved": "gerçekleştirerek",
+        "delivered": "teslim ederek",
+        "improved": "iyileştirerek",
+        "optimized": "optimize ederek",
+        "streamlined": "sadeleştirerek",
+        "increased": "artırarak",
+        "grew": "büyüterek",
+        "reduced": "azaltarak",
+        "cut": "düşürerek",
+        "built": "kurarak",
+        "created": "oluşturarak",
+        "developed": "geliştirerek",
+        "analyzed": "analiz ederek",
+        "negotiated": "müzakere ederek",
+        "executed": "yürüterek",
         "presented": "sunarak",
     }.get(verb, "gerçekleştirerek")
     return f"{z_method} {tr_verb} ({verb}), {y_metric} ile ölçülen {x_result} sonucunu elde ettim."
@@ -69,6 +82,7 @@ def audit_bullet(bullet: str) -> dict:
 
 # ----------------------------- kümeleme -----------------------------
 
+
 def cluster_skills(terms: list[str]) -> list[dict]:
     """
     Becerileri kanonik kümelere toplar (ATS 'Beceriler' bölümünün düzgün ayrıştırılması için).
@@ -85,6 +99,7 @@ def cluster_skills(terms: list[str]) -> list[dict]:
 
 # ----------------------------- gap sınıflandırma (DÖNGÜ kuralı) -----------------------------
 
+
 def classify_gaps(gap_terms: list[str], bank: list[Evidence], min_overlap: float = 0.18) -> dict:
     """
     Eksik zorunlu terimleri ikiye ayırır:
@@ -96,16 +111,25 @@ def classify_gaps(gap_terms: list[str], bank: list[Evidence], min_overlap: float
     for term in gap_terms:
         ev, score = find_support(term, bank, min_overlap=min_overlap)
         if ev:
-            closable.append({"term": term, "evidence_id": ev.id, "support_score": score,
-                             "action": f"'{term}' kanıtı {ev.id} girdisinde var → ilgili deneyim maddesinde bu terimi/varyantını açıkça geçir."})
+            closable.append(
+                {
+                    "term": term,
+                    "evidence_id": ev.id,
+                    "support_score": score,
+                    "action": f"'{term}' kanıtı {ev.id} girdisinde var → ilgili deneyim maddesinde bu terimi/varyantını açıkça geçir.",
+                }
+            )
         else:
-            uncloseable.append({"term": term,
-                                "action": f"'{term}' için kanıt yok → CV'ye EKLENMEZ (dürüstlük). Gerçek bir deneyim varsa kanıt bankasına gerçek bir girdi ekle."})
-    return {"closable": closable, "uncloseable": uncloseable,
-            "loop_should_continue": len(closable) > 0}
+            uncloseable.append(
+                {
+                    "term": term,
+                    "action": f"'{term}' için kanıt yok → CV'ye EKLENMEZ (dürüstlük). Gerçek bir deneyim varsa kanıt bankasına gerçek bir girdi ekle.",
+                }
+            )
+    return {"closable": closable, "uncloseable": uncloseable, "loop_should_continue": len(closable) > 0}
 
 
-def stopping_condition(score_pct: float, closable_gaps: list, target_low: float = 75.0) -> dict:
+def stopping_condition(score_pct: float | None, closable_gaps: list, target_low: float = 75.0) -> dict:
     """
     Revizyon döngüsünün doğru durma koşulu (H1 sonsuz-döngü düzeltmesi).
 
@@ -116,6 +140,18 @@ def stopping_condition(score_pct: float, closable_gaps: list, target_low: float 
     skoru yükseltemez (kalan açık yapısal/kapatılamaz). Bu durumda eski mantık
     sonsuza dek 'DEVAM' derdi — H1 düzeltmesi bunu engeller.
     """
+    if score_pct is None:
+        return {
+            "stop": True,
+            "reason": (
+                "Genel hizalanma skoru NOT_EVALUATED; zorunlu gereksinimler insan "
+                "incelemesiyle belirlenmeden otomatik revizyon döngüsü çalıştırılamaz."
+            ),
+            "at_target": False,
+            "no_closable_moves": len(closable_gaps) == 0,
+            "process_status": "REVIEW",
+        }
+
     at_target = score_pct >= target_low
     no_moves = len(closable_gaps) == 0
     done = at_target or no_moves
@@ -125,15 +161,26 @@ def stopping_condition(score_pct: float, closable_gaps: list, target_low: float 
     elif at_target:
         reason = f"skor={score_pct} ≥ {target_low} → DUR (teslim; kalan gap'ler opsiyonel iyileştirme)"
     elif no_moves:
-        reason = (f"skor={score_pct} (hedef≥{target_low}) ANCAK kapatılabilir gap=0 → DUR "
-                  f"(yapısal/kapatılamaz açık; ek tur skoru yükseltmez — dürüstlük kuralı)")
+        reason = (
+            f"skor={score_pct} (hedef≥{target_low}) ANCAK kapatılabilir gap=0 → DUR "
+            f"(yapısal/kapatılamaz açık; ek tur skoru yükseltmez — dürüstlük kuralı)"
+        )
     else:
-        reason = (f"skor={score_pct} (hedef≥{target_low}) / kapatılabilir gap={len(closable_gaps)} "
-                  f"→ DEVAM (sentez/revizyon turu)")
-    return {"stop": done, "reason": reason, "at_target": at_target, "no_closable_moves": no_moves}
+        reason = (
+            f"skor={score_pct} (hedef≥{target_low}) / kapatılabilir gap={len(closable_gaps)} "
+            f"→ DEVAM (sentez/revizyon turu)"
+        )
+    return {
+        "stop": done,
+        "reason": reason,
+        "at_target": at_target,
+        "no_closable_moves": no_moves,
+        "process_status": "PASS",
+    }
 
 
 # ----------------------------- anti-stuffing -----------------------------
+
 
 def anti_stuffing_report(cv_text: str, terms: list[str], warn_density: float = 0.05) -> dict:
     """
@@ -148,7 +195,16 @@ def anti_stuffing_report(cv_text: str, terms: list[str], warn_density: float = 0
         count = low.count(tl)
         d = count / total
         if d > warn_density:
-            flags.append({"term": t, "count": count, "density": round(d, 4),
-                          "note": "ŞİŞİRME: farklı bölümlere dağıt veya eşanlamlı/varyant kullan."})
-    return {"flagged": flags, "ok": not flags,
-            "guidance": "Önemli terimi 2–3 kez, farklı bölümlerde (Beceriler'de iddia, Deneyim'de kanıt). >%5 = şişirme."}
+            flags.append(
+                {
+                    "term": t,
+                    "count": count,
+                    "density": round(d, 4),
+                    "note": "ŞİŞİRME: farklı bölümlere dağıt veya eşanlamlı/varyant kullan.",
+                }
+            )
+    return {
+        "flagged": flags,
+        "ok": not flags,
+        "guidance": "Önemli terimi 2–3 kez, farklı bölümlerde (Beceriler'de iddia, Deneyim'de kanıt). >%5 = şişirme.",
+    }

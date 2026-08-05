@@ -1,5 +1,7 @@
 # 06 — Denetim ve Düzeltmeler (Audit)
 
+> **Tarihsel v1.x denetimi:** Güncel kabul kriterleri ADR-001, v2 şemaları ve regresyon testleridir.
+
 `synthesis-analysis-research` denetim disipliniyle özgün spesifikasyon tarandı. Bulgular ve düzeltmeler:
 
 ## Yüksek önem

@@ -97,15 +97,21 @@ def locale_mismatches(jd_text: str, cv_text: str) -> dict:
     for ame, bre in _LOCALE_PAIRS:
         # JD AmE kullanıyor ama CV BrE (veya tersi)
         if ame in jd_low and bre in cv_low and ame not in cv_low:
-            mismatches.append({
-                "jd_term": ame, "cv_term": bre,
-                "suggestion": f"CV'de '{bre}' → '{ame}' olarak değiştir (JD locale ile eşleş)"
-            })
+            mismatches.append(
+                {
+                    "jd_term": ame,
+                    "cv_term": bre,
+                    "suggestion": f"CV'de '{bre}' → '{ame}' olarak değiştir (JD locale ile eşleş)",
+                }
+            )
         elif bre in jd_low and ame in cv_low and bre not in cv_low:
-            mismatches.append({
-                "jd_term": bre, "cv_term": ame,
-                "suggestion": f"CV'de '{ame}' → '{bre}' olarak değiştir (JD locale ile eşleş)"
-            })
+            mismatches.append(
+                {
+                    "jd_term": bre,
+                    "cv_term": ame,
+                    "suggestion": f"CV'de '{ame}' → '{bre}' olarak değiştir (JD locale ile eşleş)",
+                }
+            )
 
     if not mismatches:
         verdict = "✅ Locale tutarlı — JD ve CV aynı dil varyantını kullanıyor"

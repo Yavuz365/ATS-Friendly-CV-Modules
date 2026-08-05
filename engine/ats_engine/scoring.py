@@ -29,7 +29,9 @@ from collections import Counter
 
 from . import lexicons
 from .bm25 import BM25
+from .contracts import EvaluationStatus, ProcessStatus
 from .cv_parser import parse_safety_score as _parse_safety
+from .errors import InvalidInputError
 from .text import tokenize, tr_lower
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,7 @@ THRESHOLDS = {"target_low": 75, "target_high": 85, "overopt": 90, "serious": 50}
 
 
 # ----------------------------- TF-IDF kosinüs -----------------------------
+
 
 def tfidf_cosine(jd_tokens: list[str], cv_tokens: list[str], idf_fn) -> float:
     def vec(tokens):
@@ -75,11 +78,14 @@ def _get_sbert_model():
         # tamamen kayboluyordu ve "SBERT neden hiç çalışmıyor" sorusu debug edilemiyordu.
         try:
             from sentence_transformers import SentenceTransformer  # type: ignore
+
             _sbert_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
         except Exception as exc:
             logger.warning(
-                "SBERT model yüklenemedi (%s: %s) — Sem bileşeni bu oturumda devre dışı, "
-                "skorlama Lex/Cov'a düşecek.", type(exc).__name__, exc, exc_info=True,
+                "SBERT model yüklenemedi (%s: %s) — Sem bileşeni bu oturumda devre dışı, skorlama Lex/Cov'a düşecek.",
+                type(exc).__name__,
+                exc,
+                exc_info=True,
             )
             _sbert_model = False  # sentinel: yükleme başarısız
     return _sbert_model if _sbert_model is not False else None
@@ -95,7 +101,9 @@ def sbert_cosine(jd_text: str, cv_text: str):
     except Exception as exc:
         logger.warning(
             "sentence_transformers.util import edilemedi (%s: %s) — Sem None dönüyor.",
-            type(exc).__name__, exc, exc_info=True,
+            type(exc).__name__,
+            exc,
+            exc_info=True,
         )
         return None
     emb = model.encode([jd_text, cv_text], convert_to_tensor=True, normalize_embeddings=True)
@@ -104,8 +112,10 @@ def sbert_cosine(jd_text: str, cv_text: str):
 
 # ----------------------------- kapsam & şişirme -----------------------------
 
-def coverage(must_have: list[str], cv_text: str, weights: dict | None = None,
-             synonym_aware: bool = True) -> tuple[float, list[str], bool]:
+
+def coverage(
+    must_have: list[str], cv_text: str, weights: dict | None = None, synonym_aware: bool = True
+) -> tuple[float, list[str], bool]:
     """
     Zorunlu terimlerin CV'de ağırlıklı kapsanma oranı + eksik (gap) listesi.
     synonym_aware=True iken birebir değil, eşanlamlı/varyant/fuzzy eşleşme de sayılır
@@ -136,11 +146,7 @@ def coverage(must_have: list[str], cv_text: str, weights: dict | None = None,
         # ağırlık her zaman bulunamaz (varsayılan 1.0'a düşerdi, sessizce yanlış).
         w = weights.get(tr_lower(t), 1.0)
         den += w
-        present = (
-            lexicons.matches_semantically(t, cv_text)
-            if synonym_aware
-            else (tr_lower(t) in tr_lower(cv_text))
-        )
+        present = lexicons.matches_semantically(t, cv_text) if synonym_aware else (tr_lower(t) in tr_lower(cv_text))
         if present:
             num += w
         else:
@@ -161,6 +167,7 @@ def stuffing_penalty(cv_tokens: list[str], max_density: float = 0.05) -> float:
 
 
 # ----------------------------- precision / recall / f1 -----------------------------
+
 
 def prf(cv_text: str, must_have: list[str], cv_terms: list[str] | None = None) -> tuple[float, float, float]:
     """
@@ -193,28 +200,16 @@ def prf(cv_text: str, must_have: list[str], cv_terms: list[str] | None = None) -
 
 # ----------------------------- hibrit skor -----------------------------
 
-def _validate_gate(name: str, value: float) -> tuple[float, str | None]:
-    """A9 fix: parse_gate/lang_gate için sınır doğrulama.
 
-    Bu çarpanlar RAW skorunu doğrudan çarpıyor; doğrulanmadan geçirilen bir NaN
-    veya [0,1] aralığı dışındaki bir değer skoru sessizce bozabilirdi (NaN her şeyi
-    NaN yapar; >1 skoru olması gerekenden yüksek gösterir). Geçersiz değer
-    fail-closed olarak ele alınır (NaN → 0.0, en güvenli/en muhafazakâr varsayım);
-    aralık dışı değer [0,1]'e clamp edilir. Her iki durumda da çağıran koda
-    görünür bir uyarı döner (rapora `warnings` alanına eklenir).
-    """
-    if value != value:  # NaN kontrolü (math.isnan yerine bağımlılıksız kısa yol)
-        return 0.0, (
-            f"{name}=NaN geçirildi — geçersiz sayısal değer fail-closed olarak 0.0 kabul edildi "
-            "(skor bu bileşenden dolayı 0'a çekildi; çağıran kodu kontrol edin)."
-        )
-    if value < 0.0 or value > 1.0:
-        clamped = max(0.0, min(1.0, value))
-        return clamped, (
-            f"{name}={value} aralık [0,1] dışında — {clamped}'e clamp edildi "
-            "(çağıran kod muhtemelen yüzde (0-100) veya hatalı bir değer geçiriyor)."
-        )
-    return value, None
+def _validate_gate(name: str, value: float) -> float:
+    """Validate a gate at the public boundary; never repair invalid input silently."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise InvalidInputError(f"{name} sayısal olmalıdır.", field=name)
+    if not math.isfinite(float(value)):
+        raise InvalidInputError(f"{name} sonlu bir sayı olmalıdır.", field=name)
+    if not 0.0 <= float(value) <= 1.0:
+        raise InvalidInputError(f"{name} [0,1] aralığında olmalıdır; gelen={value!r}.", field=name)
+    return float(value)
 
 
 def ats_match_score(
@@ -246,19 +241,9 @@ def ats_match_score(
         safety = _parse_safety(cv_text)
         parse_gate = safety["score"]
 
-    # A9 fix: sınır doğrulama. parse_gate/lang_gate çağıran koddan (dışarıdan)
-    # geliyor; NaN veya [0,1] dışı bir değer eskiden hiç kontrol edilmeden
-    # doğrudan RAW ile çarpılıyordu — NaN her şeyi NaN'a, >1 değeri skoru
-    # olması gerekenden yüksek göstermeye çevirebiliyordu (sessiz veri bozulması).
-    # Artık: NaN → fail-closed (0.0, en güvenli varsayım) + uyarı; [0,1] dışı
-    # değer → clamp edilir + uyarı. Geçerli [0,1] değerler davranışı değiştirmez.
     warnings: list[str] = []
-    parse_gate, gate_warning = _validate_gate("parse_gate", parse_gate)
-    if gate_warning:
-        warnings.append(gate_warning)
-    lang_gate, lang_gate_warning = _validate_gate("lang_gate", lang_gate)
-    if lang_gate_warning:
-        warnings.append(lang_gate_warning)
+    parse_gate = _validate_gate("parse_gate", parse_gate)
+    lang_gate = _validate_gate("lang_gate", lang_gate)
 
     jd_tok = tokenize(jd_text)
     cv_tok = tokenize(cv_text)
@@ -325,16 +310,25 @@ def ats_match_score(
         cov_term = g * Cov
 
     RAW = a * Lex + sem_term + cov_term - zeta * Stuff
-    Score = max(0.0, min(1.0, lang_gate * parse_gate * RAW))
+    legacy_diagnostic = max(0.0, min(1.0, lang_gate * parse_gate * RAW))
 
     P, R, F1 = prf(cv_text, must_have)
-    pct = round(Score * 100, 1)
-    verdict = _verdict(pct)
     if not cov_evaluable:
-        verdict = "⚠️ KISMİ DEĞERLENDİRME (Cov yok) — " + verdict
+        pct: float | None = None
+        verdict = EvaluationStatus.NOT_EVALUATED.value
+        process_status = ProcessStatus.REVIEW.value
+    else:
+        pct = round(legacy_diagnostic * 100, 1)
+        verdict = _verdict(pct)
+        process_status = ProcessStatus.PASS.value
     return {
         "score_percent": pct,
         "verdict": verdict,
+        "evaluation_status": (
+            EvaluationStatus.EVALUATED.value if cov_evaluable else EvaluationStatus.NOT_EVALUATED.value
+        ),
+        "process_status": process_status,
+        "legacy_diagnostic_percent": round(legacy_diagnostic * 100, 1),
         "components": {
             "Lex": round(Lex, 3),
             "Lex_tfidf": round(Lex_raw, 3),
@@ -351,12 +345,10 @@ def ats_match_score(
         "f1": F1,
         "coverage_evaluable": cov_evaluable,
         "warnings": warnings,
-        # A11 fix: "hedef" ifadesi garanti çağrışımı yapıyordu; artık açıkça bir
-        # teşhis sinyali olduğu ve "mülakata hazır"/"ATS'yi geçme" anlamına
-        # gelmediği belirtiliyor (bkz. docs/decisions/ADR-000-pre-production-status.md).
         "interpretation": (
-            "%75-85 = güçlü hizalanma sinyali (garanti değil) | >%90 şişirme sinyali | "
-            "<%50 ciddi iyileştirme gerekir"
+            "Araştırma amaçlı lexical/semantic hizalanma tanısıdır; ticari ATS geçişi, "
+            "mülakat veya işe alım olasılığı değildir. Threshold yorumu yalnızca "
+            "sürümlenmiş ve kaynaklanmış bir değerlendirme profilinde kullanılmalıdır."
         ),
     }
 
@@ -367,9 +359,9 @@ def _verdict(pct: float) -> str:
     Artık bant adı "güçlü hizalanma" (sinyal), sonuç garantisi değil (bkz. ADR-000)."""
     t = THRESHOLDS
     if pct >= t["overopt"]:
-        return "AŞIRI OPTİMİZASYON ŞÜPHESİ (>%90) — şişirme/geri tepme riski"
+        return "WARN_HIGH_LEXICAL_DENSITY"
     if pct >= t["target_low"]:
-        return "GÜÇLÜ HİZALANMA BANDI (%75-85 — garanti değil, sinyal)"
+        return "DIAGNOSTIC_HIGH_ALIGNMENT"
     if pct >= t["serious"]:
-        return "HEDEFİN ALTINDA — sentez (revizyon) turu önerilir"
-    return "CİDDİ İYİLEŞTİRME GEREKİR (<%50)"
+        return "DIAGNOSTIC_MEDIUM_ALIGNMENT"
+    return "DIAGNOSTIC_LOW_ALIGNMENT"
