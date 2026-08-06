@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Yavuz365/ATS-Friendly-CV-Modules/schemas/v1.5.1/report.schema.json",
+  "title": "ATS Engine v1.5.1 Legacy Report",
+  "description": "Frozen compatibility contract for reports emitted by the historical v1.5.1 engine. This schema is archival and must not be presented as the v2 evidence-first contract.",
+  "type": "object",
+  "required": [
+    "mode",
+    "keywords",
+    "analysis",
+    "summary",
+    "synthesis",
+    "match_score",
+    "gap_analysis",
+    "skill_count_table",
+    "qa_checks"
+  ],
+  "properties": {
+    "mode": {"enum": ["diagnostic", "framework-baseline"]},
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["term", "modality", "positional_weight", "freq"],
+        "properties": {
+          "term": {"type": "string", "minLength": 1},
+          "modality": {"enum": ["zorunlu", "güçlü-ima", "tercih"]},
+          "positional_weight": {"type": "number"},
+          "freq": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "required": ["identity", "must_have", "nice_to_have", "responsibilities", "knockouts", "intent", "must_have_source"],
+      "properties": {
+        "identity": {"type": "object"},
+        "must_have": {"type": "array", "items": {"type": "object"}},
+        "nice_to_have": {"type": "array", "items": {"type": "object"}},
+        "responsibilities": {"type": "array", "items": {"type": "string"}},
+        "knockouts": {"type": "array", "items": {"type": "string"}},
+        "intent": {"type": "string"},
+        "must_have_source": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["role_essence", "cv_top_summary_hint"],
+      "properties": {
+        "role_essence": {"type": "string"},
+        "cv_top_summary_hint": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "synthesis": {
+      "type": "object",
+      "required": ["semantic_clusters", "lsi_expansions", "xyz_template", "anti_stuffing", "section_map", "evidence_bank_size"],
+      "properties": {
+        "semantic_clusters": {"type": "object"},
+        "lsi_expansions": {"type": ["object", "array"]},
+        "xyz_template": {"type": "string"},
+        "anti_stuffing": {"type": "object"},
+        "section_map": {"type": "array", "items": {"type": "string"}},
+        "evidence_bank_size": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "match_score": {
+      "type": "object",
+      "required": ["score_percent", "precision", "recall", "f1", "gap"],
+      "properties": {
+        "score_percent": {"type": "number", "minimum": 0, "maximum": 100},
+        "precision": {"type": "number", "minimum": 0, "maximum": 1},
+        "recall": {"type": "number", "minimum": 0, "maximum": 1},
+        "f1": {"type": "number", "minimum": 0, "maximum": 1},
+        "gap": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "gap_analysis": {
+      "type": "object",
+      "required": ["closable_gaps", "uncloseable_gaps", "precision", "recall", "f1", "revision_loop", "recommendations"],
+      "properties": {
+        "closable_gaps": {"type": "array"},
+        "uncloseable_gaps": {"type": "array"},
+        "precision": {"type": "number"},
+        "recall": {"type": "number"},
+        "f1": {"type": "number"},
+        "revision_loop": {"type": "object"},
+        "recommendations": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "skill_count_table": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill", "jd_count", "resume_count", "status"],
+        "properties": {
+          "skill": {"type": "string"},
+          "jd_count": {"type": "integer", "minimum": 0},
+          "resume_count": {"type": "integer", "minimum": 0},
+          "status": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "qa_checks": {
+      "type": "object",
+      "required": ["completeness", "hygiene", "locale", "quantification", "cliches", "calibration_hint"],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
