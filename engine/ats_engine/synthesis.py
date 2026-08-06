@@ -21,7 +21,9 @@ Bağımlılık: yalnızca standart kütüphane (+ ats_engine.lexicons, text, evi
 from __future__ import annotations
 
 from . import lexicons
+from .configuration import EvaluationProfile
 from .evidence_bank import Evidence, find_support
+from .matching import count_boundary_occurrences
 from .text import has_quantification, looks_passive
 
 # ----------------------------- başarı cümlesi inşası -----------------------------
@@ -69,7 +71,7 @@ def audit_bullet(bullet: str) -> dict:
     """
     issues = []
     if not has_quantification(bullet):
-        issues.append("Niceleme yok: en az 1 ölçülebilir sonuç ekle (%/sayı/süre/para).")
+        issues.append("Advisory: gerçek ve kanıtlıysa ölçülebilir sonuç eklenebilir; metrik uydurma.")
     if looks_passive(bullet):
         issues.append("Pasif yapı sezildi: aktif güçlü fiille başlat (yönetti/optimize etti/azalttı).")
     words = len((bullet or "").split())
@@ -129,11 +131,17 @@ def classify_gaps(gap_terms: list[str], bank: list[Evidence], min_overlap: float
     return {"closable": closable, "uncloseable": uncloseable, "loop_should_continue": len(closable) > 0}
 
 
-def stopping_condition(score_pct: float | None, closable_gaps: list, target_low: float = 75.0) -> dict:
+def stopping_condition(
+    score_pct: float | None,
+    closable_gaps: list,
+    evaluation_profile: EvaluationProfile | None = None,
+    target_low: float | None = None,
+) -> dict:
     """
     Revizyon döngüsünün doğru durma koşulu (H1 sonsuz-döngü düzeltmesi).
 
-    DUR  ⟺  ( skor ≥ hedef )  VEYA  ( kapatılabilir gap kalmadı ).
+    Varsayılan DUR koşulu yalnızca kapatılabilir gap kalmamasıdır. Sayısal bir
+    deney eşiği ancak kaynak/sürüm bağlı EvaluationProfile ile kullanılabilir.
 
     Gerekçe: Döngü yalnızca AKSİYON ALINABİLİR bir hamle kaldığında dönmeli.
     Skor hedefin altında olsa bile kapatılabilir gap yoksa, ek sentez turu
@@ -152,24 +160,22 @@ def stopping_condition(score_pct: float | None, closable_gaps: list, target_low:
             "process_status": "REVIEW",
         }
 
-    at_target = score_pct >= target_low
+    if evaluation_profile is not None and target_low is not None:
+        raise ValueError("evaluation_profile ve target_low birlikte verilemez.")
+    threshold = evaluation_profile.diagnostic_stop_min if evaluation_profile else target_low
+    at_target = threshold is not None and score_pct >= threshold
     no_moves = len(closable_gaps) == 0
     done = at_target or no_moves
 
     if at_target and no_moves:
-        reason = f"Hedef bant (≥{target_low}) sağlandı ve kapatılabilir gap yok → DUR (teslim)"
+        reason = f"Profil eşiği (≥{threshold}) sağlandı ve kapatılabilir gap yok → DUR"
     elif at_target:
-        reason = f"skor={score_pct} ≥ {target_low} → DUR (teslim; kalan gap'ler opsiyonel iyileştirme)"
+        reason = f"Tanı={score_pct} ≥ profil eşiği {threshold} → DUR (outcome kararı değildir)"
     elif no_moves:
-        reason = (
-            f"skor={score_pct} (hedef≥{target_low}) ANCAK kapatılabilir gap=0 → DUR "
-            f"(yapısal/kapatılamaz açık; ek tur skoru yükseltmez — dürüstlük kuralı)"
-        )
+        reason = "Kapatılabilir gap=0 → DUR; ek sentez turu kanıtsız içerik üretemez."
     else:
-        reason = (
-            f"skor={score_pct} (hedef≥{target_low}) / kapatılabilir gap={len(closable_gaps)} "
-            f"→ DEVAM (sentez/revizyon turu)"
-        )
+        profile_note = f" / profil eşiği={threshold}" if threshold is not None else " / evrensel eşik yok"
+        reason = f"Kapatılabilir gap={len(closable_gaps)}{profile_note} → DEVAM"
     return {
         "stop": done,
         "reason": reason,
@@ -192,7 +198,7 @@ def anti_stuffing_report(cv_text: str, terms: list[str], warn_density: float = 0
     flags = []
     for t in terms:
         tl = t.lower()
-        count = low.count(tl)
+        count = count_boundary_occurrences(tl, low)
         d = count / total
         if d > warn_density:
             flags.append(

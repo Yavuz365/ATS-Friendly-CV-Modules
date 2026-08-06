@@ -7,12 +7,15 @@ Alt komutlar:
   score   : JD + CV → yalnızca hibrit ATS Match Score
   parse   : JD → 7 katmanlı ayrıştırma (JSON)
   bank    : Framework CV → ayrıştırılmış kanıt bankası (JSON)
+  ingest  : DOCX/PDF/TXT/MD → tipli belge ayrıştırma sonucu
+  diagnose: JD + CV + Framework CV → G0-G4 DecisionReport
 
 Örnekler:
   python -m ats_engine.cli report --jd jd.txt --framework framework_cv.md --format md
   python -m ats_engine.cli score  --jd jd.txt --cv cv.txt --must "akreditif,incoterms,gtip" --parse-gate 0.6
   python -m ats_engine.cli parse  --jd jd.txt
   python -m ats_engine.cli bank   --framework framework_cv.md
+  python -m ats_engine.cli diagnose --jd jd.txt --cv cv.txt --framework framework_cv.md
 """
 
 from __future__ import annotations
@@ -35,11 +38,7 @@ from .ingestion import parse_document
 #   exit 2 -> kullanıcı/girdi hatası (düzeltilebilir: yanlış yol, okunamayan
 #             dosya) — argparse'ın kendi kural-dışı-argüman exit code'uyla (2) tutarlı
 #   exit 3 -> beklenmeyen dahili hata (motor/programlama hatası)
-# NOT: Blueprint ayrıca "exit 4 = blocking gate fail/review incomplete" öneriyor
-# (rapor kendisi başarıyla üretildi ama parse_gate/lang_gate REVIEW durumunda).
-# Bu, DecisionReport'un henüz var olmayan tipli status modelini (v2 C-008 gate
-# mimarisi) gerektirir — şimdiden CLI'da tahmin yürütmek yerine bilinçli olarak
-# v2'ye bırakıldı (bkz. PR #5 tartışması).
+# exit 4 -> rapor üretildi ancak DecisionReport blocking/review durumunda.
 
 
 class CLIInputError(Exception):
@@ -115,6 +114,27 @@ def cmd_ingest(args):
     return 4 if result.status.value == "REVIEW" else 0
 
 
+def cmd_diagnose(args):
+    rep = report.build_report(
+        _read(args.jd),
+        _read(args.framework),
+        cv_text=_read(args.cv),
+        parse_gate=args.parse_gate,
+        use_sbert=not args.no_sbert,
+        human_approved=args.human_approved,
+    )
+    decision = rep["decision_report"]
+    if args.format == "md":
+        print("# Decision Report")
+        print(f"\n- Overall: **{decision['overall_status']}**")
+        print(f"- Evaluation: **{decision['evaluation_status']}**")
+        for gate in decision["gates"]:
+            print(f"- {gate['gate_id']}: **{gate['status']}** — {gate['reason']}")
+    else:
+        print(json.dumps(decision, ensure_ascii=False, indent=2))
+    return 4 if decision["overall_status"] in {"FAIL", "REVIEW", "ERROR", "NOT_RUN"} else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="ats_engine", description="ATS-Friendly-CV-Modules Engine")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -127,8 +147,13 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument(
         "--parse-gate", type=float, default=None, help="ParseGate skoru (0-1). Verilmezse otomatik hesaplanır."
     )
-    r.add_argument("--target", type=float, default=75.0)
     r.add_argument("--no-sbert", action="store_true")
+    r.add_argument(
+        "--target",
+        type=float,
+        default=None,
+        help="Opsiyonel, kullanıcı tanımlı tanısal durma eşiği; ATS/outcome pass eşiği değildir.",
+    )
     r.add_argument("--format", choices=["json", "md"], default="md")
     r.add_argument(
         "--human-approved",
@@ -157,6 +182,16 @@ def build_parser() -> argparse.ArgumentParser:
     i = sub.add_parser("ingest", help="DOCX/PDF/TXT/MD → tipli parse sonucu")
     i.add_argument("--document", required=True)
     i.set_defaults(func=cmd_ingest)
+
+    d = sub.add_parser("diagnose", help="JD + CV + kanıt bankası → G0-G4 DecisionReport")
+    d.add_argument("--jd", required=True)
+    d.add_argument("--cv", required=True)
+    d.add_argument("--framework", required=True)
+    d.add_argument("--parse-gate", type=float, default=None)
+    d.add_argument("--no-sbert", action="store_true")
+    d.add_argument("--human-approved", action="store_true")
+    d.add_argument("--format", choices=["json", "md"], default="json")
+    d.set_defaults(func=cmd_diagnose)
     return p
 
 

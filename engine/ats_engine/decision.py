@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from .configuration import DEFAULT_GATE_POLICY, GatePolicy
 from .contracts import (
     DecisionReport,
     DiagnosticResult,
@@ -31,7 +32,12 @@ def _overall(gates: list[GateResult]) -> ProcessStatus:
     return ProcessStatus.PASS
 
 
-def build_decision_report(report: dict, *, human_approved: bool = False) -> DecisionReport:
+def build_decision_report(
+    report: dict,
+    *,
+    human_approved: bool = False,
+    gate_policy: GatePolicy = DEFAULT_GATE_POLICY,
+) -> DecisionReport:
     """Build a typed decision from a legacy report payload without inventing facts."""
     match = report.get("match_score", {})
     components = match.get("components", {})
@@ -39,13 +45,17 @@ def build_decision_report(report: dict, *, human_approved: bool = False) -> Deci
     analysis = report.get("analysis", {})
 
     parse_gate = components.get("Parse_gate")
-    if isinstance(parse_gate, (int, float)) and parse_gate >= 0.7:
-        g0 = GateResult("G0", ProcessStatus.PASS, "Girdi metni ve parse sinyali kullanılabilir.")
+    if isinstance(parse_gate, (int, float)) and parse_gate >= gate_policy.parse_pass_min:
+        g0 = GateResult(
+            "G0",
+            ProcessStatus.PASS,
+            f"Girdi metni ve parse sinyali kullanılabilir (policy={gate_policy.id}@{gate_policy.version}).",
+        )
     elif isinstance(parse_gate, (int, float)):
         g0 = GateResult(
             "G0",
             ProcessStatus.FAIL,
-            "Parse sinyali 0.70 altında.",
+            f"Parse sinyali {gate_policy.parse_pass_min:.2f} altında.",
             "Belge yapısını düzeltin veya ingestion sonucunu inceleyin.",
         )
     else:

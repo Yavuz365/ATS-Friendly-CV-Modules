@@ -14,14 +14,15 @@
     "components": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["Lex", "Lex_tfidf", "Lex_bm25", "Sem", "Cov", "Parse_gate", "Stuffing"],
+        "required": ["Lex", "Lex_tfidf", "Lex_bm25", "Sem", "Cov", "Parse_gate", "Lang_gate", "Stuffing"],
       "properties": {
         "Lex": {"type": "number", "minimum": 0, "maximum": 1},
         "Lex_tfidf": {"type": "number", "minimum": 0, "maximum": 1},
         "Lex_bm25": {"type": "number", "minimum": 0, "maximum": 1},
         "Sem": {"type": ["number", "string"]},
         "Cov": {"type": ["number", "string"]},
-        "Parse_gate": {"type": "number", "minimum": 0, "maximum": 1},
+          "Parse_gate": {"type": "number", "minimum": 0, "maximum": 1},
+          "Lang_gate": {"type": "number", "minimum": 0, "maximum": 1},
         "Stuffing": {"type": "number", "minimum": 0, "maximum": 1}
       }
     },

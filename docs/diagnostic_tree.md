@@ -65,10 +65,8 @@ Bir CV düşük skor aldığında dalları sırayla kontrol ederek kök nedeni b
 ## Kullanım
 
 ```bash
-# HENÜZ UYGULANMADI — bu komut çalıştırılamaz (P1, C-008 gate mimarisi sonrası planlanıyor).
-# Şu an desteklenen alt-komutlar: report, score, parse, bank.
 python -m ats_engine.cli diagnose --jd jd.txt --cv cv.txt --framework framework_cv.md
 ```
 
-Şu an `build_report()` tüm modülleri çalıştırıyor (`qa_checks`).
-P1'de diagnostic tree bu sonuçları sıralı dallarla yorumlayacak.
+`diagnose`, `build_report()` tarafından üretilen tipli G0-G4 `DecisionReport` alanını
+JSON veya Markdown olarak döndürür. REVIEW/blocking durumunda CLI exit kodu `4` olur.

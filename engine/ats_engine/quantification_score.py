@@ -15,7 +15,7 @@ from .text import has_quantification, sentences
 
 def quantification_audit(
     cv_text: str,
-    target_min: int = 5,
+    target_min: int | None = None,
 ) -> dict:
     """
     CV'deki ölçülebilir sonuçların toplam sayısını ve dağılımını hesaplar.
@@ -47,20 +47,25 @@ def quantification_audit(
                 non_quantified.append(s[:100])
 
     total = len(quantified)
-    score = min(total / target_min * 100, 100.0) if target_min > 0 else 100.0
-
-    if total >= target_min:
-        verdict = f"✅ {total} ölçülebilir sonuç — hedef ({target_min}+) karşılandı"
-    elif total >= target_min // 2:
-        verdict = f"⚠️ {total}/{target_min} — daha fazla rakam/yüzde/metrik ekle"
+    if target_min is not None and target_min <= 0:
+        raise ValueError("target_min pozitif olmalıdır.")
+    score = min(total / target_min * 100, 100.0) if target_min else None
+    if target_min is None:
+        verdict = f"{total} ölçülebilir sonuç bulundu; evrensel asgari kota uygulanmadı."
     else:
-        verdict = f"❌ {total}/{target_min} — yetersiz; her deneyim maddesine XYZ sonucu ekle"
+        verdict = (
+            f"{total}/{target_min} kullanıcı tanımlı tanısal hedef; "
+            "eksik metrik uydurulmamalı ve sonuç yalnız stil danışmanlığıdır."
+        )
 
     return {
         "total_quantified": total,
         "target": target_min,
         "quantified_lines": quantified,
         "non_quantified_lines": non_quantified[:10],  # ilk 10 öneri
-        "score_percent": round(score, 1),
+        "score_percent": round(score, 1) if score is not None else None,
         "verdict": verdict,
+        "severity": "ADVISORY",
+        "blocking": False,
+        "limitation": "Metrik sayısı aday uygunluğu veya ATS geçiş kapısı değildir.",
     }

@@ -79,15 +79,16 @@ def detect_cliches(cv_text: str) -> dict:
     total = sum(v["count"] for v in verb_hits) + sum(b["count"] for b in buzz_hits)
 
     if total == 0:
-        tone = "✅ Clean tone — klişe/buzzword yok"
-    elif total <= 2:
-        tone = f"⚠️ {total} klişe tespit edildi — düzeltme önerilir"
+        tone = "Klişe/buzzword sinyali bulunmadı."
     else:
-        tone = f"❌ {total} klişe/buzzword — AI-detection riski yüksek, acil düzelt"
+        tone = f"⚠️ {total} klişe/buzzword sinyali bulundu; yalnız stil açısından insan incelemesi önerilir."
 
     return {
         "cliche_verb_hits": verb_hits,
         "buzzword_hits": buzz_hits,
         "total_cliches": total,
         "tone_verdict": tone,
+        "severity": "ADVISORY",
+        "blocking": False,
+        "limitation": "Bu kontrol AI-yazımı, aday uygunluğunu veya ATS davranışını tespit etmez.",
     }

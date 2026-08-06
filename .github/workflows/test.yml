@@ -67,16 +67,16 @@ jobs:
       - name: Build wheel and sdist
         run: |
           python -m pip install build
-          python -m build engine --sdist --wheel --outdir dist
+          python -m build engine --sdist --wheel --outdir dist/2.0.0a2
       - name: Verify wheel manifest snapshot
-        run: python scripts/verify_wheel.py dist/*.whl
+        run: python scripts/verify_wheel.py dist/2.0.0a2/*.whl
       - name: Clean-wheel install and runtime smoke
         run: |
           python -m venv .ci-venv
-          .ci-venv/bin/python -m pip install dist/*.whl
+          .ci-venv/bin/python -m pip install dist/2.0.0a2/*.whl
           mkdir .ci-smoke
           cd .ci-smoke
-          ../.ci-venv/bin/python -c "import ats_engine; assert ats_engine.__version__ == '2.0.0a1'; assert 'foreign-trade-logistics' in ats_engine.list_packs()"
+          ../.ci-venv/bin/python -c "import ats_engine; assert ats_engine.__version__ == '2.0.0a2'; assert 'foreign-trade-logistics' in ats_engine.list_packs()"
           ../.ci-venv/bin/ats-engine ingest --document ../engine/examples/sample_cv.txt
 
   dependency-audit:

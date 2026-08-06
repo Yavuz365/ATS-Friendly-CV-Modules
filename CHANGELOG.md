@@ -3,6 +3,26 @@
 Tüm önemli değişiklikler bu dosyada belgelenir.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [2.0.0-alpha.2] — 2026-08-05
+
+### Added
+
+- Çalışan `diagnose` CLI alt-komutu ve G0–G4 JSON/Markdown çıktısı
+- Sürümlü `GatePolicy` / kaynak-bağlı `EvaluationProfile`
+- Tek açıklanabilir term matcher; coverage ve sayımlar aynı Unicode-boundary çekirdeğini kullanır
+- DOCX yapısal özellik raporu, PDF sayfa kanıtı ve açık opsiyonel OCR adaptörü
+- Tipli `QAResult`, evidence conflict/privacy alanları ve onay–ret–uygula–rollback sentez akışı
+
+### Changed
+
+- Evrensel hizalanma bantları artık verdict üretmez; yalnız açık kaynak-bağlı profil eşik kullanabilir
+- Klişe ve niceleme kontrolleri yalnız `ADVISORY`; AI-yazımı veya aday uygunluğu iddia etmez
+- Tüm skor ağırlıkları/gate girdileri tek sınırda sonlu ve aralık kontrollü doğrulanır
+
+### Verification
+
+- 91 test; Ruff, formatter ve mypy geçti
+
 ## [2.0.0-alpha.1] — 2026-08-05
 
 ### Added

@@ -1,4 +1,4 @@
-# Module Status Matrix — 2.0.0-alpha.1
+# Module Status Matrix — 2.0.0-alpha.2
 
 > **Son güncelleme:** 2026-08-05. “Operational” yerine kanıtlanabilir durum kullanılır;
 > repository hâlâ pre-production contract alpha’dır.
@@ -7,7 +7,7 @@
 |---|---:|---:|---|
 | `contracts.py` | ✅ | ✅ | 12 versioned Python contract + enum |
 | `errors.py` | ✅ | ✅ | Stable error code boundary |
-| `ingestion.py` | ✅ | CLI/API | DOCX full-story + PDF text layer; OCR uygulaması yok |
+| `ingestion.py` | ✅ | CLI/API | DOCX yapısal rapor + PDF page evidence + explicit opsiyonel OCR adaptörü |
 | `decision.py` | ✅ | `report.py` | G0–G4 typed DecisionReport |
 | `safe_synthesis.py` | ✅ | API | Evidence ID + allowlist; değişiklik uygulama/export yok |
 | `scoring.py` | ✅ | ✅ | Legacy diagnostic; empty must → NOT_EVALUATED |
@@ -23,7 +23,7 @@
 
 ## Henüz yapılmayan
 
-- OCR adaptörü ve alan seviyesinde gerçek belge gold corpus değerlendirmesi
+- Yerleşik OCR sağlayıcısı ve alan seviyesinde geniş gerçek-belge gold corpus değerlendirmesi
 - CandidateFact/Evidence deposunun kalıcı storage/consent/retention katmanı
 - Production export, rollback ve uygulama event store
 - Commercial ATS tenant ve hiring outcome validasyonu

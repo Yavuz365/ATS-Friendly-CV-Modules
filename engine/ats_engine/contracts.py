@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, cast
 
-CONTRACT_VERSION = "2.0.0-alpha.1"
+CONTRACT_VERSION = "2.0.0-alpha.2"
 
 
 class DataStatus(str, Enum):
@@ -41,6 +41,19 @@ class ProcessStatus(str, Enum):
 class EvaluationStatus(str, Enum):
     EVALUATED = "EVALUATED"
     NOT_EVALUATED = "NOT_EVALUATED"
+
+
+class QASeverity(str, Enum):
+    BLOCKING = "BLOCKING"
+    REVIEW = "REVIEW"
+    ADVISORY = "ADVISORY"
+    INFO = "INFO"
+
+
+class ConsentStatus(str, Enum):
+    GRANTED = "GRANTED"
+    DENIED = "DENIED"
+    NOT_COLLECTED = "NOT_COLLECTED"
 
 
 def to_primitive(value: Any) -> Any:
@@ -76,6 +89,10 @@ class CandidateFact:
     source_artifact_ids: list[str]
     data_status: DataStatus
     verification_status: VerificationStatus
+    sensitivity: str = "PERSONAL"
+    consent_status: ConsentStatus = ConsentStatus.NOT_COLLECTED
+    redacted: bool = False
+    retention_until: str | None = None
     contract_version: str = CONTRACT_VERSION
 
 
@@ -87,6 +104,17 @@ class EvidenceRecord:
     locator: str
     excerpt: str = ""
     verification_status: VerificationStatus = VerificationStatus.UNVERIFIED
+    contract_version: str = CONTRACT_VERSION
+
+
+@dataclass(frozen=True)
+class EvidenceConflict:
+    id: str
+    candidate_fact_id: str
+    evidence_ids: list[str]
+    reason: str
+    status: ProcessStatus = ProcessStatus.REVIEW
+    resolution: str = ""
     contract_version: str = CONTRACT_VERSION
 
 
@@ -108,6 +136,13 @@ class JobRequirement:
     requirement_type: str
     explicit: bool
     data_status: DataStatus = DataStatus.KNOWN
+    category: str = "OTHER"
+    modality: str = "UNKNOWN"
+    negated: bool = False
+    span_start: int | None = None
+    span_end: int | None = None
+    review_status: ProcessStatus = ProcessStatus.REVIEW
+    approval_version: str | None = None
     contract_version: str = CONTRACT_VERSION
 
 
@@ -129,6 +164,8 @@ class DocumentParseResult:
     warnings: list[str] = field(default_factory=list)
     page_count: int | None = None
     extraction_method: str = ""
+    structural_features: dict[str, Any] = field(default_factory=dict)
+    page_evidence: list[dict[str, Any]] = field(default_factory=list)
     contract_version: str = CONTRACT_VERSION
 
 
@@ -153,6 +190,17 @@ class DiagnosticResult:
 
 
 @dataclass(frozen=True)
+class QAResult:
+    check_id: str
+    status: ProcessStatus
+    severity: QASeverity
+    message: str
+    blocking: bool = False
+    details: dict[str, Any] = field(default_factory=dict)
+    contract_version: str = CONTRACT_VERSION
+
+
+@dataclass(frozen=True)
 class SynthesisChange:
     path: str
     old_value: str
@@ -167,6 +215,10 @@ class SynthesisChangeSet:
     changes: list[SynthesisChange]
     status: ProcessStatus
     human_approved: bool = False
+    parent_id: str | None = None
+    decision_reason: str = ""
+    applied_at: str | None = None
+    rolled_back_from: str | None = None
     contract_version: str = CONTRACT_VERSION
 
 
@@ -192,4 +244,8 @@ class ApplicationEvent:
     event_type: str
     occurred_at: str
     payload: dict[str, Any] = field(default_factory=dict)
+    data_status: DataStatus = DataStatus.KNOWN
+    outcome_observed: bool | None = None
+    censoring_reason: str | None = None
+    source_artifact_id: str | None = None
     contract_version: str = CONTRACT_VERSION

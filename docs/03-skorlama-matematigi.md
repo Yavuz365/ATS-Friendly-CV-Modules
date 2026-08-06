@@ -29,11 +29,10 @@ Score = clamp( Parse_gate × RAW , 0 , 1 )
 `P = |C∩M|/|C|` (ilgililik), `R = |C∩M|/|M|` (zorunlu kapsam), `F1 = 2PR/(P+R)`.
 **Gap ikiye ayrılır** (audit M-D): *kapatılabilir* (kanıt bankasında var, CV'ye yansımamış) vs *kapatılamaz* (adayda yok).
 
-## Eşik yorumu (A11 fix: ürün dili dürüstlüğü)
-%75–85 bandı **hizalanma sinyali** (Lex/Sem/Cov bileşenleri güçlü) — "ATS'yi geçti" veya
-"mülakata hazır" **garantisi DEĞİLDİR**; hiçbir platformun gerçek karar formülü doğrulanmış
-değildir. >%90 bandı olası aşırı-optimizasyon (stuffing) sinyali; <%50 bandı belirgin
-iyileştirme alanı olduğunu gösterir. Tek bir bant, işe alım sonucunu tahmin etmez.
+## Eşik yorumu
+Evrensel hizalanma bandı yoktur. Sayısal eşik yalnız kaynak, tarih, dil, domain ve
+comparator sürümü bağlı bir `EvaluationProfile` içinde tanısal deney amacıyla
+kullanılabilir; ATS geçişi, mülakat veya işe-alım sonucu değildir.
 
 ## Dürüst statü
 Skor, bu repository’nin kendi lexical/semantic **araştırma tanısıdır**. Workday,

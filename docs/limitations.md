@@ -14,7 +14,8 @@ Bu repository bir **pre-production research prototype / contract alpha**dır.
 
 - Ticari ATS’lerde evrensel “pass” skoru
 - Mülakat veya işe alım olasılığı tahmini
-- OCR uygulaması (scanned PDF açıkça `SCANNED_PDF_REQUIRES_OCR` verir)
+- Yerleşik OCR motoru yoktur. Çağıran açık bir OCR adaptörü vermezse scanned PDF
+  `SCANNED_PDF_REQUIRES_OCR`; adaptör kullanılırsa insan doğrulamalı `REVIEW` üretir.
 - Karmaşık PDF reading-order doğruluğunun alan seviyesinde kanıtı
 - Otomatik olgusal doğrulama; lexical overlap yalnız `UNVERIFIED` destektir
 - Vendor-specific capability beyanları ve production export

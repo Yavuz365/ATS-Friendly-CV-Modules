@@ -1,17 +1,14 @@
-# docs/13 — Grammarly Kapısı (AI-Detector / Rewriter / Builder)
+# docs/13 — İsteğe Bağlı Dil ve Stil Danışmanlığı
 
 > **Legacy/vendor notu:** Harici vendor sonucu otomatik veya evrensel kalite kapısı sayılmaz.
 
-> CV'nin Grammarly ile AI-tespit kontrolü, yeniden yazma ve son cilalanması.
+> Harici dil aracı çıktısı yalnız danışmanlıktır; ATS, aday uygunluğu veya AI-yazımı
+> hakkında doğrulanmış bir kapı değildir.
 
 ## 1. Neden Grammarly Kapısı?
 
-AI tarafından üretilen CV metinleri:
-- Tekrarlayan kalıplar içerir ("leveraged", "spearheaded", "orchestrated")
-- Motor skoru yüksek çıksa bile insan HR tarafından tespit edilebilir (A11 fix: "ATS'den geçme" ikili/garanti çerçevesi değil, motor skorunun insan-okunabilirlik garantisi vermediği belirtiliyor)
-- Bazı şirketler AI-detection araçları kullanmaya başladı
-
-**Çözüm:** Motor (engine/) deterministik skor üretir → LLM CV yazar → Grammarly son katman.
+CV metni tekrarlayan kalıplar, dilbilgisi sorunları veya gereksiz karmaşıklık içerebilir.
+Harici bir dil aracı bunları işaretleyebilir; nihai karar insan incelemesidir.
 
 ## 2. Pipeline'daki Yeri
 
@@ -20,26 +17,24 @@ Lexical/semantic tanı (evrensel eşik yok) → isteğe bağlı dil denetimi
                                                     │
                                     ┌───────────────┼───────────────┐
                                     ▼               ▼               ▼
-                              AI-Detector      Rewriter         Builder
-                              (tespit)         (yeniden yaz)    (güçlendir)
+                              Dil denetimi      Rewriter         Builder
+                              (advisory)        (yeniden yaz)    (güçlendir)
 ```
 
 ## 3. Üç Fonksiyon
 
-### 3a. AI-Detector (Tespit)
+### 3a. Dil ve Stil Sinyalleri
 
-Grammarly'nin AI-detection özelliği ile CV metnini tara:
-- **< %30 AI skoru** → Güvenli, doğrudan gönder
-- **%30 – %80** → Rewriter gerekli
-- **> %80** → Ciddi yeniden yazma + insan düzenleme
+Correctness, clarity ve tekrar sinyallerini incele. Sabit yüzde eşiği kullanma; bu
+değerleri “güvenli/güvensiz”, “insan/AI yazımı” veya işe-alım sonucu olarak yorumlama.
 
 ### 3b. Rewriter (Yeniden Yazma)
 
-AI-detector skoru yüksekse:
+Metin açık değilse:
 1. Her CV bölümünü ayrı ayrı Grammarly'den geçir
 2. "Rewrite for clarity" özelliğini kullan
-3. Sonra tekrar AI-detector ile kontrol et
-4. Döngü: AI skoru < %30 olana kadar
+3. Korunan olguların ve JD terimlerinin değişmediğini doğrula
+4. İnsan okunabilirliği yeterli olduğunda döngüyü durdur
 
 **Dikkat:** Yeniden yazma keyword density'yi etkileyebilir → yeniden `ats_match_score()` çalıştır.
 
@@ -49,10 +44,10 @@ Grammarly'nin dil kalitesi metrikleri:
 
 | Metrik | Hedef | Açıklama |
 |--------|-------|----------|
-| Correctness | %95+ | Dilbilgisi, yazım, noktalama |
-| Clarity | %90+ | Cümle uzunluğu, karmaşıklık |
-| Engagement | %80+ | Kelime çeşitliliği, dinamizm |
-| Delivery | %85+ | Ton, profesyonellik |
+| Correctness | Advisory | Dilbilgisi, yazım, noktalama |
+| Clarity | Advisory | Cümle uzunluğu, karmaşıklık |
+| Engagement | Advisory | Kelime çeşitliliği |
+| Delivery | Advisory | Ton, profesyonellik |
 
 ## 4. Keyword Koruma Stratejisi
 
@@ -61,18 +56,18 @@ Grammarly yeniden yazma sırasında JD terimlerini değiştirebilir. Koruma kura
 1. **Teknik terimler** → dokunulmaz listesi: ERP, SAP, akreditif, incoterms, vb.
 2. **Zorunlu (must-have) terimler** → yeniden yazma sonrası `coverage()` kontrolü
 3. **Aksiyon fiilleri** → tier1 fiiller (`action_verbs.json`) korunmalı
-4. Yeniden yazma sonrası `ats_match_score()` ≥ önceki skor − 5 puan
+4. Yeniden yazma sonrası kanıt ID’leri, korunan olgular ve açık gereksinimler yeniden doğrulanır
 
 ## 5. Pratikte Kullanım
 
 ```
 Adım 1: Motor tanısını hesapla → değer yalnız sürümlü evaluation profile bağlamında yorumlanır
 Adım 2: CV'yi Grammarly'ye yapıştır
-Adım 3: AI-detector → %45 (orta risk)
+Adım 3: Dil/stil sinyallerini incele
 Adım 4: Rewriter → bölüm bölüm yeniden yaz
-Adım 5: AI-detector → %22 (güvenli)
+Adım 5: İnsan okunabilirliği ve olgu korumasını doğrula
 Adım 6: Correctness/Clarity/Engagement/Delivery kontrol
-Adım 7: Motor skoru yeniden hesapla → %76 (hâlâ banda içinde)
+Adım 7: Motor tanısını yeniden çalıştır; sonucu outcome/pass eşiği sayma
 Adım 8: Gönder ✅
 ```
 

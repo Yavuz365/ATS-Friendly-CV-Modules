@@ -20,9 +20,10 @@ format:
 	cd engine && python -m ruff format ats_engine/ tests/
 format-check:
 	cd engine && python -m ruff format --check ats_engine/ tests/
+DIST_DIR ?= dist/2.0.0a2
 package-check:
-	python -m build engine --sdist --wheel --outdir dist
-	python scripts/verify_wheel.py dist/*.whl
+	python -m build engine --sdist --wheel --outdir $(DIST_DIR)
+	python scripts/verify_wheel.py $(DIST_DIR)/*.whl
 check: lint format-check typecheck test
 clean:
 	find . -type d -name __pycache__ -prune -exec rm -rf {} + ; find . -name '*.pyc' -delete

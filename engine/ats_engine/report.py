@@ -18,17 +18,19 @@ from __future__ import annotations
 
 import json
 import logging
-from collections import Counter
 from collections.abc import Callable
 
 # P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
-from . import cv_parser, evidence_bank, jd_parser, multilevel, scoring, synthesis, text
+from . import cv_parser, evidence_bank, jd_parser, multilevel, synthesis
 from .cliche_tone import detect_cliches
 from .completeness_guard import evidence_recall
-from .contracts import DiagnosticResult, ProcessStatus, to_primitive
+from .configuration import EvaluationProfile
+from .contracts import ProcessStatus, QAResult, QASeverity, to_primitive
 from .decision import build_decision_report
 from .format_metadata_hygiene import full_hygiene_check
+from .legacy_adapter import legacy_diagnostic
 from .locale_consistency import locale_mismatches
+from .matching import count_boundary_occurrences
 from .quantification_score import quantification_audit
 
 # A9 fix (hardening): QA alt modüllerinden gelen beklenmedik hatalar artık
@@ -73,7 +75,8 @@ def build_report(
     parse_gate: float | None = None,
     corpus_texts: list[str] | None = None,
     use_sbert: bool = True,
-    target_low: float = 75.0,
+    evaluation_profile: EvaluationProfile | None = None,
+    target_low: float | None = None,
     human_approved: bool = False,
 ) -> dict:
     """JD + Framework CV (+ opsiyonel mevcut CV) → 6 alanlık yapılandırılmış rapor.
@@ -81,6 +84,20 @@ def build_report(
     P0.3 fix: parse_gate=None → cv_parser.parse_safety_score() otomatik hesaplar.
     P0.4 fix: 6 QA modülü rapora bağlandı (completeness, hygiene, locale, quant, cliché, calibration).
     """
+    if evaluation_profile is not None and target_low is not None:
+        raise ValueError("evaluation_profile ve target_low birlikte verilemez.")
+    if target_low is not None:
+        evaluation_profile = EvaluationProfile(
+            id="legacy-explicit-target",
+            version="1.0.0",
+            source="Explicit caller-provided diagnostic stop target",
+            effective_date="2026-08-05",
+            locale="unspecified",
+            domain="unspecified",
+            comparator_version="caller-defined",
+            diagnostic_stop_min=target_low,
+        )
+
     analysis = jd_parser.parse_jd(jd_text)
     bank = evidence_bank.parse_bank(framework_cv_text)
 
@@ -93,7 +110,7 @@ def build_report(
         _pg_result = cv_parser.parse_safety_score(scored_text)
         parse_gate = _pg_result["score"]
 
-    score = scoring.ats_match_score(
+    score = legacy_diagnostic(
         jd_text,
         scored_text,
         must_terms,
@@ -105,7 +122,7 @@ def build_report(
     )
 
     gaps = synthesis.classify_gaps(score["gap"], bank)
-    stop = synthesis.stopping_condition(score["score_percent"], gaps["closable"], target_low)
+    stop = synthesis.stopping_condition(score["score_percent"], gaps["closable"], evaluation_profile)
     stuffing = synthesis.anti_stuffing_report(scored_text, must_terms)
 
     # 1) keywords (ağırlıklı liste)
@@ -170,14 +187,11 @@ def build_report(
     # kendi freq hesaplaması (satır ~215) zaten doğru deseni kullanıyor --
     # Counter üzerinden TAM eşleşme arama, alt-string değil. Aynı desen
     # burada da uygulandı.
-    jd_gram_counts = Counter(text.tokenize(jd_text, ngram_max=3, drop_stopwords=True))
-    cv_gram_counts = Counter(text.tokenize(scored_text, ngram_max=3, drop_stopwords=True))
     skill_count_table = []
     all_terms = [m["term"] for m in (analysis["must_have"] + analysis["nice_to_have"])]
     for term in all_terms:
-        t_low = text.tr_lower(term)
-        jd_count = jd_gram_counts.get(t_low, 0)
-        resume_count = cv_gram_counts.get(t_low, 0)
+        jd_count = count_boundary_occurrences(term, jd_text)
+        resume_count = count_boundary_occurrences(term, scored_text)
         status = "✅ Match" if resume_count > 0 else "❌ Missing"
         skill_count_table.append(
             {
@@ -218,14 +232,20 @@ def build_report(
         ),
     }
 
-    qa_results = [
-        DiagnosticResult(
-            diagnostic_id=f"QA_{name.upper()}",
-            status=ProcessStatus(value.get("process_status", ProcessStatus.PASS.value)),
-            message=value.get("error") or value.get("verdict") or f"{name} tamamlandı",
+    qa_results = []
+    for name, value in qa_checks.items():
+        status = ProcessStatus(value.get("process_status", ProcessStatus.PASS.value))
+        severity = QASeverity.REVIEW if status is ProcessStatus.ERROR else QASeverity.ADVISORY
+        qa_results.append(
+            QAResult(
+                check_id=f"QA_{name.upper()}",
+                status=status,
+                severity=severity,
+                message=value.get("error") or value.get("verdict") or f"{name} tamamlandı",
+                blocking=status is ProcessStatus.ERROR,
+                details=value,
+            )
         )
-        for name, value in qa_checks.items()
-    ]
 
     payload = {
         "mode": "diagnostic" if cv_text is not None else "framework-baseline",

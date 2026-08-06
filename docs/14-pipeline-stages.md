@@ -96,7 +96,7 @@ Parse_gate ve Stuffing düzeltmeleri uygulanır
 2. Her birinden tam CV al
 3. 8 bölümü (summary, experience ×4, skills, education, diğer) ayrı ayrı karşılaştır
 4. En iyi bölümleri birleştir (Frankenstein CV)
-5. Grammarly AI-detection kontrolü
+5. İsteğe bağlı dil/stil danışmanlığı ve insan okunabilirliği kontrolü
 6. İnsani düzenleme katmanı
 
 ---

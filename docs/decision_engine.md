@@ -1,6 +1,6 @@
 # Decision Engine — Uygulanan G0–G4 Sözleşmesi
 
-> **Durum:** `2.0.0-alpha.1` içinde uygulanmış contract alpha. Production export kapısı değildir.
+> **Durum:** `2.0.0-alpha.2` içinde uygulanmış contract alpha. Production export kapısı değildir.
 
 `engine/ats_engine/decision.py`, rapor sinyallerini tipli `DecisionReport` altında birleştirir.
 Lexical/semantic değerler yalnız `DiagnosticResult`tır ve kapıları override edemez.

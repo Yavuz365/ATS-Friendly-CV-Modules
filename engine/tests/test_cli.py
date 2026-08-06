@@ -57,3 +57,25 @@ def test_main_returns_three_on_unexpected_internal_error(tmp_path, capsys, monke
     err = capsys.readouterr().err
     assert "Beklenmeyen dahili hata" in err
     assert "RuntimeError" in err
+
+
+def test_diagnose_returns_typed_review_exit_four(tmp_path, capsys):
+    jd_path = _write(tmp_path, "jd.txt", "Dış Ticaret Uzmanı\nZorunlu: SAP")
+    cv_path = _write(tmp_path, "cv.txt", "SAP deneyimi")
+    fw_path = _write(tmp_path, "framework.md", 'EXP-01 | ERP | beceriler: [SAP] | kanıt: "SAP kullandım"')
+    code = cli.main(
+        [
+            "diagnose",
+            "--jd",
+            jd_path,
+            "--cv",
+            cv_path,
+            "--framework",
+            fw_path,
+            "--no-sbert",
+        ]
+    )
+    assert code == 4
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["gates"][0]["gate_id"] == "G0"
+    assert payload["overall_status"] == "REVIEW"

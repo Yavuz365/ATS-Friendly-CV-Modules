@@ -27,19 +27,21 @@ import logging
 import math
 from collections import Counter
 
-from . import lexicons
 from .bm25 import BM25
 from .contracts import EvaluationStatus, ProcessStatus
 from .cv_parser import parse_safety_score as _parse_safety
 from .errors import InvalidInputError
+from .matching import match_term
 from .text import tokenize, tr_lower
 
 logger = logging.getLogger(__name__)
 
-# Önerilen varsayılan ağırlıklar (scoring-formulas.md ile birebir).
+# Legacy diagnostic weights. They are not vendor/outcome calibration.
 DEFAULTS = dict(alpha=0.35, beta=0.30, gamma=0.35, zeta=0.20, k1=1.5, b=0.75)
 
-# Eşik yorumu (yüzde).
+# Backward-compatible metadata only. The engine no longer uses these bands to
+# produce a verdict. Callers that need a diagnostic stop threshold must pass a
+# source-bound EvaluationProfile.
 THRESHOLDS = {"target_low": 75, "target_high": 85, "overopt": 90, "serious": 50}
 
 
@@ -146,7 +148,7 @@ def coverage(
         # ağırlık her zaman bulunamaz (varsayılan 1.0'a düşerdi, sessizce yanlış).
         w = weights.get(tr_lower(t), 1.0)
         den += w
-        present = lexicons.matches_semantically(t, cv_text) if synonym_aware else (tr_lower(t) in tr_lower(cv_text))
+        present = match_term(t, cv_text, allow_fuzzy=synonym_aware).matched
         if present:
             num += w
         else:
@@ -181,7 +183,7 @@ def prf(cv_text: str, must_have: list[str], cv_terms: list[str] | None = None) -
     M = [m.strip() for m in must_have if m.strip()]
     if not M:
         return 0.0, 0.0, 0.0
-    hit = [m for m in M if lexicons.matches_semantically(m, cv_text)]
+    hit = [m for m in M if match_term(m, cv_text).matched]
     R = len(hit) / len(M)
     # ATSE-11 fix: cv_terms yoksa CV'den otomatik çıkar (P≠R artık)
     if not cv_terms:
@@ -190,7 +192,7 @@ def prf(cv_text: str, must_have: list[str], cv_terms: list[str] | None = None) -
         cv_terms = list(dict.fromkeys(raw_tokens))
     if cv_terms:
         must_text = " ".join(M)
-        relevant = [t for t in cv_terms if lexicons.matches_semantically(t, must_text)]
+        relevant = [t for t in cv_terms if match_term(t, must_text).matched]
         P = len(relevant) / len(cv_terms)
     else:
         P = 0.0
@@ -210,6 +212,16 @@ def _validate_gate(name: str, value: float) -> float:
     if not 0.0 <= float(value) <= 1.0:
         raise InvalidInputError(f"{name} [0,1] aralığında olmalıdır; gelen={value!r}.", field=name)
     return float(value)
+
+
+def _validate_nonnegative(name: str, value: float, *, upper: float | None = None) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise InvalidInputError(f"{name} sayısal olmalıdır.", field=name)
+    number = float(value)
+    if not math.isfinite(number) or number < 0 or (upper is not None and number > upper):
+        bound = f"[0,{upper}]" if upper is not None else "negatif olmayan sonlu"
+        raise InvalidInputError(f"{name} {bound} olmalıdır; gelen={value!r}.", field=name)
+    return number
 
 
 def ats_match_score(
@@ -244,6 +256,17 @@ def ats_match_score(
     warnings: list[str] = []
     parse_gate = _validate_gate("parse_gate", parse_gate)
     lang_gate = _validate_gate("lang_gate", lang_gate)
+    alpha = _validate_nonnegative("alpha", alpha)
+    beta = _validate_nonnegative("beta", beta)
+    gamma = _validate_nonnegative("gamma", gamma)
+    zeta = _validate_nonnegative("zeta", zeta)
+    k1 = _validate_nonnegative("k1", k1)
+    b = _validate_nonnegative("b", b, upper=1.0)
+    if alpha + beta + gamma <= 0:
+        raise InvalidInputError("alpha + beta + gamma sıfırdan büyük olmalıdır.", field="weights")
+    if weights:
+        for term, weight in weights.items():
+            _validate_nonnegative(f"weights[{term!r}]", weight)
 
     jd_tok = tokenize(jd_text)
     cv_tok = tokenize(cv_text)
@@ -303,8 +326,8 @@ def ats_match_score(
         g = 0.0
         warnings.append(
             "Kapsam (Cov) DEĞERLENDİRİLEMEDİ: ilan metninden hiçbir zorunlu terim (must_have) "
-            "çıkarılamadı. Skor yalnızca Lex/Sem bileşenlerine dayanıyor — 'hedef bant' verdiğine "
-            "güvenmeden önce ilan ayrıştırmasını (jd_parser) elle kontrol edin."
+            "çıkarılamadı. Legacy tanı yalnızca Lex/Sem bileşenlerine dayanıyor; "
+            "ilan ayrıştırmasını (jd_parser) insan incelemesine gönderin."
         )
     else:
         cov_term = g * Cov
@@ -319,7 +342,7 @@ def ats_match_score(
         process_status = ProcessStatus.REVIEW.value
     else:
         pct = round(legacy_diagnostic * 100, 1)
-        verdict = _verdict(pct)
+        verdict = "DIAGNOSTIC_AVAILABLE"
         process_status = ProcessStatus.PASS.value
     return {
         "score_percent": pct,
@@ -336,6 +359,7 @@ def ats_match_score(
             "Sem": (round(Sem, 3) if Sem is not None else "yok (SBERT kurulu değil)"),
             "Cov": (round(Cov, 3) if cov_evaluable else "değerlendirilemedi (must_have boş)"),
             "Parse_gate": parse_gate,
+            "Lang_gate": lang_gate,
             "Stuffing": round(Stuff, 3),
         },
         "weights_used": {"alpha": round(a, 3), "beta": round(bb, 3), "gamma": round(g, 3), "zeta": zeta},
@@ -347,21 +371,7 @@ def ats_match_score(
         "warnings": warnings,
         "interpretation": (
             "Araştırma amaçlı lexical/semantic hizalanma tanısıdır; ticari ATS geçişi, "
-            "mülakat veya işe alım olasılığı değildir. Threshold yorumu yalnızca "
+            "mülakat veya işe alım olasılığı değildir. Eşik yorumu yalnızca "
             "sürümlenmiş ve kaynaklanmış bir değerlendirme profilinde kullanılmalıdır."
         ),
     }
-
-
-def _verdict(pct: float) -> str:
-    """A11 fix: eskiden bu fonksiyon doğrudan "MÜLAKATA HAZIR BANT" döndürüyordu —
-    her raporun `verdict` alanında görünen, motorun garanti veremeyeceği bir iddia.
-    Artık bant adı "güçlü hizalanma" (sinyal), sonuç garantisi değil (bkz. ADR-000)."""
-    t = THRESHOLDS
-    if pct >= t["overopt"]:
-        return "WARN_HIGH_LEXICAL_DENSITY"
-    if pct >= t["target_low"]:
-        return "DIAGNOSTIC_HIGH_ALIGNMENT"
-    if pct >= t["serious"]:
-        return "DIAGNOSTIC_MEDIUM_ALIGNMENT"
-    return "DIAGNOSTIC_LOW_ALIGNMENT"

@@ -8,6 +8,8 @@
     "verificationStatus": {"enum": ["VERIFIED", "PARTIAL", "UNVERIFIED", "REJECTED"]},
     "processStatus": {"enum": ["PASS", "FAIL", "REVIEW", "WARN", "ERROR", "NOT_RUN"]},
     "evaluationStatus": {"enum": ["EVALUATED", "NOT_EVALUATED"]},
+    "qaSeverity": {"enum": ["BLOCKING", "REVIEW", "ADVISORY", "INFO"]},
+    "consentStatus": {"enum": ["GRANTED", "DENIED", "NOT_COLLECTED"]},
     "errorCode": {"enum": ["INVALID_INPUT", "RESOURCE_MISSING", "UNSUPPORTED_FORMAT", "EMPTY_DOCUMENT", "SCANNED_PDF_REQUIRES_OCR", "PARSE_ERROR", "QA_ERROR", "HUMAN_APPROVAL_REQUIRED"]},
     "engineError": {
       "type": "object", "additionalProperties": false,
@@ -26,11 +28,13 @@
     },
     "candidateFact": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "field", "value", "source_artifact_ids", "data_status", "verification_status", "contract_version"],
+      "required": ["id", "field", "value", "source_artifact_ids", "data_status", "verification_status", "sensitivity", "consent_status", "redacted", "retention_until", "contract_version"],
       "properties": {
         "id": {"type": "string", "minLength": 1}, "field": {"type": "string", "minLength": 1},
         "value": {"type": ["string", "null"]}, "source_artifact_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "data_status": {"$ref": "#/$defs/dataStatus"}, "verification_status": {"$ref": "#/$defs/verificationStatus"},
+        "sensitivity": {"type": "string", "minLength": 1}, "consent_status": {"$ref": "#/$defs/consentStatus"},
+        "redacted": {"type": "boolean"}, "retention_until": {"type": ["string", "null"], "format": "date-time"},
         "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     },
@@ -41,6 +45,16 @@
         "id": {"type": "string"}, "candidate_fact_id": {"type": "string"}, "source_artifact_id": {"type": "string"},
         "locator": {"type": "string", "minLength": 1}, "excerpt": {"type": "string"},
         "verification_status": {"$ref": "#/$defs/verificationStatus"}, "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "evidenceConflict": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "candidate_fact_id", "evidence_ids", "reason", "status", "resolution", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "candidate_fact_id": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 2, "uniqueItems": true},
+        "reason": {"type": "string", "minLength": 1}, "status": {"$ref": "#/$defs/processStatus"},
+        "resolution": {"type": "string"}, "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     },
     "jobPostingSnapshot": {
@@ -54,11 +68,14 @@
     },
     "jobRequirement": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "job_posting_id", "text", "requirement_type", "explicit", "data_status", "contract_version"],
+      "required": ["id", "job_posting_id", "text", "requirement_type", "explicit", "data_status", "category", "modality", "negated", "span_start", "span_end", "review_status", "approval_version", "contract_version"],
       "properties": {
         "id": {"type": "string"}, "job_posting_id": {"type": "string"}, "text": {"type": "string", "minLength": 1},
         "requirement_type": {"enum": ["MUST", "NICE", "KNOCKOUT", "RESPONSIBILITY", "ADVISORY"]}, "explicit": {"type": "boolean"},
-        "data_status": {"$ref": "#/$defs/dataStatus"}, "contract_version": {"$ref": "#/$defs/contractVersion"}
+        "data_status": {"$ref": "#/$defs/dataStatus"}, "category": {"type": "string"}, "modality": {"type": "string"},
+        "negated": {"type": "boolean"}, "span_start": {"type": ["integer", "null"], "minimum": 0},
+        "span_end": {"type": ["integer", "null"], "minimum": 0}, "review_status": {"$ref": "#/$defs/processStatus"},
+        "approval_version": {"type": ["string", "null"]}, "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     },
     "requirementEvidenceMap": {
@@ -72,11 +89,12 @@
     },
     "documentParseResult": {
       "type": "object", "additionalProperties": false,
-      "required": ["artifact_id", "media_type", "text", "status", "warnings", "page_count", "extraction_method", "contract_version"],
+      "required": ["artifact_id", "media_type", "text", "status", "warnings", "page_count", "extraction_method", "structural_features", "page_evidence", "contract_version"],
       "properties": {
         "artifact_id": {"type": "string"}, "media_type": {"type": "string"}, "text": {"type": "string"},
         "status": {"$ref": "#/$defs/processStatus"}, "warnings": {"type": "array", "items": {"type": "string"}},
         "page_count": {"type": ["integer", "null"], "minimum": 0}, "extraction_method": {"type": "string"},
+        "structural_features": {"type": "object"}, "page_evidence": {"type": "array", "items": {"type": "object"}},
         "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     },
@@ -98,6 +116,16 @@
         "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     },
+    "qaResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["check_id", "status", "severity", "message", "blocking", "details", "contract_version"],
+      "properties": {
+        "check_id": {"type": "string"}, "status": {"$ref": "#/$defs/processStatus"},
+        "severity": {"$ref": "#/$defs/qaSeverity"}, "message": {"type": "string"},
+        "blocking": {"type": "boolean"}, "details": {"type": "object"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
     "synthesisChange": {
       "type": "object", "additionalProperties": false,
       "required": ["path", "old_value", "new_value", "evidence_ids", "reason"],
@@ -108,10 +136,13 @@
     },
     "synthesisChangeSet": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "changes", "status", "human_approved", "contract_version"],
+      "required": ["id", "changes", "status", "human_approved", "parent_id", "decision_reason", "applied_at", "rolled_back_from", "contract_version"],
       "properties": {
         "id": {"type": "string"}, "changes": {"type": "array", "items": {"$ref": "#/$defs/synthesisChange"}},
         "status": {"$ref": "#/$defs/processStatus"}, "human_approved": {"type": "boolean"},
+        "parent_id": {"type": ["string", "null"]}, "decision_reason": {"type": "string"},
+        "applied_at": {"type": ["string", "null"], "format": "date-time"},
+        "rolled_back_from": {"type": ["string", "null"]},
         "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     },
@@ -128,10 +159,12 @@
     },
     "applicationEvent": {
       "type": "object", "additionalProperties": false,
-      "required": ["id", "application_id", "event_type", "occurred_at", "payload", "contract_version"],
+      "required": ["id", "application_id", "event_type", "occurred_at", "payload", "data_status", "outcome_observed", "censoring_reason", "source_artifact_id", "contract_version"],
       "properties": {
         "id": {"type": "string"}, "application_id": {"type": "string"}, "event_type": {"type": "string"},
         "occurred_at": {"type": "string", "format": "date-time"}, "payload": {"type": "object"},
+        "data_status": {"$ref": "#/$defs/dataStatus"}, "outcome_observed": {"type": ["boolean", "null"]},
+        "censoring_reason": {"type": ["string", "null"]}, "source_artifact_id": {"type": ["string", "null"]},
         "contract_version": {"$ref": "#/$defs/contractVersion"}
       }
     }

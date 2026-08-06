@@ -5,7 +5,7 @@
 
 [![CI](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions/workflows/test.yml/badge.svg)](https://github.com/Yavuz365/ATS-Friendly-CV-Modules/actions)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-2.0.0--alpha.1-orange)
+![Version](https://img.shields.io/badge/version-2.0.0--alpha.2-orange)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
 
 ## Ne yapar?
@@ -35,6 +35,9 @@ ats-engine parse --jd job.txt
 # Evidence-first rapor (REVIEW durumunda CLI exit 4 döner)
 ats-engine report --jd job.txt --framework framework_cv.md --cv cv.txt --format json --no-sbert
 
+# Yalnız tipli G0-G4 karar raporu
+ats-engine diagnose --jd job.txt --cv cv.txt --framework framework_cv.md --no-sbert
+
 # Legacy lexical diagnostic; açık must listesi zorunludur
 ats-engine score --jd job.txt --cv cv.txt --must "incoterms,customs clearance" --no-sbert
 ```
@@ -58,7 +61,7 @@ print(report["decision_report"]["gates"])
 ## Kanonik sözleşmeler
 
 - Python dataclass/enum sınırı: [`engine/ats_engine/contracts.py`](engine/ats_engine/contracts.py)
-- Draft 2020-12 JSON şemaları ve 12 golden örnek: [`schemas/v2/`](schemas/v2/)
+- Draft 2020-12 JSON şemaları ve 14 golden örnek: [`schemas/v2/`](schemas/v2/)
 - Kabul edilmiş ürün kararı: [`ADR-001`](docs/decisions/ADR-001-evidence-first-v2.md)
 - Baseline ve kaynak izi: [`v2 baseline manifesti`](docs/baseline/2026-08-05-v2-baseline.md)
 - Doğrulanmamış alanlar: [`Sınırlar ve Sorumlu Kullanım`](docs/limitations.md)
@@ -80,6 +83,9 @@ engine/ats_engine/
   jd_parser.py        explicit requirement extraction
   evidence_bank.py    lexical support + provenance candidates
   scoring.py          legacy alignment diagnostics
+  legacy_adapter.py   explicit uncalibrated compatibility boundary
+  matching.py         shared explainable term matcher
+  configuration.py    versioned gate/evaluation policies
   decision.py         G0-G4 orchestration
   safe_synthesis.py   evidence-bound change sets
   report.py           JSON/Markdown adapter
@@ -115,7 +121,7 @@ prospective outcome çalışması hâlâ eksiktir.
 
 ## Sürüm
 
-Current: **2.0.0-alpha.1** — evidence-first contract alpha. Production release değildir.
+Current: **2.0.0-alpha.2** — contract/CLI hardening alpha. Production release değildir.
 Tarihsel değişiklikler için [`CHANGELOG.md`](CHANGELOG.md) dosyasına bakın.
 
 ## License

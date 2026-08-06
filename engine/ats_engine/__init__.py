@@ -25,20 +25,25 @@ from .cliche_tone import detect_cliches
 
 # Faz 1 modülleri
 from .completeness_guard import evidence_recall
+from .configuration import DEFAULT_GATE_POLICY, EvaluationProfile, GatePolicy
 from .contracts import (
     CONTRACT_VERSION,
     ApplicationEvent,
     CandidateFact,
+    ConsentStatus,
     DataStatus,
     DecisionReport,
     DiagnosticResult,
     DocumentParseResult,
     EvaluationStatus,
+    EvidenceConflict,
     EvidenceRecord,
     GateResult,
     JobPostingSnapshot,
     JobRequirement,
     ProcessStatus,
+    QAResult,
+    QASeverity,
     RequirementEvidenceMap,
     SourceArtifact,
     SynthesisChange,
@@ -73,7 +78,14 @@ from .multilevel import (
 )
 from .quantification_score import quantification_audit
 from .report import build_report, to_json, to_markdown
-from .safe_synthesis import approve_change_set, build_change_set
+from .safe_synthesis import (
+    apply_change_set,
+    approve_change_set,
+    build_change_set,
+    inspect_untrusted_text,
+    reject_change_set,
+    rollback_change_set,
+)
 from .scoring import DEFAULTS, THRESHOLDS, ats_match_score, coverage, prf, tfidf_cosine
 from .synthesis import (
     anti_stuffing_report,
@@ -86,28 +98,35 @@ from .synthesis import (
 )
 from .text import tr_lower
 
-__version__ = "2.0.0a1"
+__version__ = "2.0.0a2"
 
 __all__ = [
     "CONTRACT_VERSION",
     "DEFAULTS",
+    "DEFAULT_GATE_POLICY",
     "L1_GATE_THRESHOLD",
     "L2_SEAM_PENALTY",
     "SECTION_LABELS",
     "THRESHOLDS",
     "ApplicationEvent",
     "CandidateFact",
+    "ConsentStatus",
     "DataStatus",
     "DecisionReport",
     "DiagnosticResult",
     "DocumentParseResult",
+    "EvaluationProfile",
     "EvaluationStatus",
     "Evidence",
+    "EvidenceConflict",
     "EvidenceRecord",
+    "GatePolicy",
     "GateResult",
     "JobPostingSnapshot",
     "JobRequirement",
     "ProcessStatus",
+    "QAResult",
+    "QASeverity",
     "RequirementEvidenceMap",
     "SourceArtifact",
     "SynthesisChange",
@@ -116,6 +135,7 @@ __all__ = [
     "__version__",
     "all_keywords",
     "anti_stuffing_report",
+    "apply_change_set",
     "approve_change_set",
     "ats_match_score",
     "audit_bullet",
@@ -135,6 +155,7 @@ __all__ = [
     "enrich_must_terms",
     "evidence_recall",
     "full_hygiene_check",
+    "inspect_untrusted_text",
     "keywords_by_category",
     "lang_gate",
     "language_purity",
@@ -154,6 +175,8 @@ __all__ = [
     "prf",
     "provenance_check",
     "quantification_audit",
+    "reject_change_set",
+    "rollback_change_set",
     "stopping_condition",
     "suggest_weight_adjustment",
     "text",

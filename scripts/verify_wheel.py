@@ -10,9 +10,12 @@ from pathlib import Path
 REQUIRED = {
     "ats_engine/__init__.py",
     "ats_engine/contracts.py",
+    "ats_engine/configuration.py",
     "ats_engine/decision.py",
     "ats_engine/errors.py",
     "ats_engine/ingestion.py",
+    "ats_engine/legacy_adapter.py",
+    "ats_engine/matching.py",
     "ats_engine/safe_synthesis.py",
     "ats_engine/data/action_verbs.json",
     "ats_engine/data/skill_synonyms.json",

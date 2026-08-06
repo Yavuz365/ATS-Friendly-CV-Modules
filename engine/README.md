@@ -1,4 +1,4 @@
-# ats_engine — 2.0.0-alpha.1
+# ats_engine — 2.0.0-alpha.2
 
 Evidence-first CV analysis contract alpha. It is not a commercial ATS pass or hiring-outcome
 predictor.
@@ -10,6 +10,7 @@ pip install -e ".[dev]"
 ats-engine ingest --document cv.docx
 ats-engine parse --jd job.txt
 ats-engine report --jd job.txt --framework framework.md --cv cv.txt --format json --no-sbert
+ats-engine diagnose --jd job.txt --cv cv.txt --framework framework.md --no-sbert
 ats-engine score --jd job.txt --cv cv.txt --must "SAP,Incoterms" --no-sbert
 ```
 
