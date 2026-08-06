@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "ats-requirement-gold",
+  "dataset_version": "0.1.0",
+  "contains_personal_data": false,
+  "labels": [
+    {
+      "fixture_id": "REQ-EN-MUST-001",
+      "language": "en",
+      "text": "Candidates must have hands-on experience with Incoterms 2020 and letter of credit operations.",
+      "span_start": 0,
+      "span_end": 91,
+      "category": "SKILL",
+      "modality": "MUST",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Explicit mandatory skill sentence; must stay REVIEW until human approval version."
+    },
+    {
+      "fixture_id": "REQ-EN-NEG-001",
+      "language": "en",
+      "text": "Prior experience with SAP is not required for this role.",
+      "span_start": 0,
+      "span_end": 55,
+      "category": "SKILL",
+      "modality": "MUST",
+      "negated": true,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Negated statement must remain visible and must never become a positive requirement."
+    },
+    {
+      "fixture_id": "REQ-TR-MUST-001",
+      "language": "tr",
+      "text": "Adayın Incoterms 2020 ve akreditif süreçlerinde zorunlu deneyimi olmalıdır.",
+      "span_start": 0,
+      "span_end": 74,
+      "category": "SKILL",
+      "modality": "MUST",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Açık zorunluluk cümlesi; onay versiyonu olmadan PASS yapılamaz."
+    },
+    {
+      "fixture_id": "REQ-TR-PREF-001",
+      "language": "tr",
+      "text": "Dış ticaret otomasyon araçları bilgisi tercih sebebidir.",
+      "span_start": 0,
+      "span_end": 55,
+      "category": "SKILL",
+      "modality": "PREFERRED",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Nice-to-have / tercih ifadesi MUST olarak terfi ettirilmemelidir."
+    }
+  ]
+}
