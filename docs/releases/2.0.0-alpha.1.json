@@ -1,0 +1,21 @@
+{
+  "release": "2.0.0-alpha.1",
+  "tag": "v2.0.0-alpha.1",
+  "commit": "c76f64f5b352beeba149458b071a9aaeb47f5f06",
+  "status": "SUPERSEDED_PRERELEASE",
+  "production_ready": false,
+  "publish_as": "GitHub prerelease",
+  "title": "ATS Engine 2.0.0-alpha.1 — evidence-first contract alpha",
+  "notes": [
+    "Archival contract prerelease; superseded by alpha.2.",
+    "Do not move the tag to a later commit.",
+    "Do not describe this release as commercial ATS validation or production readiness.",
+    "The tag proves source identity; CHANGELOG text alone does not prove publication."
+  ],
+  "required_assets": [
+    "ats_engine-2.0.0a1-py3-none-any.whl",
+    "ats_engine-2.0.0a1.tar.gz",
+    "source-v2.0.0-alpha.1.tar.gz",
+    "SHA256SUMS.txt"
+  ]
+}
