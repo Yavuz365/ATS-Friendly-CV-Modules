@@ -7,14 +7,14 @@ Authority: Canonical Backlog only. No production-ready claims.
 
 | ID | Action | Status |
 |----|--------|--------|
-| **MAT-003** | Feature-flagged ESCO + offline micro subset (4 concepts). Default OFF. | Strong skeleton |
+| **MAT-003** | Feature-flagged ESCO + offline micro subset. Default OFF. | Strong skeleton |
 | **JOB-004** | 12 annotated TR/EN requirement fixtures + tests. | Strong skeleton |
 | **ING-005** | Field-level evaluator wired into gold corpus runner. | Strong skeleton |
-| **EVAL-003** | Published 4 evaluation cards (parser, requirement, matching, synthesis/gate) + index + presence tests. | **Published v0.1.0** |
+| **EVAL-003** | 4 evaluation cards published + tests. | Published v0.1.0 |
+| **EVAL-002** | Append-only provenance log (`provenance.py`) + SQLite option + card + tests. | Strong skeleton |
 
-## Explicitly not started / still open
+## Still open
 
-- `EVAL-002` (search/screening + artifact provenance logs)
 - `EVAL-004` (vendor capability registry)
 - `OPS-002`, `OPS-003`, `OPS-004`
 - `OUT-001`, `REL-20`
@@ -23,11 +23,11 @@ Authority: Canonical Backlog only. No production-ready claims.
 
 - Default matching behaviour unchanged.
 - No personal data.
-- Cards use `NOT_MEASURED` instead of invented commercial metrics.
-- Forbidden product language checks in tests.
+- No invented commercial ATS metrics.
+- Provenance is explicit opt-in recording (no hidden monkey-patch).
 
 ## Next recommended steps
 
 1. CI green + merge PR #15.
-2. EVAL-002 provenance log skeleton (if desired).
+2. EVAL-004 only as a *schema* registry (no fake vendor scores).
 3. OPS / REL only with explicit human approval.
