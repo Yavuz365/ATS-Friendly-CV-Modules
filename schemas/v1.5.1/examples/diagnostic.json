@@ -1,0 +1,50 @@
+{
+  "mode": "diagnostic",
+  "keywords": [],
+  "analysis": {
+    "identity": {},
+    "must_have": [],
+    "nice_to_have": [],
+    "responsibilities": [],
+    "knockouts": [],
+    "intent": "unknown",
+    "must_have_source": "not-found"
+  },
+  "summary": {
+    "role_essence": "unknown",
+    "cv_top_summary_hint": "Açık zorunlu terim bulunamadı."
+  },
+  "synthesis": {
+    "semantic_clusters": {},
+    "lsi_expansions": {},
+    "xyz_template": "[Z yöntemiyle] (aktif fiil), [Y ölçüsüyle] [X sonucunu] elde ettim.",
+    "anti_stuffing": {"flagged": []},
+    "section_map": ["Özet", "Deneyim", "Beceriler", "Eğitim", "Sertifikalar"],
+    "evidence_bank_size": 0
+  },
+  "match_score": {
+    "score_percent": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "gap": []
+  },
+  "gap_analysis": {
+    "closable_gaps": [],
+    "uncloseable_gaps": [],
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "revision_loop": {"stop": false, "reason": "requirements unavailable"},
+    "recommendations": ["İlanı insan incelemesine gönder."]
+  },
+  "skill_count_table": [],
+  "qa_checks": {
+    "completeness": {},
+    "hygiene": {},
+    "locale": {},
+    "quantification": {},
+    "cliches": {},
+    "calibration_hint": {"adjustment": "not_available"}
+  }
+}
