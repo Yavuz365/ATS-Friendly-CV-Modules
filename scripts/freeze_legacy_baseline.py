@@ -13,7 +13,6 @@ import hashlib
 import json
 import os
 import platform
-import shutil
 import subprocess
 import sys
 import tarfile
@@ -62,18 +61,16 @@ def main() -> int:
     resolved = _verify_commit(repo, args.commit)
 
     source_archive = output / f"source-{resolved}.tar.gz"
-    archive_bytes = _run(["git", "archive", "--format=tar", resolved], cwd=repo).stdout
-    # text mode cannot safely preserve tar bytes; use a direct binary subprocess for archive output.
     with source_archive.open("wb") as handle:
         subprocess.run(
-            ["git", "archive", "--format=tar", resolved],
+            ["git", "archive", "--format=tar.gz", resolved],
             cwd=repo,
             stdout=handle,
             check=True,
         )
     with tempfile.TemporaryDirectory(prefix="ats-baseline-") as temp_dir:
         temp = Path(temp_dir)
-        with tarfile.open(source_archive, "r:") as archive:
+        with tarfile.open(source_archive, "r:gz") as archive:
             archive.extractall(temp, filter="data")
 
         build_root = temp / "engine"
