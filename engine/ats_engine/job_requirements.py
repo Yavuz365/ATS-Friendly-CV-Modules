@@ -32,11 +32,24 @@ _RESPONSIBILITY_RE = re.compile(
 )
 
 _CATEGORY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("LANGUAGE", re.compile(r"\b(?:english|german|french|turkish|ingilizce|almanca|fransızca|türkçe|b[12]|c[12])\b", re.IGNORECASE)),
-    ("EDUCATION", re.compile(r"\b(?:degree|bachelor|master|university|lisans|yüksek\s+lisans|üniversite|mezun)\w*\b", re.IGNORECASE)),
+    (
+        "LANGUAGE",
+        re.compile(
+            r"\b(?:english|german|french|turkish|ingilizce|almanca|fransızca|türkçe|b[12]|c[12])\b", re.IGNORECASE
+        ),
+    ),
+    (
+        "EDUCATION",
+        re.compile(
+            r"\b(?:degree|bachelor|master|university|lisans|yüksek\s+lisans|üniversite|mezun)\w*\b", re.IGNORECASE
+        ),
+    ),
     ("EXPERIENCE", re.compile(r"\b(?:experience|years?|deneyim|tecrübe|yıl)\b", re.IGNORECASE)),
     ("CERTIFICATION", re.compile(r"\b(?:certificate|certification|sertifika|belge)\w*\b", re.IGNORECASE)),
-    ("LOCATION", re.compile(r"\b(?:location|located|relocate|travel|lokasyon|ikamet|seyahat|taşın)\w*\b", re.IGNORECASE)),
+    (
+        "LOCATION",
+        re.compile(r"\b(?:location|located|relocate|travel|lokasyon|ikamet|seyahat|taşın)\w*\b", re.IGNORECASE),
+    ),
     ("SKILL", re.compile(r"\b(?:skill|knowledge|proficien|hakim|bilgi|beceri|yetkin)\w*\b", re.IGNORECASE)),
 )
 
