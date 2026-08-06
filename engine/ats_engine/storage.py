@@ -365,9 +365,7 @@ class SQLiteContractStore:
             """,
             (fact_id,),
         ).fetchall()
-        restricted = any(
-            str(row["action"]) in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE"} for row in actions
-        )
+        restricted = any(str(row["action"]) in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE"} for row in actions)
         retention_until = payload.get("retention_until")
         if retention_until and _iso_date(str(retention_until)) < (as_of or date.today()):
             restricted = True
