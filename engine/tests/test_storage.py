@@ -14,6 +14,7 @@ from ats_engine.contracts import (
     JobPostingSnapshot,
     JobRequirement,
     ProcessStatus,
+    SourceArtifact,
     VerificationStatus,
 )
 from ats_engine.storage import (
@@ -24,6 +25,17 @@ from ats_engine.storage import (
     SQLiteContractStore,
     StorageError,
 )
+
+
+def _source(source_id: str) -> SourceArtifact:
+    return SourceArtifact(
+        id=source_id,
+        filename=f"{source_id}.txt",
+        media_type="text/plain",
+        sha256="b" * 64,
+        locator=f"fixture://{source_id}",
+        version="1",
+    )
 
 
 def _snapshot() -> JobPostingSnapshot:
@@ -66,6 +78,7 @@ def _fact(*, consent: ConsentStatus, retention_until: str = "2027-01-01") -> Can
 
 def test_job_snapshots_are_immutable_and_requirement_reviews_are_versioned():
     with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-1"))
         store.add_job_posting(_snapshot())
         with pytest.raises(DuplicateRecordError):
             store.add_job_posting(_snapshot())
@@ -101,15 +114,18 @@ def test_job_snapshots_are_immutable_and_requirement_reviews_are_versioned():
 
 def test_personal_fact_requires_consent_or_redaction():
     with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
         with pytest.raises(ConsentRequiredError):
             store.add_candidate_fact(_fact(consent=ConsentStatus.NOT_COLLECTED))
 
         store.add_candidate_fact(_fact(consent=ConsentStatus.GRANTED))
-        assert store.get_candidate_fact("FACT-1")["value"] == "SAP"
+        payload = store.get_candidate_fact("FACT-1")
+        assert payload is not None and payload["value"] == "SAP"
 
 
 def test_retention_and_consent_actions_restrict_read_without_deleting_evidence():
     with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
         store.add_candidate_fact(_fact(consent=ConsentStatus.GRANTED, retention_until="2026-08-07"))
         store.record_privacy_action(
             PrivacyAction(
@@ -125,16 +141,16 @@ def test_retention_and_consent_actions_restrict_read_without_deleting_evidence()
         with pytest.raises(RetentionExpiredError):
             store.get_candidate_fact("FACT-1", as_of=date(2026, 8, 6))
 
-        restricted = store.get_candidate_fact(
-            "FACT-1", as_of=date(2026, 8, 6), include_restricted=True
-        )
-        assert restricted["value"] is None
+        restricted = store.get_candidate_fact("FACT-1", as_of=date(2026, 8, 6), include_restricted=True)
+        assert restricted is not None and restricted["value"] is None
         assert restricted["redacted"] is True
-        assert store.get("candidate_fact", "FACT-1")["value"] == "SAP"
+        raw = store.get("candidate_fact", "FACT-1")
+        assert raw is not None and raw["value"] == "SAP"
 
 
 def test_evidence_and_conflict_require_existing_fact_and_evidence():
     with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
         store.add_candidate_fact(_fact(consent=ConsentStatus.GRANTED))
         evidence = EvidenceRecord(
             id="EVD-1",
@@ -180,5 +196,5 @@ def test_unobserved_outcome_is_censored_not_automatically_failed():
             )
         )
         payload = store.get("application_event", "EVT-2")
-        assert payload["outcome_observed"] is False
+        assert payload is not None and payload["outcome_observed"] is False
         assert payload["data_status"] == "KNOWN"
