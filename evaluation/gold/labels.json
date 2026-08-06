@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_version": "1.0.0",
+  "labels": [
+    {
+      "fixture_id": "DOCX-COMPLEX-001",
+      "task": "document_parse",
+      "label": "PASS",
+      "label_source": "gold-manifest",
+      "reviewed": true,
+      "reason": "Paragraph, table, textbox and header text must be extracted from a genuine OOXML binary."
+    },
+    {
+      "fixture_id": "PDF-TEXT-001",
+      "task": "document_parse",
+      "label": "PASS",
+      "label_source": "gold-manifest",
+      "reviewed": true,
+      "reason": "A selectable text layer is present and must produce page evidence."
+    },
+    {
+      "fixture_id": "PDF-SCAN-001",
+      "task": "document_parse",
+      "label": "ERROR",
+      "error_code": "SCANNED_PDF_REQUIRES_OCR",
+      "label_source": "gold-manifest",
+      "reviewed": true,
+      "reason": "No text layer exists; success without an explicit OCR adapter would be a false label."
+    },
+    {
+      "fixture_id": "PDF-SCAN-001-WITH-OCR",
+      "parent_fixture_id": "PDF-SCAN-001",
+      "task": "document_parse",
+      "label": "REVIEW",
+      "label_source": "policy-derived",
+      "reviewed": true,
+      "reason": "OCR output is permitted only as REVIEW pending human verification."
+    },
+    {
+      "fixture_id": "EMPTY-REQUIREMENTS-001",
+      "task": "decision_gate",
+      "label": "REVIEW",
+      "label_source": "contract-regression",
+      "reviewed": true,
+      "reason": "Unavailable requirements are NOT_EVALUATED and must never be promoted to PASS."
+    }
+  ]
+}
