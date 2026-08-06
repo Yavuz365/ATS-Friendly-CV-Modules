@@ -1,4 +1,4 @@
-"""EVAL-003 — Evaluation cards must exist as versioned, non-empty artifacts."""
+"""EVAL-003 / EVAL-002 — Evaluation cards must exist as versioned, non-empty artifacts."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ _REQUIRED = (
     "requirement-card.md",
     "matching-card.md",
     "synthesis-gate-card.md",
+    "provenance-card.md",
 )
 
 
