@@ -1,25 +1,32 @@
-# Annotated TR/EN Job Requirement Gold Set — v0.1.0 (skeleton)
+# Annotated TR/EN Job Requirement Gold Set — v0.1.1
 
 ## Purpose (JOB-004)
 
-Provide a small, versioned, human-reviewable set of job-posting sentences with
-explicit span, category, modality and negation labels for TR and EN.
+Provide a versioned, human-reviewable set of job-posting sentences with explicit
+span, category, modality and negation labels for TR and EN.
 
 This is a **research evaluation fixture**, not a production requirement extractor
 benchmark. It exists so that `job_requirements.py` and future evaluation cards
 have a stable, personal-data-free reference.
 
-## Scope (current skeleton)
+## Scope (v0.1.1)
 
-| Fixture ID | Language | Focus |
-|------------|----------|-------|
-| `REQ-EN-MUST-001` | EN | Explicit MUST skill sentence |
-| `REQ-EN-NEG-001` | EN | Negated requirement (must remain REVIEW) |
-| `REQ-TR-MUST-001` | TR | Explicit zorunlu yetkinlik cümlesi |
-| `REQ-TR-PREF-001` | TR | Tercih / nice-to-have cümlesi |
+| Fixture ID | Lang | Category | Modality | Negated |
+|------------|------|----------|----------|--------|
+| `REQ-EN-MUST-001` | EN | SKILL | MUST | no |
+| `REQ-EN-NEG-001` | EN | SKILL | MUST | **yes** |
+| `REQ-EN-EDU-001` | EN | EDUCATION | MUST | no |
+| `REQ-EN-EXP-001` | EN | EXPERIENCE | MUST | no |
+| `REQ-EN-PREF-001` | EN | SKILL | PREFERRED | no |
+| `REQ-EN-RESP-001` | EN | RESPONSIBILITY | RESPONSIBILITY | no |
+| `REQ-TR-MUST-001` | TR | SKILL | MUST | no |
+| `REQ-TR-PREF-001` | TR | SKILL | PREFERRED | no |
+| `REQ-TR-NEG-001` | TR | LANGUAGE | MUST | **yes** |
+| `REQ-TR-EDU-001` | TR | EDUCATION | MUST | no |
+| `REQ-TR-EXP-001` | TR | EXPERIENCE | MUST | no |
+| `REQ-TR-RESP-001` | TR | RESPONSIBILITY | RESPONSIBILITY | no |
 
-Binary or multi-page postings are out of scope for v0.1. Only sentence-level
-text is stored.
+Binary or multi-page postings are out of scope. Only sentence-level text is stored.
 
 ## Label policy
 
@@ -27,6 +34,7 @@ text is stored.
 - Extractor output starts as `REVIEW`; gold labels never auto-promote to PASS.
 - Negated sentences must not become positive requirements.
 - No body-keyword promotion is allowed in the gold set itself.
+- OR-groups (e.g. business **or** economics) stay as a single explicit sentence.
 
 ## Privacy
 
