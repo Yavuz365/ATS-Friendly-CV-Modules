@@ -8,6 +8,7 @@ import pytest
 
 from ats_engine import parse_document
 from ats_engine.errors import DocumentParseError
+from ats_engine.field_evaluation import evaluate_fields
 
 
 def _load_generator(root: Path):
@@ -35,6 +36,18 @@ def test_binary_gold_corpus_matches_manifest(tmp_path):
             with pytest.raises(DocumentParseError) as caught:
                 parse_document(path)
             assert caught.value.code.value == fixture["expected_error_code"]
+
+            # ING-005: field-level evaluation on the ERROR path
+            report = evaluate_fields(
+                fixture["id"],
+                None,
+                expected_status="ERROR",
+                expected_error_code=fixture.get("expected_error_code"),
+                parse_error_code=caught.value.code.value,
+                required_text=fixture.get("required_text", []),
+                structural_features=fixture.get("structural_features", {}),
+            )
+            assert report.all_required_passed is True, fixture["id"]
             continue
 
         result = parse_document(path)
@@ -44,3 +57,16 @@ def test_binary_gold_corpus_matches_manifest(tmp_path):
             assert expected_text in result.text
         for key, expected in fixture.get("structural_features", {}).items():
             assert result.structural_features[key] == expected
+
+        # ING-005: field-level evaluation must also pass
+        report = evaluate_fields(
+            fixture["id"],
+            result,
+            expected_status=fixture["expected_status"],
+            required_text=fixture.get("required_text", []),
+            structural_features=fixture.get("structural_features", {}),
+        )
+        assert report.all_required_passed is True, (
+            fixture["id"],
+            [(v.field_name, v.passed, v.detail) for v in report.field_verdicts],
+        )

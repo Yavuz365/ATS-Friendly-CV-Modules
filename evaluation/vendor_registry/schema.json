@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ats-friendly-cv-modules.local/schemas/vendor-capability-registry-v0.1.0.json",
+  "title": "VendorCapabilityRegistry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "entries"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "registry_id": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string" },
+    "contains_personal_data": { "type": "boolean", "const": false },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/VendorEntry" }
+    }
+  },
+  "$defs": {
+    "VendorEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vendor_id", "display_name", "source", "source_version", "capabilities", "measurement_status"],
+      "properties": {
+        "vendor_id": { "type": "string", "minLength": 1 },
+        "display_name": { "type": "string", "minLength": 1 },
+        "source": {
+          "type": "string",
+          "description": "Citation or URL of the capability claim source"
+        },
+        "source_version": {
+          "type": "string",
+          "description": "Pinned version/date of the source; never 'latest'"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["capability_id", "label", "status"],
+            "properties": {
+              "capability_id": { "type": "string" },
+              "label": { "type": "string" },
+              "status": {
+                "type": "string",
+                "enum": ["CLAIMED_BY_SOURCE", "OBSERVED_BY_US", "NOT_MEASURED", "CONTRADICTED", "UNKNOWN"]
+              },
+              "notes": { "type": "string" }
+            }
+          }
+        },
+        "measurement_status": {
+          "type": "string",
+          "enum": ["NOT_MEASURED", "PARTIAL", "MEASURED_INTERNAL", "MEASURED_EXTERNAL"]
+        },
+        "scores": {
+          "type": "object",
+          "description": "Optional numeric scores only when measurement_status is MEASURED_*; otherwise omit",
+          "additionalProperties": { "type": ["number", "null"] }
+        }
+      }
+    }
+  }
+}
