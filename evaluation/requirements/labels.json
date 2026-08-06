@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1.0",
   "dataset_id": "ats-requirement-gold",
-  "dataset_version": "0.1.0",
+  "dataset_version": "0.1.1",
   "contains_personal_data": false,
   "labels": [
     {
@@ -33,6 +33,62 @@
       "reason": "Negated statement must remain visible and must never become a positive requirement."
     },
     {
+      "fixture_id": "REQ-EN-EDU-001",
+      "language": "en",
+      "text": "A bachelor degree in business, economics or a related field is required.",
+      "span_start": 0,
+      "span_end": 71,
+      "category": "EDUCATION",
+      "modality": "MUST",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Explicit education requirement with OR-group; extractor must keep REVIEW."
+    },
+    {
+      "fixture_id": "REQ-EN-EXP-001",
+      "language": "en",
+      "text": "At least 3 years of foreign trade experience is mandatory.",
+      "span_start": 0,
+      "span_end": 57,
+      "category": "EXPERIENCE",
+      "modality": "MUST",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Experience duration + mandatory signal."
+    },
+    {
+      "fixture_id": "REQ-EN-PREF-001",
+      "language": "en",
+      "text": "Knowledge of customs clearance systems is preferred.",
+      "span_start": 0,
+      "span_end": 52,
+      "category": "SKILL",
+      "modality": "PREFERRED",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Nice-to-have must not be promoted to MUST."
+    },
+    {
+      "fixture_id": "REQ-EN-RESP-001",
+      "language": "en",
+      "text": "Coordinate export documentation and track shipment status daily.",
+      "span_start": 0,
+      "span_end": 62,
+      "category": "RESPONSIBILITY",
+      "modality": "RESPONSIBILITY",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Responsibility sentence without explicit must/preferred keyword."
+    },
+    {
       "fixture_id": "REQ-TR-MUST-001",
       "language": "tr",
       "text": "Adayın Incoterms 2020 ve akreditif süreçlerinde zorunlu deneyimi olmalıdır.",
@@ -59,6 +115,62 @@
       "label_source": "synthetic-gold",
       "reviewed": true,
       "reason": "Nice-to-have / tercih ifadesi MUST olarak terfi ettirilmemelidir."
+    },
+    {
+      "fixture_id": "REQ-TR-NEG-001",
+      "language": "tr",
+      "text": "Almanca zorunlu değildir.",
+      "span_start": 0,
+      "span_end": 24,
+      "category": "LANGUAGE",
+      "modality": "MUST",
+      "negated": true,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Negasyonlu dil şartı; olumlu gereksinim olarak yazılamaz."
+    },
+    {
+      "fixture_id": "REQ-TR-EDU-001",
+      "language": "tr",
+      "text": "İşletme veya iktisat lisans mezunu olmak şarttır.",
+      "span_start": 0,
+      "span_end": 48,
+      "category": "EDUCATION",
+      "modality": "MUST",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "TR eğitim zorunluluğu + OR grubu."
+    },
+    {
+      "fixture_id": "REQ-TR-EXP-001",
+      "language": "tr",
+      "text": "En az 3 yıl dış ticaret deneyimi gereklidir.",
+      "span_start": 0,
+      "span_end": 44,
+      "category": "EXPERIENCE",
+      "modality": "MUST",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Süre + zorunluluk sinyali."
+    },
+    {
+      "fixture_id": "REQ-TR-RESP-001",
+      "language": "tr",
+      "text": "İhracat belgelerini hazırla ve sevkiyat durumunu takip et.",
+      "span_start": 0,
+      "span_end": 57,
+      "category": "RESPONSIBILITY",
+      "modality": "RESPONSIBILITY",
+      "negated": false,
+      "review_status": "REVIEW",
+      "label_source": "synthetic-gold",
+      "reviewed": true,
+      "reason": "Sorumluluk cümlesi; body keyword terfisi yok."
     }
   ]
 }
