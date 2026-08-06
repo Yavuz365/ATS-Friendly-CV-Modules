@@ -1,0 +1,21 @@
+{
+  "release": "2.0.0-alpha.2",
+  "tag": "v2.0.0-alpha.2",
+  "commit": "5bc5969edf9bb71cf8a8be093f3132262a8799ff",
+  "status": "CURRENT_PRERELEASE",
+  "production_ready": false,
+  "publish_as": "GitHub prerelease",
+  "title": "ATS Engine 2.0.0-alpha.2 — contract and CLI hardening",
+  "notes": [
+    "Current pre-production contract alpha.",
+    "Tag must point exactly to the declared commit.",
+    "Release notes must preserve known limitations and non-outcome language.",
+    "Publication requires wheel, sdist, source archive and SHA256SUMS."
+  ],
+  "required_assets": [
+    "ats_engine-2.0.0a2-py3-none-any.whl",
+    "ats_engine-2.0.0a2.tar.gz",
+    "source-v2.0.0-alpha.2.tar.gz",
+    "SHA256SUMS.txt"
+  ]
+}
