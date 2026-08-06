@@ -1,8 +1,7 @@
 """Append-only SQLite persistence for evidence-first contracts.
 
-The store deliberately keeps source records immutable. Human approvals and privacy
-operations are separate append-only records so that the original evidence trail is
-never silently rewritten.
+Source records are immutable. Human approvals and privacy operations are separate
+append-only ledgers, so original evidence is never silently rewritten.
 """
 
 from __future__ import annotations
@@ -12,7 +11,7 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .contracts import (
     ApplicationEvent,
@@ -23,6 +22,7 @@ from .contracts import (
     JobPostingSnapshot,
     JobRequirement,
     ProcessStatus,
+    SourceArtifact,
     to_primitive,
 )
 
@@ -69,6 +69,7 @@ class PrivacyAction:
 
 
 _KIND_BY_TYPE: dict[type[Any], str] = {
+    SourceArtifact: "source_artifact",
     JobPostingSnapshot: "job_posting_snapshot",
     JobRequirement: "job_requirement",
     CandidateFact: "candidate_fact",
@@ -86,6 +87,13 @@ def _json_payload(value: Any) -> str:
     return json.dumps(to_primitive(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def _decode_payload(value: str) -> dict[str, Any]:
+    decoded = json.loads(value)
+    if not isinstance(decoded, dict):
+        raise StorageError("Saklanan contract payload nesne olmalıdır.")
+    return cast(dict[str, Any], decoded)
+
+
 def _iso_date(value: str) -> date:
     try:
         return date.fromisoformat(value)
@@ -94,12 +102,7 @@ def _iso_date(value: str) -> date:
 
 
 class SQLiteContractStore:
-    """Small append-only store for contract records.
-
-    ``:memory:`` is useful for tests. File-backed databases create their parent
-    directory automatically. Records are JSON snapshots keyed by contract kind and
-    immutable id; review and privacy actions live in independent ledgers.
-    """
+    """Minimal append-only store for versioned contract records."""
 
     def __init__(self, path: str | Path = ":memory:") -> None:
         self.path = str(path)
@@ -164,7 +167,7 @@ class SQLiteContractStore:
         if kind is None:
             raise StorageError(f"Desteklenmeyen contract tipi: {type(record).__name__}")
         record_id = getattr(record, "id", "")
-        if not record_id:
+        if not isinstance(record_id, str) or not record_id:
             raise StorageError("Contract id zorunludur.")
         self._validate_before_append(record)
         try:
@@ -177,9 +180,13 @@ class SQLiteContractStore:
             raise DuplicateRecordError(f"Immutable kayıt zaten var: {kind}/{record_id}") from exc
 
     def _validate_before_append(self, record: Any) -> None:
-        if isinstance(record, JobRequirement):
+        if isinstance(record, JobPostingSnapshot):
+            self._require_record("source_artifact", record.source_artifact_id)
+        elif isinstance(record, JobRequirement):
             self._require_record("job_posting_snapshot", record.job_posting_id)
         elif isinstance(record, CandidateFact):
+            for source_id in record.source_artifact_ids:
+                self._require_record("source_artifact", source_id)
             if (
                 record.sensitivity.upper() != "PUBLIC"
                 and record.consent_status is not ConsentStatus.GRANTED
@@ -190,11 +197,14 @@ class SQLiteContractStore:
                 )
         elif isinstance(record, EvidenceRecord):
             self._require_record("candidate_fact", record.candidate_fact_id)
+            self._require_record("source_artifact", record.source_artifact_id)
         elif isinstance(record, EvidenceConflict):
             self._require_record("candidate_fact", record.candidate_fact_id)
             for evidence_id in record.evidence_ids:
                 self._require_record("evidence_record", evidence_id)
         elif isinstance(record, ApplicationEvent):
+            if record.source_artifact_id:
+                self._require_record("source_artifact", record.source_artifact_id)
             if record.outcome_observed is False and not record.censoring_reason:
                 raise StorageError(
                     "outcome_observed=False olduğunda censoring_reason zorunludur; gözlenmeyen sonuç başarısızlık değildir."
@@ -213,14 +223,17 @@ class SQLiteContractStore:
         ).fetchone()
         if row is None:
             return None
-        return json.loads(str(row["payload_json"]))
+        return _decode_payload(str(row["payload_json"]))
 
     def list_records(self, kind: str) -> list[dict[str, Any]]:
         rows = self.connection.execute(
             "SELECT payload_json FROM contract_records WHERE kind = ? ORDER BY created_at, record_id",
             (kind,),
         ).fetchall()
-        return [json.loads(str(row["payload_json"])) for row in rows]
+        return [_decode_payload(str(row["payload_json"])) for row in rows]
+
+    def add_source_artifact(self, artifact: SourceArtifact) -> None:
+        self.append(artifact)
 
     def add_job_posting(self, snapshot: JobPostingSnapshot) -> None:
         self.append(snapshot)
