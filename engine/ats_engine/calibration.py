@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 @dataclass
 class CalibrationEntry:
     """Tek bir JD için engine vs Jobscan karşılaştırması."""
+
     jd_name: str
     engine_score: float  # %
     jobscan_score: float  # %
@@ -29,6 +30,7 @@ class CalibrationEntry:
 @dataclass
 class CalibrationReport:
     """Çok-JD kalibrasyon raporu."""
+
     entries: list[CalibrationEntry] = field(default_factory=list)
     mean_delta: float = 0.0
     std_delta: float = 0.0
@@ -43,7 +45,7 @@ class CalibrationReport:
         n = len(deltas)
         self.mean_delta = round(sum(deltas) / n, 1)
         variance = sum((d - self.mean_delta) ** 2 for d in deltas) / n
-        self.std_delta = round(variance ** 0.5, 1)
+        self.std_delta = round(variance**0.5, 1)
 
         if self.mean_delta > 5:
             self.bias_direction = "engine_inflated"
@@ -68,10 +70,7 @@ def create_calibration(
     Returns:
         CalibrationReport
     """
-    entries = [
-        CalibrationEntry(name, engine, jobscan)
-        for name, engine, jobscan in jd_results
-    ]
+    entries = [CalibrationEntry(name, engine, jobscan) for name, engine, jobscan in jd_results]
     report = CalibrationReport(entries=entries)
     report.compute()
     return report

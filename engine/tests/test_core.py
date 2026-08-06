@@ -9,6 +9,7 @@ veya:
 SBERT gerektirmeyen, deterministik testler. Audit-düzeltmelerini (clamp,
 parse_gate çarpan, H1 sonsuz-döngü kuralı, eşanlamlı-duyarlı kapsama) kilitler.
 """
+
 from __future__ import annotations
 
 import os
@@ -91,8 +92,18 @@ def test_matches_semantically_word_boundary_no_false_positive():
 
 # P0-3 fix: action_verbs_by_intent artık gerçek JSON anahtarlarına eşleniyor (hiçbir zaman [] değil)
 def test_action_verbs_by_intent_never_empty_for_known_intents():
-    for intent in ["leadership", "achievement", "improvement", "growth", "reduction",
-                   "creation", "analysis", "negotiation", "operations", "communication"]:
+    for intent in [
+        "leadership",
+        "achievement",
+        "improvement",
+        "growth",
+        "reduction",
+        "creation",
+        "analysis",
+        "negotiation",
+        "operations",
+        "communication",
+    ]:
         verbs = lexicons.action_verbs_by_intent(intent)
         assert len(verbs) > 0, f"intent={intent} için boş liste dönmemeli"
     # bilinmeyen intent de genel havuza (en_tier1_impact) düşmeli, boş dönmemeli
@@ -101,7 +112,9 @@ def test_action_verbs_by_intent_never_empty_for_known_intents():
 
 def test_synthesis_build_xyz_uses_real_verb_not_always_achieved():
     # P0-3 fix'ten önce her intent sessizce "achieved"e düşüyordu.
-    sentence_leadership = synthesis.build_xyz("ekip performansı", "%20 verimlilik", "haftalık 1:1'lerle", intent="leadership")
+    sentence_leadership = synthesis.build_xyz(
+        "ekip performansı", "%20 verimlilik", "haftalık 1:1'lerle", intent="leadership"
+    )
     assert "(" in sentence_leadership  # fiil parantez içinde raporlanıyor
     # leadership havuzundan (managed/led/directed/...) bir fiil gelmeli, achieved DEĞİL
     assert "(achieved)" not in sentence_leadership
@@ -137,16 +150,17 @@ def test_language_requirements_paired_with_level():
     assert all("̇" not in x["language"] for x in langs)
 
 
-# P0-10 fix: "must" bölge başlığı yoksa gövdeden türetilen terimler artık 1.0 (zorunlu)
-# değil, 0.6 (tercih bandı) — ve anlamsız kısaltmalar (MM gibi) filtrelenir.
-def test_no_explicit_must_section_infers_lower_modality_and_filters_noise():
+# STAB-018: açık must yoksa gövde terimleri zorunlu alana terfi ettirilmez.
+def test_no_explicit_must_section_keeps_must_empty_and_requests_review():
     jd_no_must_header = (
         "Şirketimiz İstanbul ofisinde çalışacak bir Lojistik Uzmanı arıyor. "
         "MM birimi cinsinden ölçüm yapılan sevkiyatlarda SAP ve Incoterms deneyimi önemlidir."
     )
     parsed = parse_jd(jd_no_must_header)
-    assert parsed["must_have_source"] == "inferred_from_body"
-    assert all(m["modality"] == 0.6 for m in parsed["must_have"])
+    assert parsed["must_have_source"] == "none_detected"
+    assert parsed["must_have"] == []
+    assert parsed["review_required"] is True
+    assert any(m["term"] == "SAP" for m in parsed["nice_to_have"])
     assert "MM" not in parsed["_must_terms"]
 
 
@@ -176,8 +190,7 @@ def test_score_is_clamped_0_1():
 
 
 def test_parse_gate_zero_zeroes_score():
-    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance"],
-                          parse_gate=0.0, use_sbert=False)
+    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance"], parse_gate=0.0, use_sbert=False)
     assert res["score_percent"] == 0.0, "parse_gate çarpan olmalı; 0 → skor 0"
 
 
@@ -190,8 +203,7 @@ def test_beta_redistributed_when_no_sbert():
 
 # ATSE-1: parse_gate=None → otomatik cv_parser.parse_safety_score çağrılır
 def test_parse_gate_auto_called_when_none():
-    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance"],
-                          parse_gate=None, use_sbert=False)
+    res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance"], parse_gate=None, use_sbert=False)
     # Skor hesaplanmalı ve parse_gate 1.0'dan farklı olabilir
     assert 0.0 <= res["score_percent"] <= 100.0
     assert "Parse_gate" in res["components"]
@@ -199,19 +211,17 @@ def test_parse_gate_auto_called_when_none():
     assert isinstance(res["components"]["Parse_gate"], (int, float))
 
 
-# ATSE-2: must_have boş → skor çökmemeli
-def test_empty_must_have_no_collapse():
-    # P0-1 fix: bu test eskiden "must_have boşsa Cov=1.0 (sahte tam-uyum)" davranışını
-    # DOĞRU sanıp test ediyordu — bu davranışın ta kendisi P0 bug'dı (alakasız bir CV
-    # bile yüksek skor alabiliyordu). Artık: skor çökmüyor (Lex/Sem'e dayanarak hâlâ
-    # >0 üretebilir) AMA Cov "değerlendirilemedi" olarak işaretleniyor, sahte 1.0 DEĞİL,
-    # ve motor açık bir uyarı üretiyor.
+# REG-001: must_have boş → genel skor yok, açık NOT_EVALUATED/REVIEW.
+def test_empty_must_have_is_not_evaluated():
     res = ats_match_score(SAMPLE_JD, FRAMEWORK, [], use_sbert=False)
-    assert res["score_percent"] >= 0.0
+    assert res["score_percent"] is None
+    assert res["evaluation_status"] == "NOT_EVALUATED"
+    assert res["process_status"] == "REVIEW"
+    assert isinstance(res["legacy_diagnostic_percent"], float)
     assert res["coverage_evaluable"] is False
     assert res["components"]["Cov"] == "değerlendirilemedi (must_have boş)"
     assert any("DEĞERLENDİRİLEMEDİ" in w for w in res["warnings"])
-    assert "KISMİ DEĞERLENDİRME" in res["verdict"]
+    assert res["verdict"] == "NOT_EVALUATED"
 
 
 def test_nonempty_must_have_still_evaluable():
@@ -225,6 +235,7 @@ def test_nonempty_must_have_still_evaluable():
 # ATSE-6: SBERT singleton — fonksiyon var ve çağrılabilir
 def test_sbert_singleton_function_exists():
     from ats_engine.scoring import _get_sbert_model
+
     # SBERT kurulu olmasa bile None döner, hata vermez
     result = _get_sbert_model()
     assert result is None or hasattr(result, "encode")
@@ -262,6 +273,7 @@ def test_classify_gaps_splits_closable_uncloseable():
 
 # ----------------------------------------------------------- Sprint 2 (ATSE-5,7,8,9,11)
 
+
 # ATSE-5: BM25 skoru artık components'ta görünmeli
 def test_bm25_in_components():
     res = ats_match_score(SAMPLE_JD, FRAMEWORK, ["Customs Clearance", "SAP"], use_sbert=False)
@@ -286,6 +298,7 @@ def test_jaccard_short_term_no_false_positive():
 # ATSE-8: domain_packs yüklenebilmeli
 def test_domain_packs_list_and_load():
     from ats_engine.domain_packs import all_keywords, detect_domain, list_packs, load_pack
+
     packs = list_packs()
     assert "foreign-trade-logistics" in packs, "foreign-trade-logistics paketi olmalı"
     pack = load_pack("foreign-trade-logistics", lang="en")
@@ -297,13 +310,15 @@ def test_domain_packs_list_and_load():
     # SAMPLE_JD foreign trade ile ilgili → detect edebilmeli
     # P0.2 fix: eski assertion (... or True) her zaman geçiyordu — ölü test.
     # detect_domain None veya str dönmeli, hata fırlatmamalı.
-    assert detected is None or isinstance(detected, str), \
+    assert detected is None or isinstance(detected, str), (
         f"detect_domain str veya None dönmeli, dönen: {type(detected)}"
+    )
 
 
 # ATSE-8: enrich_must_terms çalışmalı
 def test_domain_packs_enrich():
     from ats_engine.domain_packs import enrich_must_terms, load_pack
+
     pack = load_pack("foreign-trade-logistics", lang="en")
     must = ["customs clearance", "incoterms"]
     enriched = enrich_must_terms(must, pack, max_additions=3)
@@ -314,6 +329,7 @@ def test_domain_packs_enrich():
 # ATSE-9: LangGate karışık dilde tetiklenmeli
 def test_lang_gate_triggers_on_mixed():
     from ats_engine.multilevel import language_purity
+
     # Saf Türkçe metin → yüksek purity
     tr_text = "Gümrük süreçlerini yönettim ve ihracat operasyonlarını koordine ettim"
     tr_purity = language_purity(tr_text, "tr")
@@ -325,8 +341,7 @@ def test_lang_gate_triggers_on_mixed():
     mixed_purity_en = language_purity(mixed, "en")
     mixed_purity_tr = language_purity(mixed, "tr")
     # Karışık metin her iki dilde de saf metinden düşük olmalı
-    assert mixed_purity_en < en_purity or mixed_purity_tr < tr_purity, \
-        "Karışık metin saf metinden düşük purity vermeli"
+    assert mixed_purity_en < en_purity or mixed_purity_tr < tr_purity, "Karışık metin saf metinden düşük purity vermeli"
 
 
 # ATSE-11: Precision artık Recall'den farklı olabilmeli
@@ -350,9 +365,11 @@ def test_build_report_six_fields():
 
 # ─── Faz 0 Feature Tests ────────────────────────────────────────────────────
 
+
 # Y36-9: Genişletilmiş özel karakter regex
 def test_special_chars_extended():
     from ats_engine.cv_parser import _SPECIAL_CHARS
+
     # Eski regex yakalıyordu
     assert _SPECIAL_CHARS.search("★")
     assert _SPECIAL_CHARS.search("●")
@@ -369,6 +386,7 @@ def test_special_chars_extended():
 # Y36-10: cliche_risk verbs tespiti
 def test_cliche_verbs_detected():
     from ats_engine.lexicons import cliche_verbs
+
     cv = cliche_verbs()
     assert "spearheaded" in cv, "spearheaded cliche olmalı"
     assert "orchestrated" in cv, "orchestrated cliche olmalı"
@@ -381,6 +399,7 @@ def test_cliche_verbs_detected():
 # Y36-13: TR-aware casefold (P0.1 güncelleme: acronym-safe)
 def test_tr_lower_casefold():
     from ats_engine.text import tr_lower
+
     assert tr_lower("İSTANBUL") == "istanbul", "İ → i dönüşümü"
     # P0.1: I→i (EN standart) — I→ı yerine. INCOTERMS doğruluğu > KISA doğruluğu
     assert tr_lower("KISA") == "kisa", "I → i (acronym-safe, EN standart)"
@@ -424,8 +443,7 @@ def test_skill_count_table_uses_exact_match_not_substring_inflation():
         "Dış ticaret operasyonlarında customs clearance süreçlerini yönettim. "
         "Incoterms 2020 kurallarına hakimim. Incoterms eğitimi aldım. Incoterms uyguladım."
     )
-    report = build_report(jd, "## Kanıt\n- customs clearance ve incoterms deneyimi var",
-                           cv_text=cv, use_sbert=False)
+    report = build_report(jd, "## Kanıt\n- customs clearance ve incoterms deneyimi var", cv_text=cv, use_sbert=False)
     by_skill = {row["skill"]: row for row in report["skill_count_table"]}
     assert by_skill["incoterms"]["jd_count"] == 2, "JD'de tam 2 kez geçiyor, 12 değil"
     assert by_skill["incoterms"]["resume_count"] == 3, "CV'de tam 3 kez geçiyor"
@@ -435,6 +453,7 @@ def test_skill_count_table_uses_exact_match_not_substring_inflation():
 # Y36-12: skill_synonyms genişletilmiş
 def test_skill_synonyms_expanded():
     from ats_engine.lexicons import normalize_skill
+
     # Yeni eklenen giriş: "multimodal transport" → "intermodal transport" eşleşmeli
     result = normalize_skill("intermodal transport")
     assert result == "multimodal transport", f"Beklenen: multimodal transport, Gelen: {result}"
@@ -443,9 +462,8 @@ def test_skill_synonyms_expanded():
 # Y36-15: sample_cv temizliği (· ve — olmamalı)
 def test_sample_cv_clean():
     import os
-    sample_path = os.path.join(
-        os.path.dirname(__file__), "..", "examples", "sample_cv.txt"
-    )
+
+    sample_path = os.path.join(os.path.dirname(__file__), "..", "examples", "sample_cv.txt")
     with open(sample_path, encoding="utf-8") as f:
         content = f.read()
     assert "·" not in content, "middle dot temizlenmeli"
@@ -454,9 +472,11 @@ def test_sample_cv_clean():
 
 # ─── Faz 1 Feature Tests ────────────────────────────────────────────────────
 
+
 # Y36-16: completeness_guard
 def test_evidence_recall():
     from ats_engine.completeness_guard import evidence_recall
+
     result = evidence_recall(FRAMEWORK, FRAMEWORK, threshold=0.3)
     assert "total_evidence" in result
     assert "recall_percent" in result
@@ -468,6 +488,7 @@ def test_evidence_recall():
 # Y36-17: format_metadata_hygiene
 def test_hygiene_check():
     from ats_engine.format_metadata_hygiene import full_hygiene_check
+
     result = full_hygiene_check(FRAMEWORK)
     assert "word_budget" in result
     assert "paragraph_length" in result
@@ -479,21 +500,20 @@ def test_hygiene_check():
 # Y36-19: locale_consistency
 def test_locale_detection():
     from ats_engine.locale_consistency import detect_locale, locale_mismatches
+
     assert detect_locale("We optimize and organize processes") == "AmE"
     assert detect_locale("We optimise and organise processes") == "BrE"
     assert detect_locale("Hello world") == "unknown"
 
     # Mismatch tespiti
-    result = locale_mismatches(
-        "We need someone who can optimize operations",
-        "I optimise business processes daily"
-    )
+    result = locale_mismatches("We need someone who can optimize operations", "I optimise business processes daily")
     assert len(result["mismatches"]) > 0, "AmE JD vs BrE CV → mismatch olmalı"
 
 
 # Y36-20: quantification_score
 def test_quantification_audit():
     from ats_engine.quantification_score import quantification_audit
+
     cv_with_numbers = (
         "- Revenue'yi %30 artırdım.\n"
         "- 50 kişilik ekibi yönettim.\n"
@@ -509,6 +529,7 @@ def test_quantification_audit():
 # Y36-21: cliche_tone
 def test_cliche_detection():
     from ats_engine.cliche_tone import detect_cliches
+
     cv_with_cliches = "I spearheaded the transformation and orchestrated a paradigm shift"
     result = detect_cliches(cv_with_cliches)
     assert result["total_cliches"] > 0
@@ -523,6 +544,7 @@ def test_cliche_detection():
 # Y36-18: calibration
 def test_calibration():
     from ats_engine.calibration import create_calibration, suggest_weight_adjustment
+
     jd_results = [
         ("Siegwerk", 86.7, 70.0),
         ("TestCo", 82.0, 78.0),
@@ -541,6 +563,7 @@ def test_calibration():
 def test_tr_lower_acronym_safe():
     """P0.1 fix: INCOTERMS, ERP, SAP gibi EN acronymler bozulmamalı."""
     from ats_engine.text import tr_lower
+
     # EN acronymler doğru dönüşmeli
     assert tr_lower("INCOTERMS") == "incoterms", "INCOTERMS → incoterms olmalı"
     assert tr_lower("ERP") == "erp", "ERP → erp olmalı"
@@ -560,6 +583,7 @@ def test_tr_lower_acronym_safe():
 def test_report_has_qa_checks():
     """P0.4 fix: build_report() çıktısında qa_checks alanı olmalı."""
     from ats_engine.report import build_report
+
     result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
     assert "qa_checks" in result, "build_report çıktısında qa_checks olmalı"
     qa = result["qa_checks"]
@@ -572,6 +596,7 @@ def test_report_has_qa_checks():
 # P0-4 fix: calibration_hint artık motorun kendi skorunu kendisiyle karşılaştırmıyor
 def test_calibration_hint_not_self_referential():
     from ats_engine.report import build_report
+
     result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
     ch = result["qa_checks"]["calibration_hint"]
     assert ch["adjustment"] == "not_available"
@@ -581,6 +606,7 @@ def test_calibration_hint_not_self_referential():
 # P0-6 fix: Markdown raporu artık calibration_hint'i de göstermeli (JSON/MD tutarlılığı)
 def test_markdown_includes_calibration_line():
     from ats_engine.report import build_report, to_markdown
+
     result = build_report(SAMPLE_JD, FRAMEWORK, use_sbert=False)
     md = to_markdown(result)
     assert "Calibration" in md
@@ -593,6 +619,7 @@ def test_markdown_qa_section_reads_real_field_names_not_defaults():
     Bu test, klişe içeren bir CV ile gerçek sayının (0 değil) Markdown'a
     yansıdığını doğrular -- eskiden sessizce 0/? basardı."""
     from ats_engine.report import build_report, to_markdown
+
     cliche_cv = (
         "Dış ticaret uzmanı olarak spearheaded ve leveraged ederek synergized "
         "süreçler yürüttüm. Incoterms ve akreditif konusunda deneyimliyim."
@@ -607,30 +634,33 @@ def test_markdown_qa_section_reads_real_field_names_not_defaults():
 
 # ── A9 fix: sınır doğrulama + tipli hata sözleşmesi ────────────────────────
 
-def test_parse_gate_nan_is_fail_closed_with_warning():
-    """A9: NaN parse_gate artık sessizce skoru bozmuyor — 0.0'a fail-closed + uyarı."""
+
+def test_parse_gate_nan_is_invalid_input():
+    """REG-003: NaN gate is a typed invalid-input error, not a repaired value."""
+    from ats_engine.errors import InvalidInputError
     from ats_engine.scoring import ats_match_score
+
     nan = float("nan")
-    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
-                              parse_gate=nan, use_sbert=False)
-    assert result["score_percent"] == 0.0, "NaN parse_gate fail-closed (0.0) olmalı, NaN yaymamalı"
-    assert any("NaN" in w for w in result["warnings"]), "NaN geçişi uyarı listesinde görünmeli"
+    with pytest.raises(InvalidInputError, match="sonlu"):
+        ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"], parse_gate=nan, use_sbert=False)
 
 
-def test_parse_gate_out_of_range_is_clamped_with_warning():
-    """A9: parse_gate=1.5 gibi [0,1] dışı bir değer artık sessizce kabul edilmiyor — clamp + uyarı."""
+def test_parse_gate_out_of_range_is_invalid_input():
+    """REG-003: out-of-range gate is rejected, never clamped."""
+    from ats_engine.errors import InvalidInputError
     from ats_engine.scoring import ats_match_score
-    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
-                              parse_gate=1.5, use_sbert=False)
-    assert result["components"]["Parse_gate"] == 1.0, "1.5 değeri 1.0'e clamp edilmeli"
-    assert any("aralık [0,1] dışında" in w for w in result["warnings"])
+
+    with pytest.raises(InvalidInputError, match="aralığında"):
+        ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"], parse_gate=1.5, use_sbert=False)
 
 
 def test_parse_gate_valid_value_unchanged_no_warning():
     """A9: geçerli [0,1] aralığındaki bir parse_gate davranışı DEĞİŞTİRMEMELİ (geriye dönük uyumluluk)."""
     from ats_engine.scoring import ats_match_score
-    result = ats_match_score(SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"],
-                              parse_gate=0.9, use_sbert=False)
+
+    result = ats_match_score(
+        SAMPLE_JD, "deneyimli dış ticaret uzmanı", ["dış ticaret"], parse_gate=0.9, use_sbert=False
+    )
     assert result["components"]["Parse_gate"] == 0.9
     assert not any("parse_gate" in w for w in result["warnings"])
 
@@ -641,6 +671,7 @@ def test_action_verbs_meta_count_matches_actual_data():
     260'tı — bu test gelecekte tekrar sapmayı CI'da yakalar)."""
     import json
     from pathlib import Path
+
     path = Path(__file__).parent.parent / "ats_engine" / "data" / "action_verbs.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     categories = [k for k in data if not k.startswith("_")]
@@ -654,6 +685,7 @@ def test_skill_synonyms_meta_count_matches_actual_data():
     sayısıyla tutarlı olmalı (canlı denetimde 62 yazıyordu, gerçek 60'tı)."""
     import json
     from pathlib import Path
+
     path = Path(__file__).parent.parent / "ats_engine" / "data" / "skill_synonyms.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     actual_total = len([k for k in data if k != "_meta"])
@@ -665,6 +697,7 @@ def test_verdict_no_interview_ready_overclaim():
     garanti ima eden ifadeler döndürmüyor — güçlü bant hâlâ raporlanır ama
     bir sinyal olarak, garanti olarak değil (bkz. ADR-000)."""
     from ats_engine.scoring import ats_match_score
+
     result = ats_match_score(SAMPLE_JD, FRAMEWORK, ["dış ticaret", "ihracat"], use_sbert=False)
     assert "MÜLAKATA HAZIR" not in result["verdict"]
     assert "MÜLAKATA HAZIR" not in result["interpretation"]
@@ -693,6 +726,7 @@ def test_qa_check_failure_surfaces_real_error_not_silent(monkeypatch):
 # olarak yakalanır.
 def test_or_group_education_requirement_is_currently_not_extracted():
     from ats_engine import jd_parser
+
     jd = "Gereksinimler: İşletme veya İktisat mezunu olmak. Dış ticaret deneyimi şart."
     result = jd_parser.parse_jd(jd)
     must_terms = {m["term"] for m in result["must_have"]}

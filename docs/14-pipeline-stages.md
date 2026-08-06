@@ -1,5 +1,7 @@
 # ATS-CV Pipeline — 7 Aşamalı Referans Dokümanı
 
+> **Legacy pipeline:** Güncel kanonik akış ingestion → contracts → G0–G4 → explicit human approval’dır.
+
 > Y36-14: Tüm pipeline aşamalarını tek bir referans dokümanında birleştir.
 
 ## Genel Bakış

@@ -1,8 +1,8 @@
-# Çekirdek motor SADECE standart kütüphane ile çalışır — zorunlu bağımlılık yoktur.
-# Aşağıdakiler OPSİYONELDİR ve yalnızca ilgili özelliği açar:
+# Runtime
+pypdf>=5.0,<7
 
 # Semantik benzerlik (Sem bileşeni). Kurulu değilse motor zarifçe SBERT'siz çalışır.
 # sentence-transformers>=2.2.0
 
-# Testler:
+# Testler (developer install için `pip install -e ".[dev]"` tercih edilir):
 pytest>=7.0

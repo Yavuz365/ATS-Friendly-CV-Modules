@@ -1,5 +1,7 @@
 # 07 — Drive + Çok-Araçlı + Otomasyon İş Akışı
 
+> **Planlanan/legacy workflow:** Production otomasyonu doğrulanmış değildir; bkz. `docs/limitations.md`.
+
 Tam metin: `skills/ats-cv-architect/references/workflow-drive-multitool.md`.
 
 ## Aşamalar

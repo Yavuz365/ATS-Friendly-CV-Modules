@@ -30,22 +30,18 @@ user:
   sectors:
     - "PLACEHOLDER_SECTOR"
 
-scoring:
-  target_band: [75, 85]         # Hedef skor bandı
-  overopt_threshold: 90         # Üzeri = stuffing sinyali
-  serious_threshold: 50         # Altı = ciddi iyileştirme gerekli
-  jobscan_trust_weight: 0.25    # Jobscan'a güven ağırlığı
-  engine_trust_weight: 0.40     # Engine'e güven ağırlığı
-  grammarly_trust_weight: 0.15  # Grammarly'e güven ağırlığı
-  human_trust_weight: 0.20      # İnsan değerlendirmesine güven ağırlığı
+diagnostics:
+  # Kaynak, sürüm ve tarih bağlı bir evaluation profile olmadan evrensel threshold yoktur.
+  threshold_profile: null
+  commercial_comparators: []
 
 cv_preferences:
   format: "docx"                # Çıktı formatı
   layout: "single_column"       # Tek sütun
   word_budget: [600, 1000]      # Kelime bütçesi
   bullet_per_role: [3, 6]       # Her rol için bullet sayısı
-  quantification_target: 5      # Minimum ölçülebilir sonuç sayısı
-  cliche_max_ratio: 0.15        # Maksimum klişe oranı
+  quantification_target: null   # Role/market profile ile açıkça sürümlenmelidir
+  cliche_max_ratio: null        # Evrensel kalite kapısı değildir
 
 naming_conventions:
   cv_file: "{role}_{company}_{date}.docx"
@@ -58,4 +54,4 @@ domain_packs:
 
 approval:
   mode: "approval-first"        # Tüm çıktılar onay gerektirir
-  channels: ["slack", "telegram"]
+  channels: []                  # Entegrasyonlar uygulanmadı

@@ -23,6 +23,9 @@ import os
 import sys
 
 from . import evidence_bank, jd_parser, report, scoring
+from .contracts import to_primitive
+from .errors import ATSEngineError
+from .ingestion import parse_document
 
 # A9 (kalan parça): CLI eskiden hiçbir hatayı yakalamıyordu -- dosya bulunamadı,
 # bozuk girdi ya da beklenmeyen bir iç hata, hepsi aynı ham Python traceback +
@@ -61,11 +64,18 @@ def cmd_report(args):
     corpus = _load_corpus(args.corpus)
     cv = _read(args.cv) if args.cv else None
     rep = report.build_report(
-        _read(args.jd), _read(args.framework), cv_text=cv,
-        parse_gate=args.parse_gate, corpus_texts=corpus,
-        use_sbert=not args.no_sbert, target_low=args.target,
+        _read(args.jd),
+        _read(args.framework),
+        cv_text=cv,
+        parse_gate=args.parse_gate,
+        corpus_texts=corpus,
+        use_sbert=not args.no_sbert,
+        target_low=args.target,
+        human_approved=args.human_approved,
     )
     print(report.to_markdown(rep) if args.format == "md" else report.to_json(rep))
+    status = rep["decision_report"]["overall_status"]
+    return 4 if status in {"FAIL", "REVIEW", "ERROR", "NOT_RUN"} else 0
 
 
 def cmd_score(args):
@@ -74,21 +84,35 @@ def cmd_score(args):
     # score komutu için parse_gate=None → 1.0 (basit skor, auto-parse yok)
     pg = args.parse_gate if args.parse_gate is not None else 1.0
     res = scoring.ats_match_score(
-        _read(args.jd), _read(args.cv), must,
-        corpus_texts=corpus, parse_gate=pg, use_sbert=not args.no_sbert,
+        _read(args.jd),
+        _read(args.cv),
+        must,
+        corpus_texts=corpus,
+        parse_gate=pg,
+        use_sbert=not args.no_sbert,
     )
     print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 4 if res["process_status"] == "REVIEW" else 0
 
 
 def cmd_parse(args):
     res = jd_parser.parse_jd(_read(args.jd))
     print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0
 
 
 def cmd_bank(args):
     bank = evidence_bank.parse_bank(_read(args.framework))
     from dataclasses import asdict
+
     print(json.dumps([asdict(e) for e in bank], ensure_ascii=False, indent=2))
+    return 0
+
+
+def cmd_ingest(args):
+    result = parse_document(args.document)
+    print(json.dumps(to_primitive(result), ensure_ascii=False, indent=2))
+    return 4 if result.status.value == "REVIEW" else 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -100,11 +124,17 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--framework", required=True, help="etiketli Framework CV / kanıt bankası")
     r.add_argument("--cv", default=None, help="opsiyonel mevcut CV (teşhis modu)")
     r.add_argument("--corpus", default=None)
-    r.add_argument("--parse-gate", type=float, default=None,
-                   help="ParseGate skoru (0-1). Verilmezse otomatik hesaplanır.")
+    r.add_argument(
+        "--parse-gate", type=float, default=None, help="ParseGate skoru (0-1). Verilmezse otomatik hesaplanır."
+    )
     r.add_argument("--target", type=float, default=75.0)
     r.add_argument("--no-sbert", action="store_true")
     r.add_argument("--format", choices=["json", "md"], default="md")
+    r.add_argument(
+        "--human-approved",
+        action="store_true",
+        help="G4 insan onayını açıkça kaydet (diğer REVIEW kapılarını geçersiz kılmaz).",
+    )
     r.set_defaults(func=cmd_report)
 
     s = sub.add_parser("score", help="yalnızca hibrit skor")
@@ -112,8 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--cv", required=True)
     s.add_argument("--must", default="")
     s.add_argument("--corpus", default=None)
-    s.add_argument("--parse-gate", type=float, default=None,
-                   help="ParseGate skoru (0-1). Verilmezse 1.0 kullanılır.")
+    s.add_argument("--parse-gate", type=float, default=None, help="ParseGate skoru (0-1). Verilmezse 1.0 kullanılır.")
     s.add_argument("--no-sbert", action="store_true")
     s.set_defaults(func=cmd_score)
 
@@ -124,13 +153,20 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("bank", help="Framework CV → kanıt bankası")
     b.add_argument("--framework", required=True)
     b.set_defaults(func=cmd_bank)
+
+    i = sub.add_parser("ingest", help="DOCX/PDF/TXT/MD → tipli parse sonucu")
+    i.add_argument("--document", required=True)
+    i.set_defaults(func=cmd_ingest)
     return p
 
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        args.func(args)
+        return int(args.func(args) or 0)
+    except ATSEngineError as e:
+        print(f"Girdi hatası [{e.code.value}]: {e}", file=sys.stderr)
+        return 2
     except CLIInputError as e:
         print(f"Girdi hatası: {e}", file=sys.stderr)
         return 2
@@ -140,7 +176,6 @@ def main(argv=None) -> int:
         # ham traceback yerine tek satır + net exit code döndürüyoruz.
         print(f"Beklenmeyen dahili hata: {type(e).__name__}: {e}", file=sys.stderr)
         return 3
-    return 0
 
 
 if __name__ == "__main__":

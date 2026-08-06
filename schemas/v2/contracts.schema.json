@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yavuz365.github.io/ats-cv-modules/schemas/v2/contracts.schema.json",
+  "title": "ATS CV Evidence-First Contract Definitions",
+  "$defs": {
+    "contractVersion": {"type": "string", "pattern": "^2\\.0\\.0-alpha\\.[0-9]+$"},
+    "dataStatus": {"enum": ["KNOWN", "UNKNOWN", "NOT_COLLECTED", "NOT_APPLICABLE", "CONFLICTED"]},
+    "verificationStatus": {"enum": ["VERIFIED", "PARTIAL", "UNVERIFIED", "REJECTED"]},
+    "processStatus": {"enum": ["PASS", "FAIL", "REVIEW", "WARN", "ERROR", "NOT_RUN"]},
+    "evaluationStatus": {"enum": ["EVALUATED", "NOT_EVALUATED"]},
+    "errorCode": {"enum": ["INVALID_INPUT", "RESOURCE_MISSING", "UNSUPPORTED_FORMAT", "EMPTY_DOCUMENT", "SCANNED_PDF_REQUIRES_OCR", "PARSE_ERROR", "QA_ERROR", "HUMAN_APPROVAL_REQUIRED"]},
+    "engineError": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {"code": {"$ref": "#/$defs/errorCode"}, "message": {"type": "string", "minLength": 1}, "field": {"type": "string"}}
+    },
+    "sourceArtifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "filename", "media_type", "sha256", "locator", "version", "status", "contract_version"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1}, "filename": {"type": "string", "minLength": 1},
+        "media_type": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "locator": {"type": "string", "minLength": 1}, "version": {"type": "string"},
+        "status": {"$ref": "#/$defs/dataStatus"}, "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "candidateFact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "field", "value", "source_artifact_ids", "data_status", "verification_status", "contract_version"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1}, "field": {"type": "string", "minLength": 1},
+        "value": {"type": ["string", "null"]}, "source_artifact_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "data_status": {"$ref": "#/$defs/dataStatus"}, "verification_status": {"$ref": "#/$defs/verificationStatus"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "candidate_fact_id", "source_artifact_id", "locator", "excerpt", "verification_status", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "candidate_fact_id": {"type": "string"}, "source_artifact_id": {"type": "string"},
+        "locator": {"type": "string", "minLength": 1}, "excerpt": {"type": "string"},
+        "verification_status": {"$ref": "#/$defs/verificationStatus"}, "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "jobPostingSnapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "source_artifact_id", "captured_at", "text_sha256", "locale", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "source_artifact_id": {"type": "string"}, "captured_at": {"type": "string", "format": "date-time"},
+        "text_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "locale": {"type": "string"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "jobRequirement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "job_posting_id", "text", "requirement_type", "explicit", "data_status", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "job_posting_id": {"type": "string"}, "text": {"type": "string", "minLength": 1},
+        "requirement_type": {"enum": ["MUST", "NICE", "KNOCKOUT", "RESPONSIBILITY", "ADVISORY"]}, "explicit": {"type": "boolean"},
+        "data_status": {"$ref": "#/$defs/dataStatus"}, "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "requirementEvidenceMap": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requirement_id", "evidence_ids", "verification_status", "reason", "contract_version"],
+      "properties": {
+        "requirement_id": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "verification_status": {"$ref": "#/$defs/verificationStatus"}, "reason": {"type": "string"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "documentParseResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifact_id", "media_type", "text", "status", "warnings", "page_count", "extraction_method", "contract_version"],
+      "properties": {
+        "artifact_id": {"type": "string"}, "media_type": {"type": "string"}, "text": {"type": "string"},
+        "status": {"$ref": "#/$defs/processStatus"}, "warnings": {"type": "array", "items": {"type": "string"}},
+        "page_count": {"type": ["integer", "null"], "minimum": 0}, "extraction_method": {"type": "string"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "gateResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["gate_id", "status", "reason", "action", "diagnostics", "contract_version"],
+      "properties": {
+        "gate_id": {"pattern": "^G[0-4]$"}, "status": {"$ref": "#/$defs/processStatus"}, "reason": {"type": "string", "minLength": 1},
+        "action": {"type": "string"}, "diagnostics": {"type": "array", "items": {"type": "string"}},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "diagnosticResult": {
+      "type": "object", "additionalProperties": false,
+      "required": ["diagnostic_id", "status", "message", "value", "unit", "contract_version"],
+      "properties": {
+        "diagnostic_id": {"type": "string"}, "status": {"$ref": "#/$defs/processStatus"}, "message": {"type": "string"},
+        "value": {"type": ["number", "integer", "string", "null"]}, "unit": {"type": ["string", "null"]},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "synthesisChange": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "old_value", "new_value", "evidence_ids", "reason"],
+      "properties": {
+        "path": {"type": "string"}, "old_value": {"type": "string"}, "new_value": {"type": "string", "minLength": 1},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}, "reason": {"type": "string"}
+      }
+    },
+    "synthesisChangeSet": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "changes", "status", "human_approved", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "changes": {"type": "array", "items": {"$ref": "#/$defs/synthesisChange"}},
+        "status": {"$ref": "#/$defs/processStatus"}, "human_approved": {"type": "boolean"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "decisionReport": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "overall_status", "evaluation_status", "gates", "diagnostics", "errors", "human_approved", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "overall_status": {"$ref": "#/$defs/processStatus"}, "evaluation_status": {"$ref": "#/$defs/evaluationStatus"},
+        "gates": {"type": "array", "items": {"$ref": "#/$defs/gateResult"}, "minItems": 5, "maxItems": 5},
+        "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnosticResult"}},
+        "errors": {"type": "array", "items": {"$ref": "#/$defs/engineError"}}, "human_approved": {"type": "boolean"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    },
+    "applicationEvent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "application_id", "event_type", "occurred_at", "payload", "contract_version"],
+      "properties": {
+        "id": {"type": "string"}, "application_id": {"type": "string"}, "event_type": {"type": "string"},
+        "occurred_at": {"type": "string", "format": "date-time"}, "payload": {"type": "object"},
+        "contract_version": {"$ref": "#/$defs/contractVersion"}
+      }
+    }
+  }
+}

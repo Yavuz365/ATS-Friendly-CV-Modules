@@ -1,4 +1,8 @@
-# Skorlama Formülleri (SKOR Katmanı) — Denetim-Düzeltmeli
+# Legacy Diagnostic Formülleri — Ürün Kararı Değildir
+
+> Bu matematik ticari ATS formülünün yaklaşımı olarak sunulamaz. Değerler yalnız
+> lexical/semantic hizalanma tanısıdır. Açık must listesi yoksa genel skor üretilmez:
+> `score_percent=null`, `NOT_EVALUATED/REVIEW`.
 
 Tüm matematik burada. Bu skill, türetildiği özgün spesifikasyonun denetiminden geçti; bulunan hatalar **[DÜZELTME]** etiketiyle bu dosyada giderilmiştir, dolayısıyla buradaki formüller spesifikasyondakinden daha doğrudur.
 
@@ -75,9 +79,10 @@ RRF(d) = Σ_s  1 / (k + rank_s(d))     # tipik k = 60
 Lex ve Sem'i ham skor yerine *sıra* üzerinden birleştirir; ölçekleri farklıysa daha sağlamdır. Üretimde ilk ~20 adayı bir cross-encoder/LLM reranker ile yeniden sırala.
 
 ### Eşik yorumu
-- **%75–85 = mülakata hazır** (hedef bant).
-- **>%90 = aşırı optimizasyon / şişirme sinyali** — geri tepebilir.
-- **<%50 = ciddi iyileştirme gerekir.**
+
+Evrensel eşik yoktur. Eşik ancak kaynak, tarih, dil, domain, corpus ve comparator
+versiyonu bağlı bir evaluation profile içinde tanı amacıyla kullanılabilir. Bir değer
+ATS geçişi, mülakat veya işe alım olasılığı değildir.
 
 ## 6. Precision / Recall / F1 + gap
 M = JD zorunlu terimleri, C = CV terimleri:

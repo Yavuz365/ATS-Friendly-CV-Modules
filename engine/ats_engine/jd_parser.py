@@ -21,9 +21,16 @@ from . import lexicons
 from .text import sentences, tokenize, tr_lower
 
 # Bölüm başlığı ipuçları (TR + EN).
-_MUST_CUES = re.compile(r"(aranan nitelik|gerekli|gereklilik|zorunlu|şart|olmazsa olmaz|must[- ]?have|requirements?|required|qualifications?)", re.IGNORECASE)
-_NICE_CUES = re.compile(r"(tercih|tercihen|artı|avantaj|nice[- ]?to[- ]?have|preferred|plus|bonus|a plus)", re.IGNORECASE)
-_RESP_CUES = re.compile(r"(sorumluluk|görev|ne yapacak|yapacağınız|responsibilit|duties|what you.?ll do|role)", re.IGNORECASE)
+_MUST_CUES = re.compile(
+    r"(aranan nitelik|gerekli|gereklilik|gereksinim|zorunlu|şart|olmazsa olmaz|must[- ]?have|requirements?|required|qualifications?)",
+    re.IGNORECASE,
+)
+_NICE_CUES = re.compile(
+    r"(tercih|tercihen|artı|avantaj|nice[- ]?to[- ]?have|preferred|plus|bonus|a plus)", re.IGNORECASE
+)
+_RESP_CUES = re.compile(
+    r"(sorumluluk|görev|ne yapacak|yapacağınız|responsibilit|duties|what you.?ll do|role)", re.IGNORECASE
+)
 
 # Kıdem sözlüğü.
 _SENIORITY = [
@@ -78,14 +85,12 @@ def _parse_language_requirements(text: str) -> list[dict]:
             # (en yaygın kalıp: "İngilizce (C1)"); yoksa en yakın öncesi seviyeye düş.
             idx: int | None
             vm: re.Match[str] | None
-            after = [(i, vm) for i, vm in enumerate(level_matches)
-                     if i not in used and vm.start() >= lm.start()]
+            after = [(i, vm) for i, vm in enumerate(level_matches) if i not in used and vm.start() >= lm.start()]
             if after:
                 idx, vm = min(after, key=lambda p: p[1].start() - lm.start())
             else:
                 before = [(i, vm) for i, vm in enumerate(level_matches) if i not in used]
-                idx, vm = (min(before, key=lambda p: abs(p[1].start() - lm.start()))
-                           if before else (None, None))
+                idx, vm = min(before, key=lambda p: abs(p[1].start() - lm.start())) if before else (None, None)
             level = None
             if vm is not None and idx is not None:
                 level = vm.group(0)
@@ -96,6 +101,7 @@ def _parse_language_requirements(text: str) -> list[dict]:
             seen.add(key)
             out.append({"language": tr_lower(lang), "level": tr_lower(level) if level else None})
     return out
+
 
 # Deneyim yılı.
 _YEARS = re.compile(r"(\d+\s?[-–+]?\s?\d*)\s?(yıl|sene|years?|yr)", re.IGNORECASE)
@@ -111,7 +117,10 @@ _CERTS = ["pmp", "cpa", "cfa", "scrum master", "six sigma", "prince2", "itil", "
 _NOISE_ACRONYMS = {"mm", "cm", "km", "kg", "gr", "lt", "ml", "vb", "vs", "no"}
 
 # Knockout (ikili eler) ipuçları.
-_KNOCKOUT = re.compile(r"(çalışma izni|work permit|askerlik|ehliyet|driver.?s license|seyahat engeli|relocat|vatandaş|citizen)", re.IGNORECASE)
+_KNOCKOUT = re.compile(
+    r"(çalışma izni|work permit|askerlik|ehliyet|driver.?s license|seyahat engeli|relocat|vatandaş|citizen)",
+    re.IGNORECASE,
+)
 
 
 def _segment(text: str) -> dict[str, str]:
@@ -134,21 +143,21 @@ def _segment(text: str) -> dict[str, str]:
 
         if label and _MUST_CUES.search(label):
             region = "must"
-            remainder = stripped[colon_idx + 1:].strip()
+            remainder = stripped[colon_idx + 1 :].strip()
             if remainder:
                 buckets["must"].append(remainder)
                 buckets["body"].append(remainder)
             continue
         if label and _NICE_CUES.search(label):
             region = "nice"
-            remainder = stripped[colon_idx + 1:].strip()
+            remainder = stripped[colon_idx + 1 :].strip()
             if remainder:
                 buckets["nice"].append(remainder)
                 buckets["body"].append(remainder)
             continue
         if label and _RESP_CUES.search(label):
             region = "resp"
-            remainder = stripped[colon_idx + 1:].strip()
+            remainder = stripped[colon_idx + 1 :].strip()
             if remainder:
                 buckets["resp"].append(remainder)
                 buckets["body"].append(remainder)
@@ -194,11 +203,31 @@ def _known_skills(text: str) -> list[str]:
 def _intent(text: str, must: list[str], resp_verbs: list[str]) -> str:
     """Rolün özünü tek cümlede tahmin eden heuristik (denetçi mi memur mu vb.)."""
     low = tr_lower(text or "")
-    audit_signals = sum(low.count(w) for w in ["denetim", "denetle", "uyum", "compliance", "audit", "raporla", "report", "kontrol", "control", "iyileştir", "optimi"])
-    strategy_signals = sum(low.count(w) for w in ["strateji", "strategy", "büyüme", "growth", "yönet", "manage", "lead", "liderlik"])
+    audit_signals = sum(
+        low.count(w)
+        for w in [
+            "denetim",
+            "denetle",
+            "uyum",
+            "compliance",
+            "audit",
+            "raporla",
+            "report",
+            "kontrol",
+            "control",
+            "iyileştir",
+            "optimi",
+        ]
+    )
+    strategy_signals = sum(
+        low.count(w) for w in ["strateji", "strategy", "büyüme", "growth", "yönet", "manage", "lead", "liderlik"]
+    )
     base = "Bu rol esasen "
     if audit_signals >= 3 and audit_signals > strategy_signals:
-        return base + "rutin bir operasyon memuru değil; süreçleri denetleyen/iyileştiren bir DENETÇİ-OPTİMİZASYON profili arıyor."
+        return (
+            base
+            + "rutin bir operasyon memuru değil; süreçleri denetleyen/iyileştiren bir DENETÇİ-OPTİMİZASYON profili arıyor."
+        )
     if strategy_signals >= 3:
         return base + "yürütmenin ötesinde STRATEJİ ve EKİP/PAYDAŞ yönetimi yapan bir profil arıyor."
     top = ", ".join(must[:3]) if must else (", ".join(resp_verbs[:3]) if resp_verbs else "temel rol gereksinimleri")
@@ -229,21 +258,16 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
     }
 
     # --- Katman 2/3: Zorunlu / Tercih ---
-    # P0-10 fix: eskiden "must" bölge başlığı (ör. "Aranan Nitelikler:") hiç
-    # bulunamazsa, ilanın GÖVDESİNDEN çıkan HERHANGİ bir 2-6 harfli büyük harf
-    # kısaltma (ör. anlamsız "MM") doğrudan modality=1.0 "zorunlu" sayılıyordu.
-    # Artık: (a) has_explicit_must=False ise bu terimler modality=0.6 (rapor
-    # katmanında "tercih" bandına düşer, "zorunlu" DENMEZ) ile işaretlenir,
-    # (b) tek başına anlamsız/gürültü kısaltmalar (ölçü birimleri vb.) filtrelenir.
+    # Gövdedeki sözcükler açık bir zorunluluk beyanı değildir. Açık must bölümü
+    # yoksa must listesi boş kalır; gövde sinyalleri yalnızca advisory/nice listesine
+    # alınır ve çağıran taraf insan incelemesine yönlendirilir.
     has_explicit_must = bool(seg["must"].strip())
     must_skills = _known_skills(seg["must"]) if has_explicit_must else []
     nice_skills = _known_skills(seg["nice"]) if seg["nice"].strip() else []
     body_skills = _known_skills(seg["body"])
-    if not must_skills:
-        must_skills = [
-            s for s in body_skills
-            if s not in nice_skills and tr_lower(s) not in _NOISE_ACRONYMS
-        ][:12]
+    if not has_explicit_must:
+        advisory = [s for s in body_skills if s not in nice_skills and tr_lower(s) not in _NOISE_ACRONYMS][:12]
+        nice_skills = list(dict.fromkeys([*nice_skills, *advisory]))
     # knockouts
     knockouts = sorted({m.group(0) for m in _KNOCKOUT.finditer(text or "")})
 
@@ -264,7 +288,10 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
             if w in verbs and w not in resp_verbs:
                 resp_verbs.append(w)
     # TR sorumluluk fiilleri (kaba): -er/-ir ile biten yönetimsel fiiller
-    for m in re.findall(r"\b(yönet\w*|koordine\w*|denetle\w*|raporla\w*|optimi\w*|planla\w*|geliştir\w*|takip\w*)\b", tr_lower(resp_text)):
+    for m in re.findall(
+        r"\b(yönet\w*|koordine\w*|denetle\w*|raporla\w*|optimi\w*|planla\w*|geliştir\w*|takip\w*)\b",
+        tr_lower(resp_text),
+    ):
         if m not in resp_verbs:
             resp_verbs.append(m)
 
@@ -274,18 +301,13 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
         f = freq.get(low, 0) or sum(freq.get(tr_lower(v), 0) for v in lexicons.expand_lsi(low)) or 1
         # modality: bölge + tekrar/merkezîlik
         if region == "must":
-            # P0-10 fix: ilanda açık bir "Aranan Nitelikler/Zorunlu" bölümü YOKSA,
-            # gövdeden türetilen terimler artık tam "zorunlu" (1.0) sayılmıyor —
-            # 0.6 ile işaretlenir (report.py'de "tercih" bandına düşer, "zorunlu"
-            # etiketi YALNIZCA ilanda açıkça yazan şartlara verilir).
-            modality = 1.0 if has_explicit_must else 0.6
+            modality = 1.0
         elif region == "nice":
             modality = 0.3
         else:
             modality = 0.7 if (f >= 2 or low in head_words) else 0.5
         positional = 1.3 if low in head_words else 1.0
-        return {"term": term, "type": classify(term), "modality": modality,
-                "positional_weight": positional, "freq": f}
+        return {"term": term, "type": classify(term), "modality": modality, "positional_weight": positional, "freq": f}
 
     must_meta = [weight_meta(t, "must") for t in must_skills]
     nice_meta = [weight_meta(t, "nice") for t in nice_skills]
@@ -304,9 +326,13 @@ def parse_jd(text: str, first_window: int = 150) -> dict:
         "intent": intent,
         "lsi": lsi,
         "knockouts": knockouts,
-        # P0-10 fix: şeffaflık alanı — "must_have" listesinin ilanda AÇIKÇA yazan bir
-        # zorunlu-şartlar bölümünden mi geldiği, yoksa gövdeden mi TAHMİN edildiği.
-        "must_have_source": "explicit" if has_explicit_must else "inferred_from_body",
+        "must_have_source": "explicit" if has_explicit_must else "none_detected",
+        "review_required": not has_explicit_must,
+        "review_reason": (
+            "Açık bir zorunlu gereksinim bölümü bulunamadı; gövde terimleri must olarak terfi ettirilmedi."
+            if not has_explicit_must
+            else ""
+        ),
         "_scoring_weights": {  # scoring.coverage() için doğrudan kullanılabilir ağırlık tablosu
             tr_lower(m["term"]): round(m["modality"] * m["positional_weight"], 3) for m in must_meta
         },

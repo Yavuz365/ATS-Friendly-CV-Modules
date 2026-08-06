@@ -1,5 +1,7 @@
 # 02 — JD Ayrıştırma: 7 Katmanlı Şema (ANALİZ)
 
+> **Legacy metodoloji (v1.x):** Açık must bölümü yoksa v2 motoru must üretmez; `REVIEW` verir.
+
 Her iş ilanı düz metin değil, 7 semantik katmana bozunur. (`engine/ats_engine/jd_parser.py` bunu deterministik yapar.)
 
 | # | Katman | İçerik | Ağırlık |

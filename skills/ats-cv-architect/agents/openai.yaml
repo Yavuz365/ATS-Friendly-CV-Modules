@@ -1,0 +1,4 @@
+interface:
+  display_name: "ATS CV Architect"
+  short_description: "Evidence-first CV and JD analysis"
+  default_prompt: "Use $ats-cv-architect to analyze this job description and CV with evidence-first gates."

@@ -22,9 +22,11 @@ from collections import Counter
 from collections.abc import Callable
 
 # P0.4 fix: 6 QA modülünü rapora bağla (v1.4'te export edilmiş ama wired değildi)
-from . import cv_parser, evidence_bank, jd_parser, scoring, synthesis, text
+from . import cv_parser, evidence_bank, jd_parser, multilevel, scoring, synthesis, text
 from .cliche_tone import detect_cliches
 from .completeness_guard import evidence_recall
+from .contracts import DiagnosticResult, ProcessStatus, to_primitive
+from .decision import build_decision_report
 from .format_metadata_hygiene import full_hygiene_check
 from .locale_consistency import locale_mismatches
 from .quantification_score import quantification_audit
@@ -52,19 +54,28 @@ def _run_qa_check(name: str, fn: Callable[..., dict], *args) -> dict:
     QA alanları rapora ek bilgi katar, ana skor/karar zincirinin parçası değildir).
     """
     try:
-        return fn(*args)
+        result = fn(*args)
+        return {**result, "process_status": ProcessStatus.PASS.value}
     except Exception as exc:  # kasıtlı geniş yakalama, bkz. docstring
         logger.warning("QA check '%s' failed: %s: %s", name, type(exc).__name__, exc, exc_info=True)
         return {
             "error": f"{name} hesaplanamadı",
             "error_type": type(exc).__name__,
             "error_detail": str(exc),
+            "process_status": ProcessStatus.ERROR.value,
         }
 
 
-def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = None,
-                 parse_gate: float | None = None, corpus_texts: list[str] | None = None,
-                 use_sbert: bool = True, target_low: float = 75.0) -> dict:
+def build_report(
+    jd_text: str,
+    framework_cv_text: str,
+    cv_text: str | None = None,
+    parse_gate: float | None = None,
+    corpus_texts: list[str] | None = None,
+    use_sbert: bool = True,
+    target_low: float = 75.0,
+    human_approved: bool = False,
+) -> dict:
     """JD + Framework CV (+ opsiyonel mevcut CV) → 6 alanlık yapılandırılmış rapor.
 
     P0.3 fix: parse_gate=None → cv_parser.parse_safety_score() otomatik hesaplar.
@@ -83,8 +94,14 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         parse_gate = _pg_result["score"]
 
     score = scoring.ats_match_score(
-        jd_text, scored_text, must_terms, corpus_texts=corpus_texts,
-        weights=weights, parse_gate=parse_gate, use_sbert=use_sbert,
+        jd_text,
+        scored_text,
+        must_terms,
+        corpus_texts=corpus_texts,
+        weights=weights,
+        parse_gate=parse_gate,
+        lang_gate=multilevel.lang_gate(scored_text, jd_text),
+        use_sbert=use_sbert,
     )
 
     gaps = synthesis.classify_gaps(score["gap"], bank)
@@ -93,9 +110,12 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
 
     # 1) keywords (ağırlıklı liste)
     keywords = [
-        {"term": m["term"], "modality": ("zorunlu" if m["modality"] >= 1.0 else
-                                          "güçlü-ima" if m["modality"] >= 0.7 else "tercih"),
-         "positional_weight": m["positional_weight"], "freq": m["freq"]}
+        {
+            "term": m["term"],
+            "modality": ("zorunlu" if m["modality"] >= 1.0 else "güçlü-ima" if m["modality"] >= 0.7 else "tercih"),
+            "positional_weight": m["positional_weight"],
+            "freq": m["freq"],
+        }
         for m in (analysis["must_have"] + analysis["nice_to_have"])
     ]
 
@@ -103,8 +123,11 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
     summary = {
         "role_essence": analysis["intent"],
         "cv_top_summary_hint": (
-            "İlk 100–150 kelimede şu zorunlu terimleri konumlandır: "
-            + ", ".join(must_terms[:6]) + "."
+            "İlk 100–150 kelimede yalnız kanıtla desteklenen açık zorunlu terimleri konumlandır: "
+            + ", ".join(must_terms[:6])
+            + "."
+            if must_terms
+            else "Açık zorunlu terim çıkarılamadı; ilanı insan incelemesine gönder ve gövde terimlerini must sayma."
         ),
     }
 
@@ -132,7 +155,8 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         "recommendations": (
             [g["action"] for g in gaps["closable"]]
             + ([f["note"] for f in stuffing["flagged"]] if stuffing["flagged"] else [])
-        ) or ["Kapatılabilir gap yok; skor hedefteyse teslim et."],
+        )
+        or ["Kapatılabilir gap yok; skor hedefteyse teslim et."],
     }
 
     # ── Y36-11: Jobscan-style Skill/JD/Resume sayım tablosu ──────────────
@@ -155,10 +179,14 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         jd_count = jd_gram_counts.get(t_low, 0)
         resume_count = cv_gram_counts.get(t_low, 0)
         status = "✅ Match" if resume_count > 0 else "❌ Missing"
-        skill_count_table.append({
-            "skill": term, "jd_count": jd_count,
-            "resume_count": resume_count, "status": status,
-        })
+        skill_count_table.append(
+            {
+                "skill": term,
+                "jd_count": jd_count,
+                "resume_count": resume_count,
+                "status": status,
+            }
+        )
 
     # ── P0.4: 6 QA modülü sonuçları ─────────────────────────────────────────
     # A9 fix: her alt-modül çağrısı artık ortak bir sarmalayıcıdan geçiyor —
@@ -181,6 +209,7 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
     # dürüstçe "N/A" işaretliyoruz.
     qa_checks["calibration_hint"] = {
         "adjustment": "not_available",
+        "process_status": ProcessStatus.NOT_RUN.value,
         "note": (
             "Bu alan yalnızca GERÇEK bir dış referans skoru (ör. Jobscan) verildiğinde "
             "anlamlıdır. build_report() dış referans almıyor; motorun kendi skorunu "
@@ -189,7 +218,16 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         ),
     }
 
-    return {
+    qa_results = [
+        DiagnosticResult(
+            diagnostic_id=f"QA_{name.upper()}",
+            status=ProcessStatus(value.get("process_status", ProcessStatus.PASS.value)),
+            message=value.get("error") or value.get("verdict") or f"{name} tamamlandı",
+        )
+        for name, value in qa_checks.items()
+    ]
+
+    payload = {
         "mode": "diagnostic" if cv_text is not None else "framework-baseline",
         "keywords": keywords,
         "analysis": {
@@ -200,6 +238,8 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
             "knockouts": analysis["knockouts"],
             "intent": analysis["intent"],
             "must_have_source": analysis["must_have_source"],
+            "review_required": analysis["review_required"],
+            "review_reason": analysis["review_reason"],
         },
         "summary": summary,
         "synthesis": synth,
@@ -207,7 +247,10 @@ def build_report(jd_text: str, framework_cv_text: str, cv_text: str | None = Non
         "gap_analysis": gap_analysis,
         "skill_count_table": skill_count_table,
         "qa_checks": qa_checks,
+        "qa_results": to_primitive(qa_results),
     }
+    payload["decision_report"] = build_decision_report(payload, human_approved=human_approved).to_dict()
+    return payload
 
 
 def to_json(report: dict, indent: int = 2) -> str:
@@ -230,11 +273,15 @@ def to_markdown(report: dict) -> str:
     idn = a["identity"]
     # P0-8 fix: language_req artık [{"language":..,"level":..}, ...] (dil+seviye
     # eşleşmiş) — eskiden düz bir string listesiydi ve dil/seviye hiç eşleşmiyordu.
-    lang_str = ", ".join(
-        f"{lr['language']} ({lr['level']})" if lr.get("level") else lr["language"]
-        for lr in idn["language_req"]
-    ) or "—"
-    lines.append(f"- **Kimlik:** {idn['title_guess']} · kıdem: {idn['seniority']} · çalışma: {idn['work_mode']} · dil: {lang_str} · deneyim: {idn['experience_years'] or '—'}")
+    lang_str = (
+        ", ".join(
+            f"{lr['language']} ({lr['level']})" if lr.get("level") else lr["language"] for lr in idn["language_req"]
+        )
+        or "—"
+    )
+    lines.append(
+        f"- **Kimlik:** {idn['title_guess']} · kıdem: {idn['seniority']} · çalışma: {idn['work_mode']} · dil: {lang_str} · deneyim: {idn['experience_years'] or '—'}"
+    )
     lines.append(f"- **Zorunlu:** {', '.join(m['term'] for m in a['must_have']) or '—'}")
     lines.append(f"- **Tercih:** {', '.join(m['term'] for m in a['nice_to_have']) or '—'}")
     lines.append(f"- **Sorumluluk fiilleri:** {', '.join(a['responsibilities'][:12]) or '—'}")
@@ -257,10 +304,13 @@ def to_markdown(report: dict) -> str:
     lines.append("")
 
     lines.append("## 5. match_score")
-    lines.append(f"- **Skor:** %{ms['score_percent']} — {ms['verdict']}")
-    lines.append(f"- **Bileşenler:** Lex={ms['components']['Lex']} · Sem={ms['components']['Sem']} · "
-                 f"Cov={ms['components']['Cov']} · Parse_gate={ms['components']['Parse_gate']} · "
-                 f"Stuffing={ms['components']['Stuffing']}")
+    score_text = f"%{ms['score_percent']}" if ms["score_percent"] is not None else "NOT_EVALUATED"
+    lines.append(f"- **Hizalanma tanısı:** {score_text} — {ms['verdict']}")
+    lines.append(
+        f"- **Bileşenler:** Lex={ms['components']['Lex']} · Sem={ms['components']['Sem']} · "
+        f"Cov={ms['components']['Cov']} · Parse_gate={ms['components']['Parse_gate']} · "
+        f"Stuffing={ms['components']['Stuffing']}"
+    )
     lines.append(f"- **Ağırlıklar:** {ms['weights_used']}")
     lines.append(f"- **P/R/F1:** {ms['precision']} / {ms['recall']} / {ms['f1']}")
     if ms.get("warnings"):
@@ -268,6 +318,15 @@ def to_markdown(report: dict) -> str:
         for w in ms["warnings"]:
             lines.append(f"  - {w}")
     lines.append("")
+
+    decision = report.get("decision_report", {})
+    if decision:
+        lines.append("## Decision Report")
+        lines.append(f"- **Genel durum:** {decision.get('overall_status', '?')}")
+        lines.append(f"- **Değerlendirme:** {decision.get('evaluation_status', '?')}")
+        for gate in decision.get("gates", []):
+            lines.append(f"- **{gate['gate_id']}:** {gate['status']} — {gate['reason']}")
+        lines.append("")
 
     # Y36-11: Jobscan-style sayım tablosu
     lines.append("## Skill Count Table (Jobscan-style)")
@@ -292,20 +351,25 @@ def to_markdown(report: dict) -> str:
             lines.append(f"- **Completeness (Evidence Recall):** %{cr.get('recall_percent', '?')}")
         if "hygiene" in qa and "error" not in qa["hygiene"]:
             hy = qa["hygiene"]
-            lines.append(f"- **Format Hygiene:** word_count={hy.get('word_budget', {}).get('word_count', '?')}, "
-                         f"special_chars={hy.get('special_characters', {}).get('total_special', 0)}")
+            lines.append(
+                f"- **Format Hygiene:** word_count={hy.get('word_budget', {}).get('word_count', '?')}, "
+                f"special_chars={hy.get('special_characters', {}).get('total_special', 0)}"
+            )
         if "locale" in qa and "error" not in qa["locale"]:
             lo = qa["locale"]
-            lines.append(f"- **Locale:** JD={lo.get('jd_locale', '?')}, CV={lo.get('cv_locale', '?')}, "
-                         f"mismatches={len(lo.get('mismatches', []))}")
+            lines.append(
+                f"- **Locale:** JD={lo.get('jd_locale', '?')}, CV={lo.get('cv_locale', '?')}, "
+                f"mismatches={len(lo.get('mismatches', []))}"
+            )
         if "quantification" in qa and "error" not in qa["quantification"]:
             qu = qa["quantification"]
-            lines.append(f"- **Quantification:** found={qu.get('total_quantified', '?')}, "
-                         f"target={qu.get('target', 5)}, verdict={qu.get('verdict', '?')}")
+            lines.append(
+                f"- **Quantification:** found={qu.get('total_quantified', '?')}, "
+                f"target={qu.get('target', 5)}, verdict={qu.get('verdict', '?')}"
+            )
         if "cliches" in qa and "error" not in qa["cliches"]:
             cl = qa["cliches"]
-            lines.append(f"- **Clichés:** count={cl.get('total_cliches', 0)}, "
-                         f"durum={cl.get('tone_verdict', 'none')}")
+            lines.append(f"- **Clichés:** count={cl.get('total_cliches', 0)}, durum={cl.get('tone_verdict', 'none')}")
         # P0-6 fix: calibration_hint JSON'da vardı ama Markdown raporunda hiç
         # görünmüyordu (rapor formatları birbirini tutmuyordu) — artık burada da basılıyor.
         if "calibration_hint" in qa and "error" not in qa["calibration_hint"]:

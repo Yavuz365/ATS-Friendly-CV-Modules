@@ -1,9 +1,12 @@
 # 05 — Grammarly Ansiklopedisi: Karşılaştırma & Motora Aktarım (ANALİZ)
 
+> **Legacy araştırma notu:** Vendor davranışı veya olgusal doğrulama kanıtı değildir; bkz. `docs/limitations.md`.
+
 Bu doküman, projedeki **Grammarly Keyword-Optimization / Resume-Builder** kaynağının (≈1800 satırlık iki dilli SEO+ATS ansiklopedisi) sistemle **karşılaştırmasıdır** ve nelerin motora veri olarak aktarıldığını belgeler. Kullanıcının "Grammarly ile kıyasla, neyi geliştirebiliriz" sorusunun yanıtıdır.
 
 ## 1. Örtüşen çekirdek (zaten sistemde vardı)
-Grammarly kaynağı ile mevcut ATS mimarisi şu noktalarda **birebir örtüşüyor** — yani sistem bu açıdan doğrulandı:
+Grammarly kaynağı ile legacy metodoloji şu noktalarda kavramsal olarak örtüşür; bu,
+motorun vendor üzerinde veya olgusal olarak doğrulandığı anlamına gelmez:
 - NLP tabanlı eşleştirme; TF-IDF/anahtar kelime ağırlığı.
 - Bulanık eşleştirme: **Jaccard benzerliği + Levenshtein mesafesi** → "team management" ↔ "led a cross-functional team".
 - **Skill Normalization** (eşanlamlı/normalize beceri tabanı).
@@ -24,7 +27,8 @@ Grammarly kaynağı ile mevcut ATS mimarisi şu noktalarda **birebir örtüşüy
 ## 3. Sistemin Grammarly'den ÜSTÜN olduğu noktalar (geliştirme yönü)
 Grammarly güçlü bir **dil/SEO** katmanı; ama tek başına bir ATS-CV motoru değil. Sistem şunları ekler:
 1. **Provenans/dürüstlük zinciri** — Grammarly fiil/kelime önerir ama "bu adayda gerçekten var mı?" garantisi yok. Sistem her maddeyi kanıt bankasına bağlar (halüsinasyon önleyici).
-2. **Audit-düzeltmeli hibrit skor** — Parse_gate çarpanı, clamp, Lex/Cov ayrımı; tescilli ATS davranışına daha sadık proxy.
+2. **Legacy hibrit tanı** — Parse gate, Lex/Cov ve stuffing sinyallerini gösterir; ticari
+   ATS davranışının proxy’si olduğu iddia edilmez.
 3. **Kapatılabilir/kapatılamaz gap ayrımı + sonsuz-döngü düzeltmesi (H1)** — Grammarly'de yok.
 4. **7 katmanlı JD niyeti** (memur değil denetçi) — saf kelime optimizasyonunun ötesinde stratejik okuma.
 5. **Çok-araçlı taşınabilirlik + otomasyon** (Master Prompt, otomasyon platformu, Notion).

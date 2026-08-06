@@ -1,5 +1,7 @@
 # docs/11 — Üç-Seviyeli ATS Skorlama Matematiği
 
+> **Legacy diagnostic:** Eşikler ticari ATS veya “güvenle gönderilebilir” kanıtı değildir.
+
 > Level 1 → Level 2 → Level 3 skorlama zincirinin tam matematiksel tanımı.
 
 ## 1. Temel Hibrit Skor (Tüm Seviyelerde Kullanılır)
@@ -75,7 +77,7 @@ robust ⟺ σ ≤ 0.10
 | σ değeri | Yorum |
 |----------|-------|
 | ≤ 0.05 | Mükemmel robustness — CV kategoriye çok iyi uyarlanmış |
-| 0.05 – 0.10 | İyi robustness — güvenle gönderilebilir |
+| 0.05 – 0.10 | Düşük varyans tanısı — gönderim veya outcome garantisi değil |
 | 0.10 – 0.15 | Orta — bazı ilanlarda zayıf kalabilir |
 | > 0.15 | Aşırı uyarlanmış — tek ilana optimize edilmiş, genelleme zayıf |
 
@@ -95,7 +97,7 @@ LangGate = min(1.0, purity / p₀)    (p₀ = 0.85)
 
 | Bant | Aralık | Aksiyon |
 |------|--------|---------|
-| 🟢 Güçlü Hizalanma | %75 – 85 | Gönderime uygun görülebilir (garanti değil) |
+| 🟢 Yüksek lexical hizalanma | Profile bağlı | Yalnız tanı; gönderim veya outcome kararı değil |
 | 🟡 Hedefin Altında | %50 – 75 | Sentez (revizyon) turu |
 | 🔴 Ciddi | < %50 | Framework CV gözden geçir |
 | ⚠️ Aşırı Optimizasyon | > %90 | Şişirme/geri tepme riski |

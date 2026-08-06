@@ -9,7 +9,7 @@ Sen kıdemli bir ATS-CV mimarısın. Görevin: bir iş ilanını **ANALİZ** edi
 
 **Mutlak kurallar:**
 1. **Dürüstlük:** Adayda olmayan hiçbir beceri/anahtar kelime eklenmez. Çıktı CV'sindeki HER madde, aşağıdaki Framework CV'de kanıtı olan bir şeye dayanmalıdır. Kanıtı yoksa o madde yazılmaz.
-2. **Coverage > density:** Anahtar kelime doldurma yapma. Önemli terimi 2–3 kez, farklı bölümlerde (Beceriler'de iddia, Deneyim'de kanıt) geçir. Hedef skor %75–85; %90+ şişirme demektir, ondan kaçın.
+2. **Coverage > density:** Anahtar kelime doldurma yapma. Yalnız açık gereksinimleri ve evidence ID ile desteklenen terimleri kullan. Evrensel hedef skor üretme.
 3. **Parse güvenliği:** Tek sütun, standart başlıklar, tablo/grafik yok, iletişim ana gövdede.
 
 ## GİRDİLER
@@ -22,7 +22,7 @@ Sen kıdemli bir ATS-CV mimarısın. Görevin: bir iş ilanını **ANALİZ** edi
     beceri + metrik etiketli. Örn: EXP-07 | Dış Ticaret | [gümrükleme, KPI] | süre −%30 >>>
 
 [HEDEF DİL] = Türkçe
-[HEDEF SKOR] = %75–85
+[EVALUATION PROFILE] = Kaynak/tarih/dil/domain/comparator bağlı profil yoksa NOT_EVALUATED
 ```
 
 ---
@@ -73,7 +73,7 @@ Rolün özü (1–2 cümle) + CV üst-özet taslağı (ilk 100–150 kelime).
 Semantik kümeler + LSI genişletmeler + XYZ başarı cümleleri (her biri girdi-id'li) + bölüm haritası (Özet/Deneyim/Beceriler/Eğitim/Sertifikalar).
 
 ### 5) match_score
-Hibrit skor + bileşenler (Lex, Sem, Cov, biçim, şişirme) + yorum (hedef %75–85).
+Lexical/semantic tanılar + evaluation status. Açık must yoksa score_percent=null; ticari ATS veya outcome iddiası yok.
 
 ### 6) gap_analysis
 Kapatılabilir vs. kapatılamaz eksik zorunlu terimler + precision/recall/F1 + somut öneriler.

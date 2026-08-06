@@ -1,5 +1,7 @@
 # docs/12 — Dil Tutarlılığı + Türkçe Morfoloji
 
+> **Legacy diagnostic:** Dil sinyali G3 tanısıdır; tek başına product PASS üretmez.
+
 > Tek-dilli CV zorunluluğu, dil tespiti, lemma-bazlı eşleşme ve Türkçe'ye özgü işlemler.
 
 ## 1. Neden Dil Tutarlılığı Kritik?

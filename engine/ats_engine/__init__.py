@@ -25,6 +25,27 @@ from .cliche_tone import detect_cliches
 
 # Faz 1 modülleri
 from .completeness_guard import evidence_recall
+from .contracts import (
+    CONTRACT_VERSION,
+    ApplicationEvent,
+    CandidateFact,
+    DataStatus,
+    DecisionReport,
+    DiagnosticResult,
+    DocumentParseResult,
+    EvaluationStatus,
+    EvidenceRecord,
+    GateResult,
+    JobPostingSnapshot,
+    JobRequirement,
+    ProcessStatus,
+    RequirementEvidenceMap,
+    SourceArtifact,
+    SynthesisChange,
+    SynthesisChangeSet,
+    VerificationStatus,
+)
+from .decision import build_decision_report
 from .domain_packs import (
     all_keywords,
     detect_domain,
@@ -35,6 +56,7 @@ from .domain_packs import (
 )
 from .evidence_bank import Evidence, parse_bank, provenance_check
 from .format_metadata_hygiene import full_hygiene_check
+from .ingestion import parse_document, parse_docx, parse_pdf
 from .jd_parser import parse_jd
 from .locale_consistency import detect_locale, locale_mismatches
 from .multilevel import (
@@ -51,6 +73,7 @@ from .multilevel import (
 )
 from .quantification_score import quantification_audit
 from .report import build_report, to_json, to_markdown
+from .safe_synthesis import approve_change_set, build_change_set
 from .scoring import DEFAULTS, THRESHOLDS, ats_match_score, coverage, prf, tfidf_cosine
 from .synthesis import (
     anti_stuffing_report,
@@ -63,21 +86,42 @@ from .synthesis import (
 )
 from .text import tr_lower
 
-__version__ = "1.5.1"
+__version__ = "2.0.0a1"
 
 __all__ = [
+    "CONTRACT_VERSION",
     "DEFAULTS",
     "L1_GATE_THRESHOLD",
     "L2_SEAM_PENALTY",
     "SECTION_LABELS",
     "THRESHOLDS",
+    "ApplicationEvent",
+    "CandidateFact",
+    "DataStatus",
+    "DecisionReport",
+    "DiagnosticResult",
+    "DocumentParseResult",
+    "EvaluationStatus",
     "Evidence",
+    "EvidenceRecord",
+    "GateResult",
+    "JobPostingSnapshot",
+    "JobRequirement",
+    "ProcessStatus",
+    "RequirementEvidenceMap",
+    "SourceArtifact",
+    "SynthesisChange",
+    "SynthesisChangeSet",
+    "VerificationStatus",
     "__version__",
     "all_keywords",
     "anti_stuffing_report",
+    "approve_change_set",
     "ats_match_score",
     "audit_bullet",
     "build_car",
+    "build_change_set",
+    "build_decision_report",
     "build_report",
     "build_xyz",
     "classify_gaps",
@@ -103,7 +147,10 @@ __all__ = [
     "load_pack",
     "locale_mismatches",
     "parse_bank",
+    "parse_document",
+    "parse_docx",
     "parse_jd",
+    "parse_pdf",
     "prf",
     "provenance_check",
     "quantification_audit",

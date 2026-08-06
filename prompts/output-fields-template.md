@@ -1,60 +1,69 @@
-# Çıktı Şablonu — 6 Sabit Alan (her ilan için)
+# Evidence-First Çıktı Şablonu
 
-Her iş ilanı bu altı alanı üretir. Toplu modda her ilan tabloda bir satır olur; tek-ilan modunda tam form + FINAL CV verilir.
+Her ilan için aynı alanları üret. Bilinmeyen değerleri uydurma; `UNKNOWN`,
+`NOT_COLLECTED`, `NOT_RUN` veya `null` kullan.
 
 ```json
 {
-  "ilan_id": "JD-001",
-  "keywords": [
-    {"term": "akreditif (letter of credit)", "modality": "zorunlu", "positional_weight": 1.3, "freq": 2}
-  ],
   "analysis": {
-    "identity": {"title": "", "seniority": "", "sector": "", "location": "", "company": "", "work_mode": "", "language_req": ""},
-    "must_have": [{"term": "", "type": "skill|tool|cert|years|education|legal", "modality": 1.0}],
-    "nice_to_have": [{"term": "", "type": "", "modality": 0.3}],
-    "responsibilities": [{"action_verb": "", "object": ""}],
-    "knockouts": [],
-    "intent": "Bu rol esasen ___ arıyor."
-  },
-  "summary": {
-    "role_essence": "1-2 cümle",
-    "cv_top_summary_draft": "ilk 100-150 kelime, en kritik zorunlu terimler + konumlandırma"
-  },
-  "synthesis": {
-    "semantic_clusters": [{"cluster_label": "", "member_skills": []}],
-    "lsi_expansions": {"<term>": ["varyant1", "varyant2"]},
-    "achievement_bullets": [
-      {"verb": "", "X_result": "", "Y_metric": "", "Z_method": "", "framework_cv_id": "EXP-07"}
-    ],
-    "section_map": ["Özet", "Deneyim", "Beceriler", "Eğitim", "Sertifikalar"]
+    "must_have": [],
+    "nice_to_have": [],
+    "must_have_source": "explicit|none_detected",
+    "review_required": true,
+    "review_reason": ""
   },
   "match_score": {
-    "score_percent": 0,
-    "components": {"Lex": 0.0, "Sem": 0.0, "Cov": 0.0, "Parse_gate": 1.0, "Stuffing": 0.0},
-    "interpretation": "hedef %75-85; >%90 şişirme; <%50 ciddi iyileştirme"
+    "score_percent": null,
+    "evaluation_status": "NOT_EVALUATED",
+    "process_status": "REVIEW",
+    "legacy_diagnostic_percent": 0.0,
+    "components": {},
+    "interpretation": "Tanı; ticari ATS veya outcome tahmini değildir."
   },
   "gap_analysis": {
     "closable_gaps": [],
     "uncloseable_gaps": [],
-    "precision": 0.0,
-    "recall": 0.0,
-    "f1": 0.0,
     "recommendations": []
   },
   "provenance_check": [
-    {"cv_bullet": "", "framework_cv_id": "", "jd_match": "", "status": "doğrulandı|işaretli"}
-  ]
+    {
+      "cv_bullet": "",
+      "framework_cv_id": null,
+      "support_type": "LEXICAL_SUPPORT|UNSUPPORTED",
+      "verification_status": "UNVERIFIED",
+      "status": "REVIEW"
+    }
+  ],
+  "synthesis_change_set": {
+    "id": "",
+    "changes": [
+      {
+        "path": "cv.summary",
+        "old_value": "",
+        "new_value": "",
+        "evidence_ids": ["EV-001"],
+        "reason": ""
+      }
+    ],
+    "status": "REVIEW",
+    "human_approved": false
+  },
+  "decision_report": {
+    "overall_status": "REVIEW",
+    "evaluation_status": "NOT_EVALUATED",
+    "gates": [
+      {"gate_id": "G0", "status": "PASS", "reason": ""},
+      {"gate_id": "G1", "status": "NOT_RUN", "reason": ""},
+      {"gate_id": "G2", "status": "REVIEW", "reason": ""},
+      {"gate_id": "G3", "status": "PASS", "reason": ""},
+      {"gate_id": "G4", "status": "REVIEW", "reason": "İnsan onayı bekleniyor."}
+    ],
+    "human_approved": false
+  },
+  "limitations": []
 }
 ```
 
-## Markdown (insan-okur) varyant
-Aynı altı alanı başlıklarla ver:
-```
-## 1. keywords        (ağırlıklı liste)
-## 2. analysis        (7 katman + niyet)
-## 3. summary         (rolün özü + üst-özet taslağı)
-## 4. synthesis       (kümeler + LSI + XYZ cümleleri + bölüm haritası)
-## 5. match_score     (skor + bileşenler + yorum)
-## 6. gap_analysis    (kapatılabilir/kapatılamaz + P/R/F1 + öneriler)
-## + FINAL CV         (+ provenans tablosu)
-```
+Markdown varyantında aynı alanları başlıklarla ver. Blocking/review durumunda kısmi
+tanıları koru, sonraki insan aksiyonunu açıkça yaz ve CLI karşılığının exit `4`
+olduğunu belirt.

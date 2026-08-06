@@ -1,5 +1,8 @@
 # 00 — Sistem Mimarisi
 
+> **Legacy metodoloji (v1.x):** Kanonik runtime ve ürün sözleşmesi için
+> `docs/decisions/ADR-001-evidence-first-v2.md`, `schemas/v2/` ve testler esas alınır.
+
 ## Tek cümlede
 Bir iş ilanını **çöz** (ANALİZ), adayın gerçek kariyer verisiyle **yeniden bağla** (SENTEZ), sonra **ölç ve doğrula** (SKOR + GAP) — gerekirse yalnızca kapatılabilir gap üzerinde döngüyü tekrarla.
 

@@ -1,5 +1,7 @@
 # 04 — Sentez Kuralları (SENTEZ)
 
+> **Legacy metodoloji (v1.x):** v2 sentez değişiklikleri evidence ID, allowlist ve insan onayı gerektirir.
+
 Tam mekanik: `skills/ats-cv-architect/references/synthesis-rules.md`. Kod: `engine/ats_engine/synthesis.py`.
 
 ## 1. Kümeleme

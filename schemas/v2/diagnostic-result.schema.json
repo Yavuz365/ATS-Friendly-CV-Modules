@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://yavuz365.github.io/ats-cv-modules/schemas/v2/diagnostic-result.schema.json","$ref":"contracts.schema.json#/$defs/diagnosticResult"}

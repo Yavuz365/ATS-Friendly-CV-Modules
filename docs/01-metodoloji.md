@@ -1,5 +1,7 @@
 # 01 — Metodoloji: "Önce Sentez, Sonra Analiz"
 
+> **Legacy metodoloji (v1.x):** Kanonik runtime ve ürün sözleşmesi için ADR-001 ve `schemas/v2/` esas alınır.
+
 ## Epistemolojik temel
 - **Descartes** (analitik indirgemecilik): problemi en küçük parçalara böl, basitten karmaşığa kur, eksiksiz say. Güçlü ama "bütünün neden'ini" açıklayamaz.
 - **Kant / Hegel**: analitik yargı kutudakini dışarı çıkarır (yeni bilgi katmaz); **sentetik** yargı yeni içerik ekler. Hegel'de sentez, tez+antitez'in daha yüksek bir hakikatte birleşmesidir.

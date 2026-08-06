@@ -60,13 +60,13 @@ def evidence_recall(
     recall_pct = (len(used) / total * 100) if total > 0 else 0.0
 
     if recall_pct >= 90:
-        verdict = "✅ Mükemmel — neredeyse tüm kanıtlar kullanılmış"
+        verdict = "Yüksek sözcüksel kullanım sinyali — olgusal doğrulama değildir"
     elif recall_pct >= 70:
-        verdict = "⚠️ İyi — bazı kanıtlar atlanmış, kontrol et"
+        verdict = "Bazı kanıt girdileri sözcüksel olarak atlanmış; inceleyin"
     elif recall_pct >= 50:
-        verdict = "⚠️ Orta — önemli kanıtlar eksik, revize et"
+        verdict = "Birçok kanıt girdisi sözcüksel olarak atlanmış; inceleyin"
     else:
-        verdict = "❌ Düşük — kanıtların çoğu kullanılmamış, acil revizyon"
+        verdict = "Kanıt girdilerinin çoğu sözcüksel olarak eşleşmedi; inceleyin"
 
     return {
         "total_evidence": total,
@@ -75,4 +75,6 @@ def evidence_recall(
         "used": used,
         "missed": missed,
         "verdict": verdict,
+        "verification_status": "UNVERIFIED",
+        "limitation": "Lexical overlap is not factual verification.",
     }

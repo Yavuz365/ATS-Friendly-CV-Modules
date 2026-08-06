@@ -70,7 +70,7 @@ Tam türetim ve düzeltmeler: `ats-cv-architect_SCORING-FORMULAS.md`.
 - **Semantik:** SBERT cümle gömme + kosinüs (eşanlamlı/parafraz yakalar).
 - **Hibrit (düzeltilmiş):** `RAW = α·Lex + β·Sem + γ·Cov − ζ·Stuff`; `Score = clamp(Parse_gate × RAW, 0, 1)`; öneri `α=0.35, β=0.30, γ=0.35, ζ=0.20`, `Parse_gate∈[0.6,1.0]`.
 - **P/R/F1 + gap:** `R` = zorunlu kapsam (eksik = gap), `P` = ilgililik (düşük = şişirme); gap'i kapatılabilir/kapatılamaz ayır.
-- **Eşik (A11 fix: garanti değil, teşhis sinyali):** %75–85 güçlü hizalanma; >%90 şişirme; <%50 ciddi iyileştirme.
+- **Eşik (v2 düzeltmesi):** Evrensel eşik yoktur; yalnız sürümlü evaluation profile içinde tanı amaçlıdır.
 
 ---
 
@@ -110,7 +110,8 @@ Tam türetim ve düzeltmeler: `ats-cv-architect_SCORING-FORMULAS.md`.
 ---
 
 ## Dürüst sınırlamalar
-- Skor, ATS'lerin (Workday/Greenhouse/iCIMS) tescilli iç formüllerinin *yaklaşıklamasıdır* (proxy), birebir kopyası değil; mutlak gerçek değil göreli pusula olarak oku.
+- Skor repository’nin lexical/semantic tanısıdır; Workday/Greenhouse/iCIMS iç formüllerinin
+  proxy’si veya yaklaşımı olduğu iddia edilmez.
 - Corpus+SBERT olmadan `ats_score.py` skorları muhafazakâr/göreli; kalibrasyon için ikisi de gerekir.
 - Aşırı optimizasyon (>%90, tekrar) geri teper.
 - Dürüstlük mutlaktır: provenansa bağlanamayan hiçbir madde CV'ye girmez; sahte terim mülakatta çöker.

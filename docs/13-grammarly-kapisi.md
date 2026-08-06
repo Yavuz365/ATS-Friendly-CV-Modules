@@ -1,5 +1,7 @@
 # docs/13 — Grammarly Kapısı (AI-Detector / Rewriter / Builder)
 
+> **Legacy/vendor notu:** Harici vendor sonucu otomatik veya evrensel kalite kapısı sayılmaz.
+
 > CV'nin Grammarly ile AI-tespit kontrolü, yeniden yazma ve son cilalanması.
 
 ## 1. Neden Grammarly Kapısı?
@@ -14,7 +16,7 @@ AI tarafından üretilen CV metinleri:
 ## 2. Pipeline'daki Yeri
 
 ```
-Motor Skoru (%75-85 bandı = güçlü hizalanma sinyali, onay garantisi değil) → Grammarly Kapısı
+Lexical/semantic tanı (evrensel eşik yok) → isteğe bağlı dil denetimi
                                                     │
                                     ┌───────────────┼───────────────┐
                                     ▼               ▼               ▼
@@ -64,7 +66,7 @@ Grammarly yeniden yazma sırasında JD terimlerini değiştirebilir. Koruma kura
 ## 5. Pratikte Kullanım
 
 ```
-Adım 1: Motor skoru hesapla → %78 (güçlü hizalanma bandı, "mülakata hazır" garantisi değil)
+Adım 1: Motor tanısını hesapla → değer yalnız sürümlü evaluation profile bağlamında yorumlanır
 Adım 2: CV'yi Grammarly'ye yapıştır
 Adım 3: AI-detector → %45 (orta risk)
 Adım 4: Rewriter → bölüm bölüm yeniden yaz

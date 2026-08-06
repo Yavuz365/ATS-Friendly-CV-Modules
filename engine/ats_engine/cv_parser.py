@@ -64,14 +64,14 @@ _HEADER_FOOTER = re.compile(r"(?i)^(?:page\s*\d+|confidential|curriculum\s*vitae
 # smart quotes, emoji, ve diğer ATS-kırıcı semboller.
 _SPECIAL_CHARS = re.compile(
     r"[★☆●◆▪▸►■□▶✓✗✔✘→←↑↓♦♣♠♥"
-    r"·‧∙"                          # middle dot varyantları
-    r"—–"                           # em-dash, en-dash
-    r"\u201c\u201d\u2018\u2019"     # smart quotes: "" ''
-    r"«»"                           # guillemets
-    r"…"                            # ellipsis
-    r"•‣⁃"                          # bullet varyantları
-    r"℃℉™®©"                       # semboller
-    r"\U0001F300-\U0001F9FF"        # emoji bloğu
+    r"·‧∙"  # middle dot varyantları
+    r"—–"  # em-dash, en-dash
+    r"\u201c\u201d\u2018\u2019"  # smart quotes: "" ''
+    r"«»"  # guillemets
+    r"…"  # ellipsis
+    r"•‣⁃"  # bullet varyantları
+    r"℃℉™®©"  # semboller
+    r"\U0001F300-\U0001F9FF"  # emoji bloğu
     r"]"
 )
 
@@ -79,6 +79,7 @@ _SPECIAL_CHARS = re.compile(
 @dataclass
 class CVSection:
     """Tek bir CV bölümü."""
+
     label: str
     text: str
     start_line: int
@@ -88,6 +89,7 @@ class CVSection:
 @dataclass
 class CVSchema:
     """Ayrıştırılmış CV yapısı."""
+
     sections: dict[str, CVSection] = field(default_factory=dict)
     raw_text: str = ""
     unmatched_lines: list[str] = field(default_factory=list)
@@ -120,7 +122,7 @@ def section_detect(text_input: str) -> dict[str, str]:
         return {"unmatched": text_input}
 
     # Bölümden önceki satırlar → unmatched
-    pre_lines = lines[:sections[0][1]]
+    pre_lines = lines[: sections[0][1]]
     if any(ln.strip() for ln in pre_lines):
         unmatched_lines.extend(pre_lines)
 
@@ -193,60 +195,95 @@ def parse_safety_score(text_input: str) -> dict:
     # Tablo
     if _TABLE_PATTERN.search(text_input):
         score -= 0.15
-        penalties.append({"type": "table_graphics", "penalty": -0.15,
-                          "detail": "Tablo/grafik karakterleri tespit edildi — ATS parser çoğunu yok sayar"})
+        penalties.append(
+            {
+                "type": "table_graphics",
+                "penalty": -0.15,
+                "detail": "Tablo/grafik karakterleri tespit edildi — ATS parser çoğunu yok sayar",
+            }
+        )
 
     # Çift sütun
     if _MULTI_COLUMN.search(text_input):
         score -= 0.20
-        penalties.append({"type": "multi_column", "penalty": -0.20,
-                          "detail": "Çift sütun düzeni tespit edildi — ATS parse sırasını bozar"})
+        penalties.append(
+            {
+                "type": "multi_column",
+                "penalty": -0.20,
+                "detail": "Çift sütun düzeni tespit edildi — ATS parse sırasını bozar",
+            }
+        )
 
     # Resim
     if _IMAGE_REF.search(text_input):
         score -= 0.10
-        penalties.append({"type": "image_reference", "penalty": -0.10,
-                          "detail": "Resim referansı tespit edildi — ATS görselleri okuyamaz"})
+        penalties.append(
+            {
+                "type": "image_reference",
+                "penalty": -0.10,
+                "detail": "Resim referansı tespit edildi — ATS görselleri okuyamaz",
+            }
+        )
 
     # Özel karakterler
     special_count = len(_SPECIAL_CHARS.findall(text_input))
     if special_count > 3:
         score -= 0.05
-        penalties.append({"type": "special_chars", "penalty": -0.05,
-                          "detail": f"{special_count} özel karakter — bazı ATS'ler bunları yanlış parse eder"})
+        penalties.append(
+            {
+                "type": "special_chars",
+                "penalty": -0.05,
+                "detail": f"{special_count} özel karakter — bazı ATS'ler bunları yanlış parse eder",
+            }
+        )
 
     # Header/footer
     header_hits = len(_HEADER_FOOTER.findall(text_input))
     if header_hits > 1:
         score -= 0.05
-        penalties.append({"type": "header_footer", "penalty": -0.05,
-                          "detail": "Tekrarlayan header/footer — ATS bunları içerik olarak okuyabilir"})
+        penalties.append(
+            {
+                "type": "header_footer",
+                "penalty": -0.05,
+                "detail": "Tekrarlayan header/footer — ATS bunları içerik olarak okuyabilir",
+            }
+        )
 
     # Bölüm tespiti
     sections = section_detect(text_input)
     recognized = [k for k in sections if k != "unmatched"]
     if len(recognized) < 2:
         score -= 0.10
-        penalties.append({"type": "no_sections", "penalty": -0.10,
-                          "detail": "2'den az tanınabilir bölüm başlığı — ATS yapısal parse yapamaz"})
+        penalties.append(
+            {
+                "type": "no_sections",
+                "penalty": -0.10,
+                "detail": "2'den az tanınabilir bölüm başlığı — ATS yapısal parse yapamaz",
+            }
+        )
 
     # Çok kısa metin
     word_count = len(text_input.split())
     if word_count < 100:
         score -= 0.15
-        penalties.append({"type": "too_short", "penalty": -0.15,
-                          "detail": f"Metin çok kısa ({word_count} kelime) — yeterli içerik yok"})
+        penalties.append(
+            {
+                "type": "too_short",
+                "penalty": -0.15,
+                "detail": f"Metin çok kısa ({word_count} kelime) — yeterli içerik yok",
+            }
+        )
 
     score = max(0.0, min(1.0, score))
 
     if score >= 0.90:
-        rec = "Mükemmel ATS uyumu — güvenle gönderilebilir"
+        rec = "Düşük biçim riski sinyali — gerçek ATS parse sonucu veya gönderim garantisi değildir"
     elif score >= 0.70:
-        rec = "İyi ATS uyumu — küçük düzeltmeler önerilir"
+        rec = "Sınırlı biçim riski sinyali — kaynak belge ve okuma sırası ayrıca doğrulanmalı"
     elif score >= 0.50:
-        rec = "Orta ATS uyumu — biçim düzeltmeleri gerekli"
+        rec = "Biçim uyarıları var — belge yapısını inceleyin"
     else:
-        rec = "Düşük ATS uyumu — CV biçimi baştan gözden geçirilmeli"
+        rec = "Yüksek biçim riski — belge yapısı gözden geçirilmeli"
 
     return {
         "score": round(score, 2),

@@ -10,9 +10,11 @@ Bağımlılık: yalnızca standart kütüphane.
 
 from __future__ import annotations
 
-import os
 import re
 from functools import lru_cache
+from importlib.resources import files
+
+from .errors import ResourceMissingError
 
 # Türkçe karakterleri de kapsayan kelime tokenizeri.
 _TOKEN = re.compile(r"[a-zA-ZçÇğĞıİöÖşŞüÜ0-9]+")
@@ -38,29 +40,30 @@ def tr_lower(text: str) -> str:
     """
     return text.translate(_TR_UPPER_TO_LOWER).lower()
 
-# Sayı / yüzde / para örüntüleri (niceleme tespiti için).
-_QUANT = re.compile(r"(%\s?\d+([.,]\d+)?|\d+([.,]\d+)?\s?%|[$€₺£]\s?\d|\b\d{2,}\b|\b\d+([.,]\d+)?\s?(x|kat|adet|gün|saat|ay|yıl|day|days|month|months|year|years)\b)", re.IGNORECASE)
 
-# P0-5 fix (packaging): bkz. lexicons.py — veri artık paketin içinde.
-_DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+# Sayı / yüzde / para örüntüleri (niceleme tespiti için).
+_QUANT = re.compile(
+    r"(%\s?\d+([.,]\d+)?|\d+([.,]\d+)?\s?%|[$€₺£]\s?\d|\b\d{2,}\b|\b\d+([.,]\d+)?\s?(x|kat|adet|gün|saat|ay|yıl|day|days|month|months|year|years)\b)",
+    re.IGNORECASE,
+)
 
 
 @lru_cache(maxsize=1)
 def load_stopwords() -> frozenset[str]:
-    """data/stopwords_tr_en.txt dosyasını yükler; bulunamazsa küçük bir gömülü sete düşer."""
-    path = os.path.normpath(os.path.join(_DATA_DIR, "stopwords_tr_en.txt"))
+    """Load packaged stopwords; fail visibly if the runtime artifact is incomplete."""
+    resource = files("ats_engine").joinpath("data").joinpath("stopwords_tr_en.txt")
     words: set[str] = set()
     try:
-        with open(path, encoding="utf-8") as f:
+        with resource.open("r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#"):
                     words.add(line.lower())
-    except FileNotFoundError:
-        words = set(
-            "ve veya ile için bir bu şu da de ki mi the a an and or for to of in on "
-            "with as is are be by at from that this".split()
-        )
+    except FileNotFoundError as exc:
+        raise ResourceMissingError(
+            "Paketlenmiş stopword kaynağı bulunamadı; sessiz fallback uygulanmadı.",
+            field="ats_engine/data/stopwords_tr_en.txt",
+        ) from exc
     return frozenset(words)
 
 
