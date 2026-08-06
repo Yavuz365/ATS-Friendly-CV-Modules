@@ -1,0 +1,37 @@
+{
+  "dataset_id": "ats-binary-gold",
+  "version": "1.0.0",
+  "generated_by": "evaluation/gold/generate_corpus.py",
+  "contains_personal_data": false,
+  "fixtures": [
+    {
+      "id": "DOCX-COMPLEX-001",
+      "filename": "docx-complex-001.docx",
+      "media_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "expected_status": "PASS",
+      "expected_extraction_method": "docx-ooxml-full-story",
+      "required_text": ["Foreign Trade Specialist", "Incoterms 2020", "Letter of Credit", "Candidate Header"],
+      "structural_features": {
+        "table_count": 1,
+        "text_box_count": 1,
+        "header_part_count": 1
+      }
+    },
+    {
+      "id": "PDF-TEXT-001",
+      "filename": "pdf-text-001.pdf",
+      "media_type": "application/pdf",
+      "expected_status": "PASS",
+      "expected_extraction_method": "pdf-pypdf-page-evidence",
+      "required_text": ["Incoterms", "customs clearance"]
+    },
+    {
+      "id": "PDF-SCAN-001",
+      "filename": "pdf-scan-001.pdf",
+      "media_type": "application/pdf",
+      "expected_status": "ERROR",
+      "expected_error_code": "SCANNED_PDF_REQUIRES_OCR",
+      "required_text": []
+    }
+  ]
+}
