@@ -1,0 +1,84 @@
+{
+  "mode": "framework-baseline",
+  "keywords": [
+    {
+      "term": "incoterms",
+      "modality": "zorunlu",
+      "positional_weight": 1.0,
+      "freq": 1
+    }
+  ],
+  "analysis": {
+    "identity": {
+      "title_guess": "Dış Ticaret Uzmanı",
+      "seniority": "uzman",
+      "work_mode": "belirsiz",
+      "language_req": [],
+      "experience_years": 3
+    },
+    "must_have": [
+      {
+        "term": "incoterms",
+        "modality": 1.0,
+        "positional_weight": 1.0,
+        "freq": 1
+      }
+    ],
+    "nice_to_have": [],
+    "responsibilities": ["yönetmek"],
+    "knockouts": [],
+    "intent": "dış ticaret operasyonu",
+    "must_have_source": "explicit-section"
+  },
+  "summary": {
+    "role_essence": "dış ticaret operasyonu",
+    "cv_top_summary_hint": "İlk 100–150 kelimede şu zorunlu terimleri konumlandır: incoterms."
+  },
+  "synthesis": {
+    "semantic_clusters": {},
+    "lsi_expansions": [],
+    "xyz_template": "[Z yöntemiyle] (aktif fiil), [Y ölçüsüyle] [X sonucunu] elde ettim.",
+    "anti_stuffing": {
+      "flagged": []
+    },
+    "section_map": ["Özet", "Deneyim", "Beceriler", "Eğitim", "Sertifikalar"],
+    "evidence_bank_size": 1
+  },
+  "match_score": {
+    "score_percent": 70.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "gap": []
+  },
+  "gap_analysis": {
+    "closable_gaps": [],
+    "uncloseable_gaps": [],
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "revision_loop": {
+      "stop": false,
+      "reason": "legacy diagnostic only"
+    },
+    "recommendations": ["Kapatılabilir gap yok; skor hedefteyse teslim et."]
+  },
+  "skill_count_table": [
+    {
+      "skill": "incoterms",
+      "jd_count": 1,
+      "resume_count": 1,
+      "status": "✅ Match"
+    }
+  ],
+  "qa_checks": {
+    "completeness": {},
+    "hygiene": {},
+    "locale": {},
+    "quantification": {},
+    "cliches": {},
+    "calibration_hint": {
+      "adjustment": "not_available"
+    }
+  }
+}
