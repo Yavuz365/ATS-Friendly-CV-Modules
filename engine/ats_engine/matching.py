@@ -75,8 +75,21 @@ class VersionedMatchAdapter:
             raise ValueError("Adapter revision immutable ve pinli olmalıdır; floating ref kullanılamaz.")
 
 
+# STAB-015: plain ``\w`` boundaries are not enough for technical tokens that use
+# non-word connector characters as part of their identity (``C++``, ``C#``, ``.NET``,
+# ``F#``). Without this, the term "c" registers an exact boundary "hit" inside "C++"
+# because ``+`` is not a word character, so ``(?!\w)`` is satisfied right after the
+# "c". Extending the boundary class to also reject a small, explicit set of trailing
+# connector characters closes that gap while leaving ordinary punctuation (commas,
+# periods, parentheses) as real boundaries.
+_BOUNDARY_CONNECTORS = "+#"
+_NOT_BOUNDARY = r"[\w" + re.escape(_BOUNDARY_CONNECTORS) + r"]"
+
+
 def _pattern(value: str) -> re.Pattern[str]:
-    return re.compile(r"(?<!\w)" + re.escape(tr_lower(value).strip()) + r"(?!\w)")
+    return re.compile(
+        r"(?<!" + _NOT_BOUNDARY + r")" + re.escape(tr_lower(value).strip()) + r"(?!" + _NOT_BOUNDARY + r")"
+    )
 
 
 def count_boundary_occurrences(term: str, text: str) -> int:
