@@ -191,12 +191,23 @@ class DiagnosticResult:
 
 @dataclass(frozen=True)
 class QAResult:
+    """Typed QA rule outcome.
+
+    QA-001: status/severity/blocking/message alone tell a caller *that*
+    something failed but not *what specifically* triggered it (``evidence``)
+    or *what to do about it* (``remediation``) without re-parsing the
+    free-form ``details`` blob. Both are first-class fields so every rule's
+    contract is complete on its own.
+    """
+
     check_id: str
     status: ProcessStatus
     severity: QASeverity
     message: str
     blocking: bool = False
     details: dict[str, Any] = field(default_factory=dict)
+    evidence: list[str] = field(default_factory=list)
+    remediation: str = ""
     contract_version: str = CONTRACT_VERSION
 
 

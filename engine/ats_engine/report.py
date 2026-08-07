@@ -45,6 +45,48 @@ logger = logging.getLogger(__name__)
 # dış referans skoru olan ayrı bir kalibrasyon akışı için calibration.py'de dursunlar.
 
 
+# QA-001: static, per-check remediation guidance. Kept generic and check-scoped
+# (not fabricated per document) so QAResult.remediation is always a truthful,
+# actionable next step rather than an invented specific claim about this run.
+_QA_REMEDIATION: dict[str, str] = {
+    "completeness": (
+        "Add or rephrase framework CV evidence bullets so more claims lexically overlap the "
+        "CV; verify manually — lexical overlap is a support signal, not factual verification."
+    ),
+    "hygiene": "Address the flagged formatting/length/metadata issues listed in evidence/details.",
+    "locale": "Resolve the JD/CV language or spelling-variant mismatches listed in evidence.",
+    "quantification": "Add concrete, verifiable metrics to the bullets listed as non-quantified in evidence.",
+    "cliches": "Rewrite the flagged clichéd verbs/buzzwords in evidence with specific, evidence-backed language.",
+    "calibration_hint": "No action needed: this field only becomes meaningful when a real external comparator score is supplied.",
+}
+
+
+def _qa_evidence(name: str, value: dict) -> list[str]:
+    """Pull a short, concrete evidence list out of a QA sub-module's raw payload.
+
+    QA-001: ``details`` alone forces every caller to know each sub-module's
+    private shape to find *what* triggered the status. This surfaces the
+    handful of items that actually explain the verdict as plain strings.
+    """
+    if name == "hygiene":
+        out: list[str] = []
+        for sub in value.values():
+            if isinstance(sub, dict) and sub.get("details"):
+                out.extend(str(item) for item in sub["details"][:3])
+        return out[:5]
+    key_candidates = {
+        "completeness": ("missed",),
+        "locale": ("mismatches",),
+        "quantification": ("non_quantified_lines",),
+        "cliches": ("cliche_verb_hits", "buzzword_hits"),
+    }.get(name, ())
+    out = []
+    for key in key_candidates:
+        items = value.get(key) or []
+        out.extend(str(item) for item in items[:5])
+    return out[:5]
+
+
 def _run_qa_check(name: str, fn: Callable[..., dict], *args) -> dict:
     """A9 fix: 6 QA alt-modülü çağrısı için ortak hata sözleşmesi.
 
@@ -269,6 +311,8 @@ def build_report(
                 message=value.get("error") or value.get("verdict") or f"{name} tamamlandı",
                 blocking=status is ProcessStatus.ERROR,
                 details=value,
+                evidence=_qa_evidence(name, value),
+                remediation=_QA_REMEDIATION.get(name, ""),
             )
         )
 

@@ -138,3 +138,17 @@ def test_reg_015_protected_fact_mutation_is_rejected():
             [{"path": "candidate.employer", "new_value": "Fake Co", "evidence_ids": ["EV-1"]}],
             known_evidence_ids={"EV-1"},
         )
+
+
+# QA-001: QAResult must expose concrete evidence + actionable remediation as
+# first-class fields, not require re-parsing the free-form `details` blob.
+def test_qa_results_expose_evidence_and_remediation():
+    cv_missing_quant = "Çok çalışkan ve dinamik biriyim, ekip oyuncusuyum."
+    report = build_report(JD, FRAMEWORK, cv_missing_quant, use_sbert=False)
+    by_id = {r["check_id"]: r for r in report["qa_results"]}
+    quant = by_id["QA_QUANTIFICATION"]
+    assert isinstance(quant["evidence"], list)
+    assert quant["remediation"], "quantification QA result must carry remediation guidance"
+    for result in report["qa_results"]:
+        assert "evidence" in result
+        assert "remediation" in result
