@@ -1,8 +1,7 @@
 """Field-level evaluation against gold corpus expectations (ING-005).
 
-This module is evaluation-only. It never mutates parse results and never
-changes ingestion behaviour. It answers: for a given DocumentParseResult and
-a gold fixture definition, which required fields passed?
+This module is evaluation-only. It never mutates parse results or ingestion
+behaviour. A document-level PASS is insufficient when required fields fail.
 """
 
 from __future__ import annotations
@@ -30,6 +29,18 @@ class FieldEvaluationReport:
     all_required_passed: bool
     notes: list[str] = field(default_factory=list)
 
+    def summary(self) -> dict[str, Any]:
+        failed = [verdict.field_name for verdict in self.field_verdicts if not verdict.passed]
+        return {
+            "fixture_id": self.fixture_id,
+            "document_status": self.document_status.value,
+            "total_fields": len(self.field_verdicts),
+            "passed_fields": sum(verdict.passed for verdict in self.field_verdicts),
+            "failed_fields": len(failed),
+            "all_required_passed": self.all_required_passed,
+            "failed_field_names": failed,
+        }
+
 
 def _has_required_text(text: str, required: list[str]) -> tuple[bool, list[str]]:
     missing = [fragment for fragment in required if fragment and fragment not in text]
@@ -46,19 +57,13 @@ def evaluate_fields(
     expected_error_code: str | None = None,
     parse_error_code: str | None = None,
 ) -> FieldEvaluationReport:
-    """Score a parse outcome against gold field expectations.
-
-    Parameters mirror the gold manifest / labels structure so evaluation cards
-    can call this without inventing a parallel schema.
-    """
+    """Score a parse outcome against deterministic gold field expectations."""
     required_text = required_text or []
     structural_features = structural_features or {}
     verdicts: list[FieldVerdict] = []
     notes: list[str] = []
 
-    # --- document-level status ---
     if parse_result is None:
-        # Expected error path (e.g. scanned PDF without OCR)
         status_ok = expected_status == "ERROR"
         verdicts.append(
             FieldVerdict(
@@ -69,7 +74,7 @@ def evaluate_fields(
                 "Parse raised; treated as ERROR path.",
             )
         )
-        if expected_error_code:
+        if expected_error_code is not None:
             code_ok = (parse_error_code or "") == expected_error_code
             verdicts.append(
                 FieldVerdict(
@@ -80,7 +85,7 @@ def evaluate_fields(
                     "Expected error code match." if code_ok else "Error code mismatch.",
                 )
             )
-        all_passed = all(v.passed for v in verdicts)
+        all_passed = all(verdict.passed for verdict in verdicts)
         return FieldEvaluationReport(
             fixture_id=fixture_id,
             document_status=ProcessStatus.ERROR,
@@ -89,7 +94,7 @@ def evaluate_fields(
             notes=notes,
         )
 
-    observed_status = parse_result.status.value if hasattr(parse_result.status, "value") else str(parse_result.status)
+    observed_status = parse_result.status.value
     status_ok = observed_status == expected_status
     verdicts.append(
         FieldVerdict(
@@ -101,7 +106,6 @@ def evaluate_fields(
         )
     )
 
-    # --- full_text / required fragments ---
     text_ok, missing = _has_required_text(parse_result.text or "", required_text)
     verdicts.append(
         FieldVerdict(
@@ -113,14 +117,28 @@ def evaluate_fields(
         )
     )
 
-    # --- structural features ---
     observed_struct = parse_result.structural_features or {}
-    for key, expected_value in structural_features.items():
-        observed_value = observed_struct.get(key)
+    for key in sorted(structural_features):
+        expected_value = structural_features[key]
+        if key not in observed_struct:
+            verdicts.append(
+                FieldVerdict(
+                    field_name=key,
+                    passed=False,
+                    expected=expected_value,
+                    observed={"state": "MISSING"},
+                    detail="Required structural field is missing.",
+                )
+            )
+            continue
+
+        observed_value = observed_struct[key]
         if isinstance(expected_value, (int, float)) and isinstance(observed_value, (int, float)):
             passed = observed_value >= expected_value
-            detail = f"observed={observed_value} >= expected={expected_value}" if passed else (
-                f"observed={observed_value} < expected={expected_value}"
+            detail = (
+                f"observed={observed_value} >= expected={expected_value}"
+                if passed
+                else f"observed={observed_value} < expected={expected_value}"
             )
         else:
             passed = observed_value == expected_value
@@ -135,20 +153,19 @@ def evaluate_fields(
             )
         )
 
-    # --- page evidence for PDFs ---
     if parse_result.page_evidence is not None:
-        has_page = len(parse_result.page_evidence) > 0
+        page_count = len(parse_result.page_evidence)
         verdicts.append(
             FieldVerdict(
                 "page_evidence",
-                has_page,
+                page_count > 0,
                 ">=1 page",
-                len(parse_result.page_evidence),
-                "Page evidence present." if has_page else "No page evidence.",
+                page_count,
+                "Page evidence present." if page_count > 0 else "No page evidence.",
             )
         )
 
-    all_passed = all(v.passed for v in verdicts)
+    all_passed = all(verdict.passed for verdict in verdicts)
     if not all_passed:
         notes.append("One or more required fields failed; document-level PASS is not sufficient.")
 
