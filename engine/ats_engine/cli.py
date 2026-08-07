@@ -27,7 +27,7 @@ import sys
 
 from . import evidence_bank, jd_parser, report, scoring
 from .contracts import to_primitive
-from .errors import ATSEngineError
+from .errors import ATSEngineError, ErrorCode, InternalEngineError
 from .ingestion import parse_document
 
 # A9 (kalan parça): CLI eskiden hiçbir hatayı yakalamıyordu -- dosya bulunamadı,
@@ -39,10 +39,23 @@ from .ingestion import parse_document
 #             dosya) — argparse'ın kendi kural-dışı-argüman exit code'uyla (2) tutarlı
 #   exit 3 -> beklenmeyen dahili hata (motor/programlama hatası)
 # exit 4 -> rapor üretildi ancak DecisionReport blocking/review durumunda.
+#
+# C-007: these exit codes are not ad-hoc literals — they are read from the
+# single canonical error taxonomy in errors.py (``ATSEngineError.cli_exit_code``)
+# so the CLI, and any future API adapter, stay in sync with one source of truth.
 
 
-class CLIInputError(Exception):
-    """Kullanıcının düzeltebileceği girdi hatası (örn. dosya bulunamadı)."""
+class CLIInputError(ATSEngineError):
+    """Kullanıcının düzeltebileceği girdi hatası (örn. dosya bulunamadı).
+
+    Kept as its own class name for backward compatibility with existing
+    call sites/tests, but now a real ``ATSEngineError`` so it carries a
+    stable code and taxonomy-derived exit/HTTP mapping instead of being a
+    bare, untyped ``Exception``.
+    """
+
+    def __init__(self, message: str, *, code: ErrorCode = ErrorCode.RESOURCE_MISSING) -> None:
+        super().__init__(message, code=code)
 
 
 def _read(path: str) -> str:
@@ -50,9 +63,9 @@ def _read(path: str) -> str:
         with open(path, encoding="utf-8") as f:
             return f.read()
     except UnicodeDecodeError as e:
-        raise CLIInputError(f"Dosya geçerli UTF-8 değil: {path!r} ({e})") from e
+        raise CLIInputError(f"Dosya geçerli UTF-8 değil: {path!r} ({e})", code=ErrorCode.INVALID_INPUT) from e
     except OSError as e:
-        raise CLIInputError(f"Dosya okunamadı: {path!r} ({e.strerror or e})") from e
+        raise CLIInputError(f"Dosya okunamadı: {path!r} ({e.strerror or e})", code=ErrorCode.RESOURCE_MISSING) from e
 
 
 def _load_corpus(path: str | None):
@@ -200,22 +213,38 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+# C-007: one Turkish human-readable label per taxonomy severity, kept stable
+# so existing CLI-contract tests/tooling that grep stderr for these prefixes
+# keep working; the machine-readable [CODE] and exit code still come from the
+# single canonical taxonomy in errors.py, not a literal per call site.
+_SEVERITY_LABEL = {
+    "USER_ERROR": "Girdi hatası",
+    "REVIEW_REQUIRED": "İnceleme gerekli",
+    "INTERNAL_ERROR": "Beklenmeyen dahili hata",
+}
+
+
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args) or 0)
     except ATSEngineError as e:
-        print(f"Girdi hatası [{e.code.value}]: {e}", file=sys.stderr)
-        return 2
-    except CLIInputError as e:
-        print(f"Girdi hatası: {e}", file=sys.stderr)
-        return 2
+        # CLIInputError is also an ATSEngineError, so this one branch covers
+        # both user-input failures and any other typed engine error; the
+        # exit code is read from the canonical taxonomy (errors.py), not a
+        # literal repeated per call site.
+        label = _SEVERITY_LABEL[e.taxonomy.severity.value]
+        print(f"{label} [{e.code.value}]: {e}", file=sys.stderr)
+        return e.cli_exit_code
     except Exception as e:  # kasıtlı geniş yakalama: CLI'nin son hata sınırı,
         # motor katmanındaki (report.py/scoring.py) typed error sözleşmesinin
         # dışına sızan HERHANGİ bir beklenmeyen hatayı burada durdurup kullanıcıya
-        # ham traceback yerine tek satır + net exit code döndürüyoruz.
-        print(f"Beklenmeyen dahili hata: {type(e).__name__}: {e}", file=sys.stderr)
-        return 3
+        # ham traceback yerine tek satır + net exit code döndürüyoruz. Exit kodu
+        # yine taksonomiden (INTERNAL_ERROR) geliyor, elle 3 yazılmıyor.
+        wrapped = InternalEngineError(f"{type(e).__name__}: {e}")
+        label = _SEVERITY_LABEL[wrapped.taxonomy.severity.value]
+        print(f"{label} [{wrapped.code.value}]: {wrapped}", file=sys.stderr)
+        return wrapped.cli_exit_code
 
 
 if __name__ == "__main__":
