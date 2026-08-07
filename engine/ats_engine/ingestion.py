@@ -20,6 +20,33 @@ def _artifact_id(path: Path, data: bytes) -> str:
     return f"artifact-{hashlib.sha256(data).hexdigest()[:16]}"
 
 
+def _paragraph_text(paragraph: ElementTree.Element) -> str:
+    """Extract one paragraph without consuming text from nested paragraphs.
+
+    Word text boxes are commonly represented as ``w:p`` elements nested inside
+    an outer drawing paragraph. Walking the outer paragraph recursively and then
+    walking every nested paragraph again duplicates the text and can concatenate
+    separate text-box lines without separators. Nested paragraphs are therefore
+    left for the document-level paragraph iterator to process exactly once.
+    """
+    parts: list[str] = []
+
+    def walk(node: ElementTree.Element) -> None:
+        for child in node:
+            if child.tag == f"{_WORD_NS}p":
+                continue
+            if child.tag == f"{_WORD_NS}t" and child.text:
+                parts.append(child.text)
+            elif child.tag == f"{_WORD_NS}tab":
+                parts.append("\t")
+            elif child.tag == f"{_WORD_NS}br":
+                parts.append("\n")
+            walk(child)
+
+    walk(paragraph)
+    return "".join(parts).strip()
+
+
 def _xml_text(data: bytes) -> str:
     try:
         root = ElementTree.fromstring(data)
@@ -28,15 +55,7 @@ def _xml_text(data: bytes) -> str:
 
     lines: list[str] = []
     for paragraph in root.iter(f"{_WORD_NS}p"):
-        parts: list[str] = []
-        for node in paragraph.iter():
-            if node.tag == f"{_WORD_NS}t" and node.text:
-                parts.append(node.text)
-            elif node.tag == f"{_WORD_NS}tab":
-                parts.append("\t")
-            elif node.tag == f"{_WORD_NS}br":
-                parts.append("\n")
-        text = "".join(parts).strip()
+        text = _paragraph_text(paragraph)
         if text:
             lines.append(text)
     return "\n".join(lines)
