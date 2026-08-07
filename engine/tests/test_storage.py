@@ -20,6 +20,7 @@ from ats_engine.contracts import (
 from ats_engine.storage import (
     ConsentRequiredError,
     DuplicateRecordError,
+    MissingRecordError,
     PrivacyAction,
     RetentionExpiredError,
     SQLiteContractStore,
@@ -198,3 +199,106 @@ def test_unobserved_outcome_is_censored_not_automatically_failed():
         payload = store.get("application_event", "EVT-2")
         assert payload is not None and payload["outcome_observed"] is False
         assert payload["data_status"] == "KNOWN"
+
+
+# EVD-002: tested export (data portability) and delete (right to erasure) paths.
+def test_export_candidate_fact_bundles_fact_evidence_sources_and_privacy_history():
+    with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
+        store.add_candidate_fact(_fact(consent=ConsentStatus.GRANTED))
+        store.add_evidence(
+            EvidenceRecord(
+                id="EV-1",
+                candidate_fact_id="FACT-1",
+                source_artifact_id="SRC-CV-1",
+                locator="line:3",
+                excerpt="SAP deneyimi",
+            )
+        )
+        store.record_privacy_action(
+            PrivacyAction(
+                action_id="PA-EXPORT-1",
+                entity_kind="candidate_fact",
+                entity_id="FACT-1",
+                action="EXPORT",
+                reason="Candidate requested a data export.",
+                actor="candidate",
+                occurred_at="2026-08-07T09:00:00+00:00",
+            )
+        )
+
+        bundle = store.export_candidate_fact("FACT-1")
+
+        assert bundle["candidate_fact"]["value"] == "SAP"
+        assert [e["id"] for e in bundle["evidence"]] == ["EV-1"]
+        assert [s["id"] for s in bundle["source_artifacts"]] == ["SRC-CV-1"]
+        assert [a["action"] for a in bundle["privacy_actions"]] == ["EXPORT"]
+        assert bundle["exported_at"]
+
+
+def test_export_unknown_fact_raises_missing_record_error():
+    with SQLiteContractStore() as store:
+        with pytest.raises(MissingRecordError):
+            store.export_candidate_fact("does-not-exist")
+
+
+def test_delete_candidate_fact_irreversibly_erases_value():
+    with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
+        store.add_candidate_fact(_fact(consent=ConsentStatus.GRANTED))
+
+        action = store.delete_candidate_fact(
+            "FACT-1", actor="candidate", reason="Right to erasure request.", action_id="PA-DELETE-1"
+        )
+        assert action.action == "DELETE"
+
+        # Even an "include_restricted" read never recovers the erased value —
+        # this is a real delete, not a read-time restriction like REDACT.
+        payload = store.get_candidate_fact("FACT-1", include_restricted=True)
+        assert payload is not None
+        assert payload["value"] is None
+        assert payload["redacted"] is True
+        assert payload["consent_status"] == ConsentStatus.REVOKED.value
+
+        with pytest.raises(RetentionExpiredError):
+            store.get_candidate_fact("FACT-1")
+
+
+def test_delete_requires_actor_and_reason():
+    with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
+        store.add_candidate_fact(_fact(consent=ConsentStatus.GRANTED))
+        with pytest.raises(StorageError):
+            store.delete_candidate_fact("FACT-1", actor="", reason="", action_id="PA-DELETE-2")
+
+
+def test_storage_module_has_no_network_client_local_first_guarantee():
+    import ats_engine.storage as storage_module
+
+    source = storage_module.__file__
+    with open(source, encoding="utf-8") as f:
+        text = f.read()
+    for banned in ("import requests", "import httpx", "import urllib", "import socket", "aiohttp"):
+        assert banned not in text, f"storage.py must stay local-first; found forbidden import: {banned}"
+
+
+def test_storage_errors_never_embed_personal_value_only_ids():
+    with SQLiteContractStore() as store:
+        store.add_source_artifact(_source("SRC-CV-1"))
+        secret_value = "super-secret-personal-detail-should-not-leak"
+        store.add_candidate_fact(
+            CandidateFact(
+                id="FACT-SECRET",
+                field="experience.erp",
+                value=secret_value,
+                source_artifact_ids=["SRC-CV-1"],
+                data_status=DataStatus.KNOWN,
+                verification_status=VerificationStatus.PARTIAL,
+                sensitivity="PERSONAL",
+                consent_status=ConsentStatus.GRANTED,
+                retention_until="2026-01-01",  # already expired
+            )
+        )
+        with pytest.raises(RetentionExpiredError) as excinfo:
+            store.get_candidate_fact("FACT-SECRET")
+        assert secret_value not in str(excinfo.value)

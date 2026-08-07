@@ -323,7 +323,7 @@ class SQLiteContractStore:
         ]
 
     def record_privacy_action(self, action: PrivacyAction) -> None:
-        if action.action not in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE"}:
+        if action.action not in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE", "DELETE", "EXPORT"}:
             raise StorageError("Desteklenmeyen privacy action.")
         self._require_record(action.entity_kind, action.entity_id)
         try:
@@ -365,7 +365,9 @@ class SQLiteContractStore:
             """,
             (fact_id,),
         ).fetchall()
-        restricted = any(str(row["action"]) in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE"} for row in actions)
+        restricted = any(
+            str(row["action"]) in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE", "DELETE"} for row in actions
+        )
         retention_until = payload.get("retention_until")
         if retention_until and _iso_date(str(retention_until)) < (as_of or date.today()):
             restricted = True
@@ -376,3 +378,101 @@ class SQLiteContractStore:
             payload["value"] = None
             payload["redacted"] = True
         return payload
+
+    # ------------------------------------------------------------------
+    # EVD-002: tested export/delete paths (data portability + erasure).
+    #
+    # The store is local-first by construction — SQLiteContractStore only
+    # ever opens a local file/`:memory:` connection (no network client is
+    # imported or constructed anywhere in this module); export/delete never
+    # leave the local database. Error paths below only ever reference
+    # ids/kinds, never the personal `value` field, so nothing personal can
+    # leak into an exception message or a caller's log line.
+    # ------------------------------------------------------------------
+
+    def export_candidate_fact(self, fact_id: str) -> dict[str, Any]:
+        """Return every record linked to ``fact_id`` for data-portability requests.
+
+        Includes the fact itself (subject to current redaction/retention
+        state — an export never bypasses an active restriction), its
+        evidence records, the source artifacts those evidence records and
+        the fact point to, and the fact's full privacy-action history.
+        """
+        fact = self.get_candidate_fact(fact_id, include_restricted=True)
+        if fact is None:
+            raise MissingRecordError(f"Referans kayıt bulunamadı: candidate_fact/{fact_id}")
+
+        evidence = [row for row in self.list_records("evidence_record") if row.get("candidate_fact_id") == fact_id]
+        source_ids = {str(sid) for sid in fact.get("source_artifact_ids") or []}
+        source_ids.update(str(row.get("source_artifact_id")) for row in evidence if row.get("source_artifact_id"))
+        sources = [self.get("source_artifact", sid) for sid in sorted(source_ids)]
+
+        action_rows = self.connection.execute(
+            """
+            SELECT action_id, action, reason, actor, occurred_at FROM privacy_actions
+            WHERE entity_kind = 'candidate_fact' AND entity_id = ?
+            ORDER BY occurred_at
+            """,
+            (fact_id,),
+        ).fetchall()
+
+        return {
+            "candidate_fact": fact,
+            "evidence": evidence,
+            "source_artifacts": [s for s in sources if s is not None],
+            "privacy_actions": [dict(row) for row in action_rows],
+            "exported_at": _utc_now(),
+        }
+
+    def delete_candidate_fact(self, fact_id: str, *, actor: str, reason: str, action_id: str) -> PrivacyAction:
+        """Irreversibly erase a CandidateFact's personal value (right to erasure).
+
+        Unlike ``record_privacy_action(REDACT/...)``, which only restricts
+        *reads* while leaving the underlying row untouched, this actually
+        overwrites the stored payload's ``value`` with ``None`` and its
+        ``redacted``/``consent_status`` accordingly — the personal content is
+        gone from the database, not merely hidden. The audit trail (that a
+        deletion happened, by whom, and why) is still append-only and is
+        never itself deleted.
+        """
+        if not actor.strip() or not reason.strip():
+            raise StorageError("actor ve reason zorunludur.")
+        fact = self._require_record("candidate_fact", fact_id)
+        erased = dict(fact)
+        erased["value"] = None
+        erased["redacted"] = True
+        erased["consent_status"] = ConsentStatus.REVOKED.value
+        action = PrivacyAction(
+            action_id=action_id,
+            entity_kind="candidate_fact",
+            entity_id=fact_id,
+            action="DELETE",
+            reason=reason,
+            actor=actor,
+            occurred_at=_utc_now(),
+        )
+        with self.connection:
+            self.connection.execute(
+                "UPDATE contract_records SET payload_json = ? WHERE kind = 'candidate_fact' AND record_id = ?",
+                (json.dumps(erased, ensure_ascii=False, sort_keys=True, separators=(",", ":")), fact_id),
+            )
+            try:
+                self.connection.execute(
+                    """
+                    INSERT INTO privacy_actions(
+                        action_id, entity_kind, entity_id, action, reason, actor, occurred_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        action.action_id,
+                        action.entity_kind,
+                        action.entity_id,
+                        action.action,
+                        action.reason,
+                        action.actor,
+                        action.occurred_at,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise DuplicateRecordError(f"Privacy action zaten var: {action.action_id}") from exc
+        return action

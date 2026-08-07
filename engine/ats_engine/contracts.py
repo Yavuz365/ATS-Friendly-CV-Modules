@@ -54,6 +54,7 @@ class ConsentStatus(str, Enum):
     GRANTED = "GRANTED"
     DENIED = "DENIED"
     NOT_COLLECTED = "NOT_COLLECTED"
+    REVOKED = "REVOKED"
 
 
 def to_primitive(value: Any) -> Any:
