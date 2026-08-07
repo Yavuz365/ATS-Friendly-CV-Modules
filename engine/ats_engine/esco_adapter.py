@@ -12,10 +12,11 @@ ESCO reference pin: v1.2.1 (December 2025 research target).
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import resources
-from typing import Any, Callable
+from typing import Any
 
 from .matching import AdapterResult, AdapterStatus, VersionedMatchAdapter, count_boundary_occurrences
 from .text import tr_lower
@@ -92,8 +93,7 @@ def _build_micro_matcher() -> Callable[[str, str], AdapterResult]:
                         matched_variant=label,
                         confidence=0.55,
                         explanation=(
-                            f"ESCO micro-subset candidate ({uri}); "
-                            "ontology signal only — human review required."
+                            f"ESCO micro-subset candidate ({uri}); ontology signal only — human review required."
                         ),
                     )
         return AdapterResult(

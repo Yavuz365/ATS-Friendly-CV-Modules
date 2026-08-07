@@ -97,9 +97,7 @@ class ProvenanceLog:
             )
             """
         )
-        self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_prov_run ON provenance_entries(run_id, occurred_at, id)"
-        )
+        self._conn.execute("CREATE INDEX IF NOT EXISTS idx_prov_run ON provenance_entries(run_id, occurred_at, id)")
         self._conn.commit()
 
     @staticmethod
