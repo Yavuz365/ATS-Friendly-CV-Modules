@@ -39,12 +39,8 @@ def test_cards_avoid_forbidden_product_language() -> None:
 
 def test_documented_fixture_counts_match_datasets() -> None:
     gold = json.loads((_ROOT / "evaluation" / "gold" / "manifest.json").read_text(encoding="utf-8"))
-    requirements = json.loads(
-        (_ROOT / "evaluation" / "requirements" / "labels.json").read_text(encoding="utf-8")
-    )
-    esco = json.loads(
-        (_ROOT / "engine" / "ats_engine" / "data" / "esco_micro_v1_2_1.json").read_text(encoding="utf-8")
-    )
+    requirements = json.loads((_ROOT / "evaluation" / "requirements" / "labels.json").read_text(encoding="utf-8"))
+    esco = json.loads((_ROOT / "engine" / "ats_engine" / "data" / "esco_micro_v1_2_1.json").read_text(encoding="utf-8"))
 
     parser_card = (_CARDS / "parser-card.md").read_text(encoding="utf-8")
     requirement_card = (_CARDS / "requirement-card.md").read_text(encoding="utf-8")

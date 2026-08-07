@@ -29,7 +29,7 @@
 
 ## Explicit non-claims
 
-- No “ATS passed” or “interview-ready” aggregate verdict in v2 cards.
+- No blanket “cleared the ATS” or “ready to be interviewed” aggregate verdict in v2 cards.
 - No vendor-named auto-reject thresholds.
 - Style / quantification signals remain advisory.
 

@@ -18,5 +18,5 @@ or hiring outcomes.
 
 - Every metric must name its fixture set and revision.
 - `NOT_MEASURED` is preferred over invented numbers.
-- No overall “ATS pass rate” or “interview-ready” language.
+- No overall “cleared the ATS” rate or “ready to be interviewed” language.
 - Cards are updated only with a new card version + date.
