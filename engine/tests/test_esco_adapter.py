@@ -57,9 +57,15 @@ def test_match_term_ontology_stage_is_review_required_when_enabled() -> None:
     adapter = build_esco_adapter(config=cfg)
     assert adapter is not None
 
+    # Cascade order is EXACT -> SYNONYM -> ONTOLOGY -> SEMANTIC -> HUMAN_REVIEW
+    # and must never be weakened. The text below deliberately contains no
+    # exact/boundary occurrence of "incoterms" itself (so EXACT correctly
+    # stays silent) but does contain the ESCO micro-subset's alt label
+    # "International Commercial Terms" for the same concept, which is only
+    # reachable through the ontology stage.
     tm = match_term(
         "incoterms",
-        "Experience with Incoterms is documented.",
+        "Experience with International Commercial Terms is documented.",
         ontology_adapter=adapter,
         allow_fuzzy=False,
     )
@@ -67,3 +73,20 @@ def test_match_term_ontology_stage_is_review_required_when_enabled() -> None:
     assert tm.stage is MatchStage.ONTOLOGY
     assert tm.review_required is True
     assert tm.adapter_id == "esco-ontology"
+
+
+def test_match_term_prefers_exact_over_ontology_when_both_present() -> None:
+    """Regression guard: exact matching must never be weakened for ontology."""
+    cfg = EscoAdapterConfig(enabled=True)
+    adapter = build_esco_adapter(config=cfg)
+    assert adapter is not None
+
+    tm = match_term(
+        "incoterms",
+        "Experience with Incoterms is documented.",
+        ontology_adapter=adapter,
+        allow_fuzzy=False,
+    )
+    assert tm.matched is True
+    assert tm.stage is MatchStage.EXACT
+    assert tm.review_required is False
