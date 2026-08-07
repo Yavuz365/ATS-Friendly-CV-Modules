@@ -19,11 +19,11 @@ _NEGATION_RE = re.compile(
     re.IGNORECASE | re.UNICODE,
 )
 _MUST_RE = re.compile(
-    r"\b(?:must|required|mandatory|essential|shall|zorunlu|gereklidir|aranmaktadır|şarttır|olmalıdır)\b",
+    r"\b(?:must|required|mandatory|essential|shall|zorunlu(?:dur|dır|dur)?|gereklidir|aranmaktadır|şarttır|olmalıdır)\b",
     re.IGNORECASE | re.UNICODE,
 )
 _PREFERRED_RE = re.compile(
-    r"\b(?:preferred|nice\s+to\s+have|advantage|plus|tercihen|tercih\s+sebebi|avantaj|artı)\b",
+    r"\b(?:preferred|nice\s+to\s+have|advantage|plus|tercihen|tercih\s+sebebidir|tercih\s+sebebi|avantaj|artı)\b",
     re.IGNORECASE | re.UNICODE,
 )
 _RESPONSIBILITY_RE = re.compile(
@@ -44,13 +44,26 @@ _CATEGORY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
             r"\b(?:degree|bachelor|master|university|lisans|yüksek\s+lisans|üniversite|mezun)\w*\b", re.IGNORECASE
         ),
     ),
+    # Duration-based experience (e.g. "3 years", "3 yıl") is classified as
+    # EXPERIENCE.  Must be checked before the SKILL catch-all so that duration
+    # sentences are not mis-classified as SKILL.
+    ("EXPERIENCE", re.compile(r"\b\d+\s+(?:years?|yıl)\b", re.IGNORECASE)),
+    (
+        # "experience with/in/using" and Turkish inflected forms (e.g. deneyimi)
+        # without a numeric duration marker are classified as SKILL.
+        "SKILL",
+        re.compile(
+            r"\b(?:experience\s+(?:with|in|using)|deneyim\w+|bilgi\w*|skill|knowledge|proficien|hakim|beceri|yetkin)\w*\b",
+            re.IGNORECASE,
+        ),
+    ),
+    # Plain experience/duration words without a preceding count.
     ("EXPERIENCE", re.compile(r"\b(?:experience|years?|deneyim|tecrübe|yıl)\b", re.IGNORECASE)),
-    ("CERTIFICATION", re.compile(r"\b(?:certificate|certification|sertifika|belge)\w*\b", re.IGNORECASE)),
+    ("CERTIFICATION", re.compile(r"\b(?:certificate|certification|sertifika)\w*\b", re.IGNORECASE)),
     (
         "LOCATION",
         re.compile(r"\b(?:location|located|relocate|travel|lokasyon|ikamet|seyahat|taşın)\w*\b", re.IGNORECASE),
     ),
-    ("SKILL", re.compile(r"\b(?:skill|knowledge|proficien|hakim|bilgi|beceri|yetkin)\w*\b", re.IGNORECASE)),
 )
 
 

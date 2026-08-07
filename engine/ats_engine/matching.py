@@ -130,6 +130,55 @@ def match_term(
     if not normalized:
         return TermMatch(term, False, MatchStage.NONE, None, 0, "Boş terim eşleştirilemez.")
 
+    # When an ontology adapter is explicitly provided it is the authoritative
+    # concept source and is checked first so that known ontology concepts are
+    # always returned at ONTOLOGY stage (review-required) rather than being
+    # silently promoted to an un-reviewed EXACT stage.
+    if ontology_adapter is not None:
+        try:
+            ont_result = ontology_adapter.matcher(normalized, text)
+        except Exception as exc:
+            return TermMatch(
+                term,
+                False,
+                MatchStage.HUMAN_REVIEW,
+                None,
+                0,
+                f"{ontology_adapter.adapter_id} adapter hatası: {type(exc).__name__}; insan incelemesi gerekir.",
+                adapter_id=ontology_adapter.adapter_id,
+                adapter_version=ontology_adapter.version,
+                adapter_revision=ontology_adapter.revision,
+                review_required=True,
+            )
+        if ont_result.status is AdapterStatus.MATCH:
+            return TermMatch(
+                term,
+                True,
+                MatchStage.ONTOLOGY,
+                ont_result.matched_variant,
+                1,
+                ont_result.explanation or f"{ontology_adapter.adapter_id} aday eşleşmesi; insan incelemesi gerekir.",
+                adapter_id=ontology_adapter.adapter_id,
+                adapter_version=ontology_adapter.version,
+                adapter_revision=ontology_adapter.revision,
+                confidence=ont_result.confidence,
+                review_required=True,
+            )
+        if ont_result.status is AdapterStatus.ERROR:
+            return TermMatch(
+                term,
+                False,
+                MatchStage.HUMAN_REVIEW,
+                None,
+                0,
+                ont_result.explanation or f"{ontology_adapter.adapter_id} sonucu ERROR; insan incelemesi gerekir.",
+                adapter_id=ontology_adapter.adapter_id,
+                adapter_version=ontology_adapter.version,
+                adapter_revision=ontology_adapter.revision,
+                review_required=True,
+            )
+        # NO_MATCH → fall through to exact / synonym / semantic
+
     exact_count = count_boundary_occurrences(normalized, text)
     if exact_count:
         return TermMatch(
@@ -153,7 +202,6 @@ def match_term(
             )
 
     for stage, adapter in (
-        (MatchStage.ONTOLOGY, ontology_adapter),
         (MatchStage.SEMANTIC, semantic_adapter),
     ):
         if adapter is None:
