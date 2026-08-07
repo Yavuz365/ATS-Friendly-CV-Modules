@@ -213,11 +213,26 @@ class QAResult:
 
 @dataclass(frozen=True)
 class SynthesisChange:
+    """One allowlisted, evidence-bound proposed text mutation.
+
+    SYN-002: ``evidence_ids``/``reason`` establish *why* a change is
+    supported, but not *what produced the wording* — model/prompt metadata
+    is required on every change so a human reviewer (or later audit) can
+    tell a manually authored edit from an LLM-drafted one and which
+    model/prompt version to attribute it to. ``model_id="human"`` /
+    ``prompt_id="human-authored"`` are the honest values for a manually
+    written change, not an invented model name.
+    """
+
     path: str
     old_value: str
     new_value: str
     evidence_ids: list[str]
     reason: str
+    model_id: str
+    model_version: str
+    prompt_id: str
+    prompt_version: str
 
 
 @dataclass(frozen=True)
