@@ -49,6 +49,8 @@ def _read(path: str) -> str:
     try:
         with open(path, encoding="utf-8") as f:
             return f.read()
+    except UnicodeDecodeError as e:
+        raise CLIInputError(f"Dosya geçerli UTF-8 değil: {path!r} ({e})") from e
     except OSError as e:
         raise CLIInputError(f"Dosya okunamadı: {path!r} ({e.strerror or e})") from e
 
@@ -97,6 +99,9 @@ def cmd_score(args):
 def cmd_parse(args):
     res = jd_parser.parse_jd(_read(args.jd))
     print(json.dumps(res, ensure_ascii=False, indent=2))
+    # exit 4 when explicit review signal is present
+    if res.get("review_required") is True:
+        return 4
     return 0
 
 

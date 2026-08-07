@@ -36,10 +36,17 @@ PROTECTED_SEGMENTS = frozenset(
 )
 
 _UNTRUSTED_INSTRUCTION_SIGNALS = (
-    re.compile(r"\bignore (?:all|any|the|previous) (?:rules|instructions)\b", re.I),
+    # English: ignore/disregard/forget + optional modifiers + rules/instructions
+    re.compile(r"\bignore\s+(?:(?:all|any|the|previous)\s+){1,2}(?:rules|instructions)\b", re.I),
+    re.compile(r"\bdisregard\s+(?:(?:all|any|the|previous)\s+){1,2}(?:rules|instructions)\b", re.I),
+    re.compile(r"\bforget\s+(?:(?:all|any|the|previous)\s+){1,2}(?:rules|instructions)\b", re.I),
     re.compile(r"\bsystem prompt\b", re.I),
     re.compile(r"\bdeveloper message\b", re.I),
     re.compile(r"\bexecute (?:this|the following)\b", re.I),
+    # Turkish equivalents: önceki/tüm talimatları yoksay / görmezden gel / unut
+    re.compile(r"\bönceki\s+talimatlar\w*\s+(?:yoksay|görmezden\s+gel|unut)\b", re.I),
+    re.compile(r"\btüm\s+talimatlar\w*\s+(?:yoksay|görmezden\s+gel|unut)\b", re.I),
+    re.compile(r"\bsistem\s+(?:istem\w*|prompt\w*|talimat\w*)\s+(?:yoksay|görmezden\s+gel)\b", re.I),
 )
 
 

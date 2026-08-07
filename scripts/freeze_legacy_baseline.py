@@ -21,7 +21,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-def _run(command: list[str], *, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def _run(
+    command: list[str], *, cwd: Path | None = None, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=check)
 
 
@@ -35,14 +37,20 @@ def _sha256(path: Path) -> str:
 
 def _write_checksums(output: Path) -> None:
     candidates = sorted(
-        path for path in output.rglob("*") if path.is_file() and path.name != "SHA256SUMS.txt"
+        path
+        for path in output.rglob("*")
+        if path.is_file() and path.name != "SHA256SUMS.txt"
     )
-    lines = [f"{_sha256(path)}  {path.relative_to(output).as_posix()}" for path in candidates]
+    lines = [
+        f"{_sha256(path)}  {path.relative_to(output).as_posix()}" for path in candidates
+    ]
     (output / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def _verify_commit(repo: Path, commit: str) -> str:
-    resolved = _run(["git", "rev-parse", f"{commit}^{{commit}}"], cwd=repo).stdout.strip()
+    resolved = _run(
+        ["git", "rev-parse", f"{commit}^{{commit}}"], cwd=repo
+    ).stdout.strip()
     if resolved != commit:
         raise SystemExit(f"Commit mismatch: requested {commit}, resolved {resolved}")
     return resolved
@@ -76,10 +84,22 @@ def main() -> int:
         build_root = temp / "engine"
         artifact_dir = output / "artifacts"
         artifact_dir.mkdir(exist_ok=True)
-        command = [sys.executable, "-m", "build", "--sdist", "--wheel", "--outdir", str(artifact_dir)]
+        command = [
+            sys.executable,
+            "-m",
+            "build",
+            "--sdist",
+            "--wheel",
+            "--outdir",
+            str(artifact_dir),
+        ]
         build = _run(command, cwd=build_root, check=False)
 
-    status = "REPRODUCIBLE" if build.returncode == 0 and any(artifact_dir.iterdir()) else "NON_REPRODUCIBLE"
+    status = (
+        "REPRODUCIBLE"
+        if build.returncode == 0 and any(artifact_dir.iterdir())
+        else "NON_REPRODUCIBLE"
+    )
     report = {
         "schema_version": "1.0.0",
         "repository": "Yavuz365/ATS-Friendly-CV-Modules",

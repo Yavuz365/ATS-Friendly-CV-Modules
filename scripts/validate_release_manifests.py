@@ -13,7 +13,15 @@ _SHA = re.compile(r"^[0-9a-f]{40}$")
 def validate_manifest(path: Path, *, repo: Path | None = None) -> list[str]:
     data = json.loads(path.read_text(encoding="utf-8"))
     errors: list[str] = []
-    required = {"release", "tag", "commit", "status", "production_ready", "publish_as", "required_assets"}
+    required = {
+        "release",
+        "tag",
+        "commit",
+        "status",
+        "production_ready",
+        "publish_as",
+        "required_assets",
+    }
     missing = sorted(required - set(data))
     if missing:
         errors.append(f"{path.name}: missing {', '.join(missing)}")
@@ -26,7 +34,9 @@ def validate_manifest(path: Path, *, repo: Path | None = None) -> list[str]:
         errors.append(f"{path.name}: prerelease cannot be production_ready")
     assets = list(data["required_assets"])
     if len(assets) != len(set(assets)) or "SHA256SUMS.txt" not in assets:
-        errors.append(f"{path.name}: asset list must be unique and include SHA256SUMS.txt")
+        errors.append(
+            f"{path.name}: asset list must be unique and include SHA256SUMS.txt"
+        )
     if repo is not None and _SHA.fullmatch(str(data["commit"])):
         check = subprocess.run(
             ["git", "cat-file", "-e", f"{data['commit']}^{{commit}}"],
@@ -35,7 +45,9 @@ def validate_manifest(path: Path, *, repo: Path | None = None) -> list[str]:
             text=True,
         )
         if check.returncode != 0:
-            errors.append(f"{path.name}: declared commit is absent from repository history")
+            errors.append(
+                f"{path.name}: declared commit is absent from repository history"
+            )
     return errors
 
 
