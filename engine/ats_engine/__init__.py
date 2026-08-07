@@ -60,6 +60,7 @@ from .domain_packs import (
     load_pack,
 )
 from .evidence_bank import Evidence, parse_bank, provenance_check
+from .evidence_linking import link_requirement_evidence, measure_exact_match_false_support_rate
 from .format_metadata_hygiene import full_hygiene_check
 from .ingestion import parse_document, parse_docx, parse_pdf
 from .jd_parser import parse_jd
@@ -164,9 +165,11 @@ __all__ = [
     "level2_final",
     "level3_category",
     "lexicons",
+    "link_requirement_evidence",
     "list_packs",
     "load_pack",
     "locale_mismatches",
+    "measure_exact_match_false_support_rate",
     "parse_bank",
     "parse_document",
     "parse_docx",
