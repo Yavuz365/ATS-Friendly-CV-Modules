@@ -302,3 +302,74 @@ def test_storage_errors_never_embed_personal_value_only_ids():
         with pytest.raises(RetentionExpiredError) as excinfo:
             store.get_candidate_fact("FACT-SECRET")
         assert secret_value not in str(excinfo.value)
+
+
+# OPS-001: event versions, source, distinct observed/occurred time, and
+# event-level privacy/retention enforcement.
+def test_application_event_defaults_observed_at_to_occurred_at_when_unset():
+    with SQLiteContractStore() as store:
+        store.add_application_event(
+            ApplicationEvent(
+                id="EVT-OBS-1",
+                application_id="APP-1",
+                event_type="SUBMITTED",
+                occurred_at="2026-08-01T09:00:00+00:00",
+            )
+        )
+        payload = store.get_application_event("EVT-OBS-1")
+        assert payload is not None
+        assert payload["observed_at"] == "2026-08-01T09:00:00+00:00"
+        assert payload["event_version"] == 1
+        assert payload["source"] == "self-reported"
+
+
+def test_application_event_keeps_distinct_observed_at_when_reported_late():
+    with SQLiteContractStore() as store:
+        store.add_application_event(
+            ApplicationEvent(
+                id="EVT-OBS-2",
+                application_id="APP-1",
+                event_type="REJECTED",
+                occurred_at="2026-08-01T09:00:00+00:00",
+                observed_at="2026-08-15T09:00:00+00:00",
+                event_version=2,
+                source="candidate-self-report",
+            )
+        )
+        payload = store.get_application_event("EVT-OBS-2")
+        assert payload["occurred_at"] != payload["observed_at"]
+        assert payload["event_version"] == 2
+        assert payload["source"] == "candidate-self-report"
+
+
+def test_application_event_read_respects_retention_and_privacy_actions():
+    with SQLiteContractStore() as store:
+        store.add_application_event(
+            ApplicationEvent(
+                id="EVT-PRIV-1",
+                application_id="APP-1",
+                event_type="INTERVIEW_SCHEDULED",
+                occurred_at="2026-08-01T09:00:00+00:00",
+                payload={"note": "sensitive scheduling detail"},
+            )
+        )
+        # Unrestricted read still works.
+        assert store.get_application_event("EVT-PRIV-1")["payload"] == {"note": "sensitive scheduling detail"}
+
+        store.record_privacy_action(
+            PrivacyAction(
+                action_id="PA-EVT-1",
+                entity_kind="application_event",
+                entity_id="EVT-PRIV-1",
+                action="REDACT",
+                reason="Candidate requested redaction.",
+                actor="candidate",
+                occurred_at="2026-08-02T09:00:00+00:00",
+            )
+        )
+        with pytest.raises(RetentionExpiredError):
+            store.get_application_event("EVT-PRIV-1")
+
+        restricted_payload = store.get_application_event("EVT-PRIV-1", include_restricted=True)
+        assert restricted_payload["payload"] == {}
+        assert restricted_payload["redacted"] is True

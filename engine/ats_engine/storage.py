@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, cast
@@ -251,6 +251,11 @@ class SQLiteContractStore:
         self.append(conflict)
 
     def add_application_event(self, event: ApplicationEvent) -> None:
+        # OPS-001: observed_at defaults to occurred_at only when the caller did
+        # not distinguish them (i.e. no reporting delay is known) — never left
+        # as None, so every stored event has a real, queryable observation time.
+        if event.observed_at is None:
+            event = replace(event, observed_at=event.occurred_at)
         self.append(event)
 
     def review_requirement(
@@ -376,6 +381,45 @@ class SQLiteContractStore:
         if restricted:
             payload = dict(payload)
             payload["value"] = None
+            payload["redacted"] = True
+        return payload
+
+    def get_application_event(
+        self,
+        event_id: str,
+        *,
+        as_of: date | None = None,
+        include_restricted: bool = False,
+    ) -> dict[str, Any] | None:
+        """OPS-001: read ApplicationEvent through the same privacy/retention gate as CandidateFact.
+
+        Previously ``application_event`` rows were only reachable via the
+        generic, privacy-blind ``get()``/``list_records()`` — a REDACT/
+        RETENTION_EXPIRE/CONSENT_REVOKE/DELETE privacy action recorded
+        against an event had no effect on reads. This closes that gap.
+        """
+        payload = self.get("application_event", event_id)
+        if payload is None:
+            return None
+        actions = self.connection.execute(
+            """
+            SELECT action FROM privacy_actions
+            WHERE entity_kind = 'application_event' AND entity_id = ?
+            ORDER BY occurred_at
+            """,
+            (event_id,),
+        ).fetchall()
+        restricted = any(
+            str(row["action"]) in {"REDACT", "RETENTION_EXPIRE", "CONSENT_REVOKE", "DELETE"} for row in actions
+        )
+        retention_until = payload.get("retention_until")
+        if retention_until and _iso_date(str(retention_until)) < (as_of or date.today()):
+            restricted = True
+        if restricted and not include_restricted:
+            raise RetentionExpiredError(f"ApplicationEvent erişimi privacy/retention nedeniyle kapalı: {event_id}")
+        if restricted:
+            payload = dict(payload)
+            payload["payload"] = {}
             payload["redacted"] = True
         return payload
 

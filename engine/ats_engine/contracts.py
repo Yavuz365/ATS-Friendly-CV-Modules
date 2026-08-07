@@ -266,13 +266,31 @@ class DecisionReport:
 
 @dataclass(frozen=True)
 class ApplicationEvent:
+    """One append-only application-lifecycle event.
+
+    OPS-001: ``occurred_at`` alone conflates *when the real-world event
+    happened* with *when this system learned about it* — for a delayed or
+    self-reported outcome those can differ by weeks, which matters for
+    censoring/survival analysis. ``observed_at`` is kept distinct;
+    ``event_version`` supports an append-only correction (a later version of
+    the same logical event, never an in-place rewrite); ``source`` records
+    who/what reported it; ``sensitivity``/``retention_until``/``redacted``
+    give it the same privacy/retention shape as ``CandidateFact``.
+    """
+
     id: str
     application_id: str
     event_type: str
     occurred_at: str
+    observed_at: str | None = None
+    event_version: int = 1
+    source: str = "self-reported"
     payload: dict[str, Any] = field(default_factory=dict)
     data_status: DataStatus = DataStatus.KNOWN
     outcome_observed: bool | None = None
     censoring_reason: str | None = None
     source_artifact_id: str | None = None
+    sensitivity: str = "PERSONAL"
+    retention_until: str | None = None
+    redacted: bool = False
     contract_version: str = CONTRACT_VERSION
