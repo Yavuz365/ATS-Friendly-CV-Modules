@@ -153,7 +153,12 @@ def evaluate_fields(
             )
         )
 
-    if parse_result.page_evidence is not None:
+    # ING-005 fix: page_evidence is a PDF-only concept (per-page extraction
+    # evidence). `DocumentParseResult.page_evidence` defaults to `[]` — never
+    # `None` — for every media type, so a bare `is not None` check made this
+    # field mandatory even for DOCX/TXT/MD fixtures that legitimately have no
+    # notion of pages. Only require it when the document is actually a PDF.
+    if parse_result.media_type == "application/pdf":
         page_count = len(parse_result.page_evidence)
         verdicts.append(
             FieldVerdict(
