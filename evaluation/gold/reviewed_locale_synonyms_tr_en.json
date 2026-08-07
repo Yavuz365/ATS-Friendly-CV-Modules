@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "reviewed-locale-synonyms-tr-en",
+  "dataset_version": "0.1.0",
+  "contains_personal_data": false,
+  "purpose": "MAT-002: accepted, versioned, conflict-tested TR/EN reviewed-synonym dictionary for the reviewed_synonyms adapter stage of match_term(). Every accepted pair was reviewed for genuine equivalence (not just co-occurrence); rejected candidate pairs are recorded with a reason so a future reviewer does not re-propose them without new evidence.",
+  "accepted": {
+    "gümrük": ["customs clearance", "customs operations"],
+    "incoterms": ["international commercial terms"],
+    "ingilizce": ["english"],
+    "almanca": ["german"],
+    "fransızca": ["french"],
+    "yüksek lisans": ["master's degree", "masters degree"],
+    "lisans": ["bachelor's degree", "bachelors degree", "undergraduate degree"],
+    "dış ticaret": ["foreign trade", "international trade"],
+    "tedarik zinciri": ["supply chain"],
+    "ihracat": ["export"],
+    "ithalat": ["import"]
+  },
+  "abstained": [
+    {
+      "candidate_key": "sap",
+      "candidate_variant": "erp",
+      "reason": "SAP is one specific vendor's ERP product, not a generic synonym for the ERP category; treating them as interchangeable would let a candidate's SAP experience wrongly satisfy a requirement for a different ERP system (or vice versa)."
+    },
+    {
+      "candidate_key": "gümrük",
+      "candidate_variant": "lojistik",
+      "reason": "Customs brokerage (gümrük) is a narrower discipline than logistics (lojistik) as a whole; frequent co-occurrence in job postings is not the same as equivalence, so this pair is not accepted as a synonym."
+    },
+    {
+      "candidate_key": "yüksek lisans",
+      "candidate_variant": "phd",
+      "reason": "A master's degree and a PhD are different, non-interchangeable education levels; accepting this pair would let a master's-only candidate falsely satisfy a PhD requirement."
+    }
+  ]
+}
