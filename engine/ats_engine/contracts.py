@@ -54,6 +54,7 @@ class ConsentStatus(str, Enum):
     GRANTED = "GRANTED"
     DENIED = "DENIED"
     NOT_COLLECTED = "NOT_COLLECTED"
+    REVOKED = "REVOKED"
 
 
 def to_primitive(value: Any) -> Any:
@@ -191,22 +192,48 @@ class DiagnosticResult:
 
 @dataclass(frozen=True)
 class QAResult:
+    """Typed QA rule outcome.
+
+    QA-001: status/severity/blocking/message alone tell a caller *that*
+    something failed but not *what specifically* triggered it (``evidence``)
+    or *what to do about it* (``remediation``) without re-parsing the
+    free-form ``details`` blob. Both are first-class fields so every rule's
+    contract is complete on its own.
+    """
+
     check_id: str
     status: ProcessStatus
     severity: QASeverity
     message: str
     blocking: bool = False
     details: dict[str, Any] = field(default_factory=dict)
+    evidence: list[str] = field(default_factory=list)
+    remediation: str = ""
     contract_version: str = CONTRACT_VERSION
 
 
 @dataclass(frozen=True)
 class SynthesisChange:
+    """One allowlisted, evidence-bound proposed text mutation.
+
+    SYN-002: ``evidence_ids``/``reason`` establish *why* a change is
+    supported, but not *what produced the wording* — model/prompt metadata
+    is required on every change so a human reviewer (or later audit) can
+    tell a manually authored edit from an LLM-drafted one and which
+    model/prompt version to attribute it to. ``model_id="human"`` /
+    ``prompt_id="human-authored"`` are the honest values for a manually
+    written change, not an invented model name.
+    """
+
     path: str
     old_value: str
     new_value: str
     evidence_ids: list[str]
     reason: str
+    model_id: str
+    model_version: str
+    prompt_id: str
+    prompt_version: str
 
 
 @dataclass(frozen=True)
@@ -239,13 +266,31 @@ class DecisionReport:
 
 @dataclass(frozen=True)
 class ApplicationEvent:
+    """One append-only application-lifecycle event.
+
+    OPS-001: ``occurred_at`` alone conflates *when the real-world event
+    happened* with *when this system learned about it* — for a delayed or
+    self-reported outcome those can differ by weeks, which matters for
+    censoring/survival analysis. ``observed_at`` is kept distinct;
+    ``event_version`` supports an append-only correction (a later version of
+    the same logical event, never an in-place rewrite); ``source`` records
+    who/what reported it; ``sensitivity``/``retention_until``/``redacted``
+    give it the same privacy/retention shape as ``CandidateFact``.
+    """
+
     id: str
     application_id: str
     event_type: str
     occurred_at: str
+    observed_at: str | None = None
+    event_version: int = 1
+    source: str = "self-reported"
     payload: dict[str, Any] = field(default_factory=dict)
     data_status: DataStatus = DataStatus.KNOWN
     outcome_observed: bool | None = None
     censoring_reason: str | None = None
     source_artifact_id: str | None = None
+    sensitivity: str = "PERSONAL"
+    retention_until: str | None = None
+    redacted: bool = False
     contract_version: str = CONTRACT_VERSION

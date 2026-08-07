@@ -36,10 +36,17 @@ PROTECTED_SEGMENTS = frozenset(
 )
 
 _UNTRUSTED_INSTRUCTION_SIGNALS = (
-    re.compile(r"\bignore (?:all|any|the|previous) (?:rules|instructions)\b", re.I),
+    # English: ignore/disregard/forget + optional modifiers + rules/instructions
+    re.compile(r"\bignore\s+(?:(?:all|any|the|previous)\s+){1,2}(?:rules|instructions)\b", re.I),
+    re.compile(r"\bdisregard\s+(?:(?:all|any|the|previous)\s+){1,2}(?:rules|instructions)\b", re.I),
+    re.compile(r"\bforget\s+(?:(?:all|any|the|previous)\s+){1,2}(?:rules|instructions)\b", re.I),
     re.compile(r"\bsystem prompt\b", re.I),
     re.compile(r"\bdeveloper message\b", re.I),
     re.compile(r"\bexecute (?:this|the following)\b", re.I),
+    # Turkish equivalents: önceki/tüm talimatları yoksay / görmezden gel / unut
+    re.compile(r"\bönceki\s+talimatlar\w*\s+(?:yoksay|görmezden\s+gel|unut)\b", re.I),
+    re.compile(r"\btüm\s+talimatlar\w*\s+(?:yoksay|görmezden\s+gel|unut)\b", re.I),
+    re.compile(r"\bsistem\s+(?:istem\w*|prompt\w*|talimat\w*)\s+(?:yoksay|görmezden\s+gel)\b", re.I),
 )
 
 
@@ -73,8 +80,20 @@ def build_change_set(
     proposals: Iterable[dict],
     *,
     known_evidence_ids: set[str],
+    default_model_id: str = "human",
+    default_model_version: str = "n/a",
+    default_prompt_id: str = "human-authored",
+    default_prompt_version: str = "n/a",
 ) -> SynthesisChangeSet:
-    """Validate proposed text changes; reject protected or unsupported mutations."""
+    """Validate proposed text changes; reject protected or unsupported mutations.
+
+    SYN-002: every change must carry model/prompt attribution metadata, not
+    just evidence/reason. Callers may set it per-proposal (``model_id``,
+    ``model_version``, ``prompt_id``, ``prompt_version`` keys) for
+    LLM-drafted proposals; proposals that omit them fall back to the
+    ``default_*`` arguments, which default to the honest "human/manually
+    authored" values rather than a fabricated model name.
+    """
     changes: list[SynthesisChange] = []
     for index, proposal in enumerate(proposals):
         path = str(proposal.get("path", ""))
@@ -97,6 +116,18 @@ def build_change_set(
         new_value = str(proposal.get("new_value", ""))
         if not new_value.strip():
             raise InvalidInputError("Yeni değer boş olamaz.", field=f"proposals[{index}].new_value")
+
+        model_id = str(proposal.get("model_id") or default_model_id).strip()
+        model_version = str(proposal.get("model_version") or default_model_version).strip()
+        prompt_id = str(proposal.get("prompt_id") or default_prompt_id).strip()
+        prompt_version = str(proposal.get("prompt_version") or default_prompt_version).strip()
+        if not all((model_id, model_version, prompt_id, prompt_version)):
+            raise InvalidInputError(
+                "Her sentez değişikliği model/prompt attribution metadata'sı taşımalıdır "
+                "(model_id, model_version, prompt_id, prompt_version).",
+                field=f"proposals[{index}].model_id",
+            )
+
         changes.append(
             SynthesisChange(
                 path=path,
@@ -104,6 +135,10 @@ def build_change_set(
                 new_value=new_value,
                 evidence_ids=evidence_ids,
                 reason=str(proposal.get("reason", "evidence-bound revision")),
+                model_id=model_id,
+                model_version=model_version,
+                prompt_id=prompt_id,
+                prompt_version=prompt_version,
             )
         )
     return SynthesisChangeSet(
@@ -163,6 +198,10 @@ def rollback_change_set(
                 new_value=change.old_value,
                 evidence_ids=change.evidence_ids,
                 reason=f"Rollback of {applied_change_set.id}",
+                model_id="system-rollback",
+                model_version="n/a",
+                prompt_id=f"rollback-of:{change.prompt_id}",
+                prompt_version=change.prompt_version,
             )
             for change in applied_change_set.changes
         ],

@@ -115,3 +115,36 @@ def test_exact_match_still_precedes_optional_adapters():
     result = match_term("SAP", "SAP MM kullanıldı", semantic_adapter=semantic)
     assert result.stage is MatchStage.EXACT
     assert called is False
+
+
+# STAB-015: technical-connector boundary regressions. Plain ``\w`` boundaries let
+# "c" register an EXACT hit inside "C++" because "+" is not a word character, so
+# `(?!\w)` was satisfied right after the "c". These pin the canonical C/C++ gold
+# case plus adjacent connector-token cases (C#) and confirm standalone "C" is
+# unaffected.
+def test_short_term_does_not_exact_match_inside_longer_connector_token():
+    result = match_term("c", "Experienced in C++ development and embedded systems.", allow_fuzzy=False)
+    assert result.matched is False, '"c" must not register an EXACT hit inside "C++"'
+    assert result.stage is MatchStage.NONE
+
+
+def test_short_term_does_not_exact_match_inside_hash_connector_token():
+    result = match_term("c", "Backend built with C# and .NET.", allow_fuzzy=False)
+    assert result.matched is False, '"c" must not register an EXACT hit inside "C#"'
+
+
+def test_connector_term_still_matches_as_its_own_token():
+    plus_plus = match_term("c++", "Experienced in C++ development.", allow_fuzzy=False)
+    assert plus_plus.matched is True
+    assert plus_plus.stage is MatchStage.EXACT
+
+    sharp = match_term("c#", "Backend built with C# and .NET.", allow_fuzzy=False)
+    assert sharp.matched is True
+    assert sharp.stage is MatchStage.EXACT
+
+
+def test_standalone_short_term_still_matches_when_not_part_of_a_connector_token():
+    result = match_term("c", "Also comfortable writing plain C when needed.", allow_fuzzy=False)
+    assert result.matched is True
+    assert result.stage is MatchStage.EXACT
+    assert result.count == 1

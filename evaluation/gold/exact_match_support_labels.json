@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "exact-match-support-gold",
+  "dataset_version": "0.1.0",
+  "contains_personal_data": false,
+  "purpose": "MAT-001: measure how often an EXACT Unicode-boundary term match is a FALSE support signal (the term is present in the CV text but does not reflect genuine claimed candidate experience with it) versus a TRUE support signal.",
+  "labels": [
+    {
+      "fixture_id": "SUP-TR-TRUE-001",
+      "lang": "tr",
+      "term": "incoterms",
+      "cv_text": "3 yıl boyunca gümrük müşavirliği yaptım; Incoterms 2020 kurallarına hakimim.",
+      "true_support": true,
+      "reason": "First-person claimed, sustained experience with the term."
+    },
+    {
+      "fixture_id": "SUP-EN-TRUE-001",
+      "lang": "en",
+      "term": "incoterms",
+      "cv_text": "Managed customs clearance and Incoterms compliance for 5 years.",
+      "true_support": true,
+      "reason": "First-person claimed experience, explicit duration."
+    },
+    {
+      "fixture_id": "SUP-EN-TRUE-002",
+      "lang": "en",
+      "term": "python",
+      "cv_text": "Proficient in C++ and Python for backend services.",
+      "true_support": true,
+      "reason": "First-person claimed proficiency."
+    },
+    {
+      "fixture_id": "SUP-TR-TRUE-002",
+      "lang": "tr",
+      "term": "erp",
+      "cv_text": "SAP ve Incoterms dışında ERP sistemleri de kullandım.",
+      "true_support": true,
+      "reason": "First-person claimed usage."
+    },
+    {
+      "fixture_id": "SUP-TR-FALSE-NEGATION-001",
+      "lang": "tr",
+      "term": "sap",
+      "cv_text": "SAP deneyimim yoktur, yalnızca Excel kullandım.",
+      "true_support": false,
+      "reason": "Negated: candidate explicitly states they do NOT have this experience."
+    },
+    {
+      "fixture_id": "SUP-EN-FALSE-NEGATION-001",
+      "lang": "en",
+      "term": "sap",
+      "cv_text": "I have no hands-on SAP experience, only basic exposure in training.",
+      "true_support": false,
+      "reason": "Negated: explicit lack of hands-on experience."
+    },
+    {
+      "fixture_id": "SUP-TR-FALSE-ASPIRATIONAL-001",
+      "lang": "tr",
+      "term": "sap",
+      "cv_text": "SAP öğrenmek istiyorum ve bu alanda kendimi geliştirmeyi hedefliyorum.",
+      "true_support": false,
+      "reason": "Aspirational/future intent, not existing experience."
+    },
+    {
+      "fixture_id": "SUP-TR-FALSE-THIRDPARTY-001",
+      "lang": "tr",
+      "term": "sap",
+      "cv_text": "Bir önceki yöneticim SAP kullanıyordu, ekipte gözlemleme fırsatım oldu.",
+      "true_support": false,
+      "reason": "Third-party (manager's) experience, not the candidate's own."
+    },
+    {
+      "fixture_id": "SUP-TR-FALSE-FUTUREPLAN-001",
+      "lang": "tr",
+      "term": "sap",
+      "cv_text": "Şirketimiz gelecek yıl SAP sistemine geçmeyi planlıyor.",
+      "true_support": false,
+      "reason": "Future company plan, not candidate's current/past experience."
+    },
+    {
+      "fixture_id": "SUP-TR-FALSE-PASTEDJD-001",
+      "lang": "tr",
+      "term": "sap",
+      "cv_text": "Aranan nitelikler: SAP bilgisi, İngilizce, takım çalışmasına yatkınlık.",
+      "true_support": false,
+      "reason": "Looks like a job-posting requirements list pasted into the CV by mistake, not a personal claim."
+    },
+    {
+      "fixture_id": "SUP-EN-FALSE-COURSEWORK-001",
+      "lang": "en",
+      "term": "sap",
+      "cv_text": "University coursework covered SAP concepts, though I never used it professionally.",
+      "true_support": false,
+      "reason": "Academic exposure explicitly framed as never used professionally."
+    },
+    {
+      "fixture_id": "SUP-EN-TRUE-COURSEWORK-001",
+      "lang": "en",
+      "term": "python",
+      "cv_text": "Built and shipped three production Python microservices over two years.",
+      "true_support": true,
+      "reason": "Concrete, first-person, production-level claim."
+    }
+  ]
+}

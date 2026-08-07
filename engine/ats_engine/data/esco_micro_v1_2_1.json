@@ -1,0 +1,37 @@
+{
+  "adapter_id": "esco-ontology",
+  "esco_version": "1.2.1",
+  "revision": "2025-12-esco-v1.2.1-pin",
+  "note": "Research micro-subset only. Not the full ESCO dump. Fully synthetic mapping for foreign-trade terms. Never treat as official ESCO export.",
+  "contains_personal_data": false,
+  "concepts": [
+    {
+      "uri": "http://data.europa.eu/esco/skill/example-incoterms",
+      "preferred_label_en": "Incoterms",
+      "preferred_label_tr": "Incoterms",
+      "alt_labels": ["International Commercial Terms", "ICC Incoterms"],
+      "skill_type": "knowledge"
+    },
+    {
+      "uri": "http://data.europa.eu/esco/skill/example-letter-of-credit",
+      "preferred_label_en": "letter of credit",
+      "preferred_label_tr": "akreditif",
+      "alt_labels": ["L/C", "documentary credit"],
+      "skill_type": "knowledge"
+    },
+    {
+      "uri": "http://data.europa.eu/esco/skill/example-customs-clearance",
+      "preferred_label_en": "customs clearance",
+      "preferred_label_tr": "gümrükleme",
+      "alt_labels": ["customs formalities", "gümrük işlemleri"],
+      "skill_type": "skill"
+    },
+    {
+      "uri": "http://data.europa.eu/esco/skill/example-foreign-trade",
+      "preferred_label_en": "foreign trade",
+      "preferred_label_tr": "dış ticaret",
+      "alt_labels": ["international trade", "export-import"],
+      "skill_type": "knowledge"
+    }
+  ]
+}

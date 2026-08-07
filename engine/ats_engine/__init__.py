@@ -60,10 +60,16 @@ from .domain_packs import (
     load_pack,
 )
 from .evidence_bank import Evidence, parse_bank, provenance_check
+from .evidence_linking import link_requirement_evidence, measure_exact_match_false_support_rate
 from .format_metadata_hygiene import full_hygiene_check
 from .ingestion import parse_document, parse_docx, parse_pdf
 from .jd_parser import parse_jd
 from .locale_consistency import detect_locale, locale_mismatches
+from .locale_synonym_registry import (
+    accepted_synonyms,
+    audit_reviewed_synonym_conflicts,
+    load_reviewed_locale_synonyms,
+)
 from .multilevel import (
     L1_GATE_THRESHOLD,
     L2_SEAM_PENALTY,
@@ -133,12 +139,14 @@ __all__ = [
     "SynthesisChangeSet",
     "VerificationStatus",
     "__version__",
+    "accepted_synonyms",
     "all_keywords",
     "anti_stuffing_report",
     "apply_change_set",
     "approve_change_set",
     "ats_match_score",
     "audit_bullet",
+    "audit_reviewed_synonym_conflicts",
     "build_car",
     "build_change_set",
     "build_decision_report",
@@ -164,9 +172,12 @@ __all__ = [
     "level2_final",
     "level3_category",
     "lexicons",
+    "link_requirement_evidence",
     "list_packs",
     "load_pack",
+    "load_reviewed_locale_synonyms",
     "locale_mismatches",
+    "measure_exact_match_false_support_rate",
     "parse_bank",
     "parse_document",
     "parse_docx",

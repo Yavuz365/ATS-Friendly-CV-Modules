@@ -19,11 +19,17 @@ _NEGATION_RE = re.compile(
     re.IGNORECASE | re.UNICODE,
 )
 _MUST_RE = re.compile(
-    r"\b(?:must|required|mandatory|essential|shall|zorunlu|gereklidir|aranmaktadır|şarttır|olmalıdır)\b",
+    # JOB-002 fix: Turkish "zorunlu" carries suffixes (zorunludur, zorunluluk, …)
+    # that a bare `\bzorunlu\b` cannot reach because there is no word boundary
+    # between "zorunlu" and its suffix. `\w*` extends the match to cover those
+    # inflected forms; the leading `\b` still anchors it to a real word start,
+    # so it cannot fire mid-word inside an unrelated token.
+    r"\b(?:must|required|mandatory|essential|shall|zorunlu\w*|gereklidir|aranmaktadır|şarttır|olmalıdır)\b",
     re.IGNORECASE | re.UNICODE,
 )
 _PREFERRED_RE = re.compile(
-    r"\b(?:preferred|nice\s+to\s+have|advantage|plus|tercihen|tercih\s+sebebi|avantaj|artı)\b",
+    # JOB-002 fix: same morphology issue for "tercih sebebi/sebebidir".
+    r"\b(?:preferred|nice\s+to\s+have|advantage|plus|tercihen|tercih\s+sebeb\w*|avantaj|artı)\b",
     re.IGNORECASE | re.UNICODE,
 )
 _RESPONSIBILITY_RE = re.compile(
@@ -44,13 +50,31 @@ _CATEGORY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
             r"\b(?:degree|bachelor|master|university|lisans|yüksek\s+lisans|üniversite|mezun)\w*\b", re.IGNORECASE
         ),
     ),
-    ("EXPERIENCE", re.compile(r"\b(?:experience|years?|deneyim|tecrübe|yıl)\b", re.IGNORECASE)),
+    (
+        # JOB-004 fix: gold set draws a real distinction between tenure
+        # ("3 years"/"3 yıl" of experience -> EXPERIENCE) and domain-skill
+        # familiarity ("hands-on experience with Incoterms" -> SKILL, see
+        # REQ-EN-MUST-001 / REQ-TR-MUST-001). Bare "experience"/"deneyim"
+        # without an adjacent duration is not a tenure requirement, so it is
+        # only counted here when a number precedes a year unit.
+        "EXPERIENCE",
+        re.compile(r"\b\d+\+?\s*(?:years?|yıl(?:lık)?)\b", re.IGNORECASE),
+    ),
     ("CERTIFICATION", re.compile(r"\b(?:certificate|certification|sertifika|belge)\w*\b", re.IGNORECASE)),
     (
         "LOCATION",
         re.compile(r"\b(?:location|located|relocate|travel|lokasyon|ikamet|seyahat|taşın)\w*\b", re.IGNORECASE),
     ),
-    ("SKILL", re.compile(r"\b(?:skill|knowledge|proficien|hakim|bilgi|beceri|yetkin)\w*\b", re.IGNORECASE)),
+    (
+        # "experience"/"deneyim"/"tecrübe" land here (not EXPERIENCE above)
+        # whenever there is no adjacent duration signal — i.e. familiarity
+        # with a domain tool/skill rather than a tenure requirement.
+        "SKILL",
+        re.compile(
+            r"\b(?:skill|knowledge|proficien|hakim|bilgi|beceri|yetkin|experience|deneyim|tecrübe)\w*\b",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 
@@ -62,7 +86,15 @@ class RequirementExtraction:
     extractor_version: str = "job-requirements/1.0.0"
 
 
-def _category(sentence: str) -> str:
+def _category(sentence: str, modality: str) -> str:
+    # JOB-004 fix: the gold schema always pairs modality=RESPONSIBILITY with
+    # category=RESPONSIBILITY. A responsibility sentence (e.g. "prepare
+    # export documents") can still contain a generic noun like "belge"
+    # (document) that noun-based patterns below would otherwise misread as
+    # CERTIFICATION. Once `_modality` has already decided this is a
+    # responsibility sentence (no MUST/PREFERRED signal), that verdict wins.
+    if modality == "RESPONSIBILITY":
+        return "RESPONSIBILITY"
     for category, pattern in _CATEGORY_PATTERNS:
         if pattern.search(sentence):
             return category
@@ -118,7 +150,7 @@ def extract_job_requirements(job_posting_id: str, text: str) -> RequirementExtra
                 requirement_type="EXPLICIT_SENTENCE",
                 explicit=True,
                 data_status=DataStatus.KNOWN,
-                category=_category(stripped),
+                category=_category(stripped, modality),
                 modality=modality,
                 negated=negated,
                 span_start=start,
