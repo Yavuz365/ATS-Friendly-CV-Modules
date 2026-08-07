@@ -34,6 +34,7 @@ def _docx(path: Path) -> None:
       <w:tbl><w:tr><w:tc><w:p><w:r><w:t>Table evidence</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
       <w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent>
         <w:p><w:r><w:t>Text box content</w:t></w:r></w:p>
+        <w:p><w:r><w:t>Customs clearance</w:t></w:r></w:p>
       </w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p></w:body>
     </w:document>"""
     header = """<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -52,6 +53,9 @@ def test_docx_binary_ingestion_traverses_document_table_and_header(tmp_path):
     assert "Summary" in result.text
     assert "Table evidence" in result.text
     assert "Header Name" in result.text
+    assert result.text.count("Text box content") == 1
+    assert result.text.count("Customs clearance") == 1
+    assert "Text box contentCustoms clearance" not in result.text
     assert result.extraction_method == "docx-ooxml-full-story"
     assert result.structural_features["table_count"] == 1
     assert result.structural_features["text_box_count"] == 1
