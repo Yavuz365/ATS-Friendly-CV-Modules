@@ -30,7 +30,7 @@ from .decision import build_decision_report
 from .format_metadata_hygiene import full_hygiene_check
 from .legacy_adapter import legacy_diagnostic
 from .locale_consistency import locale_mismatches
-from .matching import count_boundary_occurrences
+from .matching import count_boundary_occurrences, match_term
 from .quantification_score import quantification_audit
 
 # A9 fix (hardening): QA alt modüllerinden gelen beklenmedik hatalar artık
@@ -187,18 +187,36 @@ def build_report(
     # kendi freq hesaplaması (satır ~215) zaten doğru deseni kullanıyor --
     # Counter üzerinden TAM eşleşme arama, alt-string değil. Aynı desen
     # burada da uygulandı.
+    # STAB-016 fix: use match_term (canonical matcher) for status/stage; keep
+    # count_boundary_occurrences for exact occurrence counts only.
+    # Synonym/ontology/semantic matches expose their stage — no substring inflation.
     skill_count_table = []
     all_terms = [m["term"] for m in (analysis["must_have"] + analysis["nice_to_have"])]
     for term in all_terms:
         jd_count = count_boundary_occurrences(term, jd_text)
-        resume_count = count_boundary_occurrences(term, scored_text)
-        status = "✅ Match" if resume_count > 0 else "❌ Missing"
+        tm = match_term(term, scored_text)
+        if not tm.matched:
+            resume_count = 0
+            status = "❌ Missing"
+            match_stage = tm.stage.value
+        elif tm.stage.value == "EXACT":
+            resume_count = tm.count
+            status = "✅ Match"
+            match_stage = tm.stage.value
+        else:
+            # Non-exact match: use tm.count (the matched variant's occurrences) so
+            # resume_count stays consistent with the matcher result and is never 0
+            # while status shows a match. Never re-count the original unmatched term.
+            resume_count = tm.count
+            status = f"⚠️ Match ({tm.stage.value})"
+            match_stage = tm.stage.value
         skill_count_table.append(
             {
                 "skill": term,
                 "jd_count": jd_count,
                 "resume_count": resume_count,
                 "status": status,
+                "match_stage": match_stage,
             }
         )
 
@@ -269,7 +287,12 @@ def build_report(
         "qa_checks": qa_checks,
         "qa_results": to_primitive(qa_results),
     }
-    payload["decision_report"] = build_decision_report(payload, human_approved=human_approved).to_dict()
+    payload["decision_report"] = build_decision_report(
+        payload,
+        human_approved=human_approved,
+        jd_text=jd_text,
+        cv_text=cv_text or "",
+    ).to_dict()
     return payload
 
 
@@ -350,51 +373,68 @@ def to_markdown(report: dict) -> str:
 
     # Y36-11: Jobscan-style sayım tablosu
     lines.append("## Skill Count Table (Jobscan-style)")
-    lines.append("| Skill | JD Count | Resume Count | Status |")
-    lines.append("|-------|----------|--------------|--------|")
+    lines.append("| Skill | JD Count | Resume Count | Status | Match Stage |")
+    lines.append("|-------|----------|--------------|--------|-------------|")
     for row in report.get("skill_count_table", []):
-        lines.append(f"| {row['skill']} | {row['jd_count']} | {row['resume_count']} | {row['status']} |")
+        stage = row.get("match_stage", "")
+        lines.append(f"| {row['skill']} | {row['jd_count']} | {row['resume_count']} | {row['status']} | {stage} |")
     lines.append("")
 
     # P0.4: QA Checks bölümü
-    # A8/STAB-012..014 düzeltmesi tamamlanmamıştı: bu bölüm var olsa da, altındaki
-    # 5 modülün TAMAMI .get(yanlış_anahtar, varsayılan) kullandığı için gerçek
-    # veri hiç okunmuyordu (ör. 3 gerçek klişe varken "count=0" basılıyordu —
-    # sessizce yanlış/temiz görünen bir rapor). Anahtarlar artık her modülün
-    # gerçek dönüş sözlüğüyle (completeness_guard/format_metadata_hygiene/
-    # locale_consistency/quantification_score/cliche_tone) birebir eşleşiyor.
+    # STAB-013 fix: status/severity comes from typed qa_results; qa_checks used for
+    # informational detail only — no second independent PASS/WARN/REVIEW derivation.
     qa = report.get("qa_checks", {})
+    qa_results_list = report.get("qa_results", [])
+    # Build a status lookup from typed qa_results (canonical source of truth)
+    qa_status_map = {qr["check_id"]: qr["status"] for qr in qa_results_list if isinstance(qr, dict)}
     if qa:
         lines.append("## QA Checks (v1.5 — 6 modül)")
         if "completeness" in qa and "error" not in qa["completeness"]:
             cr = qa["completeness"]
-            lines.append(f"- **Completeness (Evidence Recall):** %{cr.get('recall_percent', '?')}")
+            status_str = qa_status_map.get("QA_COMPLETENESS", "")
+            lines.append(
+                f"- **Completeness (Evidence Recall):** %{cr.get('recall_percent', '?')}"
+                + (f" [{status_str}]" if status_str else "")
+            )
         if "hygiene" in qa and "error" not in qa["hygiene"]:
             hy = qa["hygiene"]
+            status_str = qa_status_map.get("QA_HYGIENE", "")
             lines.append(
                 f"- **Format Hygiene:** word_count={hy.get('word_budget', {}).get('word_count', '?')}, "
                 f"special_chars={hy.get('special_characters', {}).get('total_special', 0)}"
+                + (f" [{status_str}]" if status_str else "")
             )
         if "locale" in qa and "error" not in qa["locale"]:
             lo = qa["locale"]
+            status_str = qa_status_map.get("QA_LOCALE", "")
             lines.append(
                 f"- **Locale:** JD={lo.get('jd_locale', '?')}, CV={lo.get('cv_locale', '?')}, "
-                f"mismatches={len(lo.get('mismatches', []))}"
+                f"mismatches={len(lo.get('mismatches', []))}" + (f" [{status_str}]" if status_str else "")
             )
         if "quantification" in qa and "error" not in qa["quantification"]:
             qu = qa["quantification"]
+            status_str = qa_status_map.get("QA_QUANTIFICATION", "")
             lines.append(
                 f"- **Quantification:** found={qu.get('total_quantified', '?')}, "
                 f"target={qu.get('target', 5)}, verdict={qu.get('verdict', '?')}"
+                + (f" [{status_str}]" if status_str else "")
             )
         if "cliches" in qa and "error" not in qa["cliches"]:
             cl = qa["cliches"]
-            lines.append(f"- **Clichés:** count={cl.get('total_cliches', 0)}, durum={cl.get('tone_verdict', 'none')}")
+            status_str = qa_status_map.get("QA_CLICHES", "")
+            lines.append(
+                f"- **Clichés:** count={cl.get('total_cliches', 0)}, durum={cl.get('tone_verdict', 'none')}"
+                + (f" [{status_str}]" if status_str else "")
+            )
         # P0-6 fix: calibration_hint JSON'da vardı ama Markdown raporunda hiç
         # görünmüyordu (rapor formatları birbirini tutmuyordu) — artık burada da basılıyor.
         if "calibration_hint" in qa and "error" not in qa["calibration_hint"]:
             ch = qa["calibration_hint"]
-            lines.append(f"- **Calibration:** {ch.get('adjustment', '?')} — {ch.get('note', '')}")
+            status_str = qa_status_map.get("QA_CALIBRATION_HINT", "")
+            lines.append(
+                f"- **Calibration:** {ch.get('adjustment', '?')} — {ch.get('note', '')}"
+                + (f" [{status_str}]" if status_str else "")
+            )
         lines.append("")
 
     lines.append("## 6. gap_analysis")

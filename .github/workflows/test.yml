@@ -70,16 +70,39 @@ jobs:
         run: |
           python -m pip install build
           python -m build engine --sdist --wheel --outdir dist/2.0.0a2
-      - name: Verify wheel manifest snapshot
-        run: python scripts/verify_wheel.py dist/2.0.0a2/*.whl
-      - name: Clean-wheel install and runtime smoke
+      - name: Verify wheel and sdist manifest snapshots
+        run: python scripts/verify_wheel.py dist/2.0.0a2/*.whl dist/2.0.0a2/*.tar.gz
+      - name: Offline clean-wheel install and runtime smoke (STAB-004)
         run: |
-          python -m venv .ci-venv
-          .ci-venv/bin/python -m pip install dist/2.0.0a2/*.whl
-          mkdir .ci-smoke
+          # Pre-seed runtime dependencies into an isolated index so that the
+          # package itself can be installed without reaching PyPI (--no-index).
+          python -m pip install build pip
+          python -m venv .ci-seed-venv
+          .ci-seed-venv/bin/pip install pypdf
+          # Collect pre-built runtime wheels into a local find-links directory
+          mkdir -p dist/offline-deps
+          .ci-seed-venv/bin/pip wheel pypdf --wheel-dir dist/offline-deps --no-deps 2>/dev/null || true
+          # Isolated install venv — no source tree on sys.path
+          python -m venv .ci-offline-venv
+          .ci-offline-venv/bin/pip install \
+            --no-index \
+            --find-links dist/offline-deps \
+            --find-links dist/2.0.0a2 \
+            dist/2.0.0a2/*.whl
+          # Smoke: run from an unrelated directory to prove no source-tree leakage
+          mkdir -p .ci-smoke
           cd .ci-smoke
-          ../.ci-venv/bin/python -c "import ats_engine; assert ats_engine.__version__ == '2.0.0a2'; assert 'foreign-trade-logistics' in ats_engine.list_packs()"
-          ../.ci-venv/bin/ats-engine ingest --document ../engine/examples/sample_cv.txt
+          ../.ci-offline-venv/bin/python -c "
+          import ats_engine, sys
+          assert ats_engine.__version__ == '2.0.0a2', ats_engine.__version__
+          assert 'foreign-trade-logistics' in ats_engine.list_packs()
+          # verify resources come from installed package, not source tree
+          import pathlib
+          pkg_root = pathlib.Path(ats_engine.__file__).parent
+          assert pkg_root.is_relative_to(sys.prefix), f'Package loaded from source tree: {pkg_root}'
+          print('offline smoke OK:', pkg_root)
+          "
+          ../.ci-offline-venv/bin/ats-engine ingest --document ../engine/examples/sample_cv.txt
 
   historical-baseline:
     runs-on: ubuntu-latest

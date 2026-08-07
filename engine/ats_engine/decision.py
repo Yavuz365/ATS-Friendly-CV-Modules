@@ -17,6 +17,7 @@ from .contracts import (
     ProcessStatus,
 )
 from .errors import ErrorCode
+from .locale_consistency import detect_language_mismatch
 
 
 def _overall(gates: list[GateResult]) -> ProcessStatus:
@@ -37,6 +38,8 @@ def build_decision_report(
     *,
     human_approved: bool = False,
     gate_policy: GatePolicy = DEFAULT_GATE_POLICY,
+    jd_text: str = "",
+    cv_text: str = "",
 ) -> DecisionReport:
     """Build a typed decision from a legacy report payload without inventing facts."""
     match = report.get("match_score", {})
@@ -91,10 +94,23 @@ def build_decision_report(
 
     locale = qa.get("locale", {})
     locale_mismatches = locale.get("mismatches", []) if isinstance(locale, dict) else []
-    g3_status = ProcessStatus.WARN if locale_mismatches else ProcessStatus.PASS
-    g3 = GateResult(
-        "G3", g3_status, "Dil/locale tanısı tamamlandı.", diagnostics=[str(item) for item in locale_mismatches]
-    )
+
+    # G3: check both AmE/BrE mismatches AND JD/CV language mismatch
+    lang_mismatch_info = detect_language_mismatch(jd_text, cv_text) if (jd_text or cv_text) else None
+
+    g3_diagnostics = [str(item) for item in locale_mismatches]
+    if locale_mismatches:
+        g3_status = ProcessStatus.WARN
+        g3_reason = "Dil/locale tanısı tamamlandı."
+    elif lang_mismatch_info and (lang_mismatch_info["mismatch"] or lang_mismatch_info["review_required"]):
+        g3_status = ProcessStatus.REVIEW
+        g3_reason = lang_mismatch_info["verdict"]
+        g3_diagnostics.append(lang_mismatch_info["verdict"])
+    else:
+        g3_status = ProcessStatus.PASS
+        g3_reason = "Dil/locale tanısı tamamlandı."
+
+    g3 = GateResult("G3", g3_status, g3_reason, diagnostics=g3_diagnostics)
 
     g4 = GateResult(
         "G4",
