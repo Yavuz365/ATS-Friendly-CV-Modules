@@ -136,7 +136,7 @@ def evaluate_fields(
         )
 
     # --- page evidence for PDFs ---
-    if parse_result.page_evidence is not None:
+    if parse_result.page_evidence:  # only when explicitly populated (non-empty)
         has_page = len(parse_result.page_evidence) > 0
         verdicts.append(
             FieldVerdict(

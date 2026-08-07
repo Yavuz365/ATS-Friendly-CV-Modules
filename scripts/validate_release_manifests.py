@@ -28,6 +28,17 @@ def validate_manifest(path: Path, *, repo: Path | None = None) -> list[str]:
     if len(assets) != len(set(assets)) or "SHA256SUMS.txt" not in assets:
         errors.append(f"{path.name}: asset list must be unique and include SHA256SUMS.txt")
     if repo is not None and _SHA.fullmatch(str(data["commit"])):
+        # Skip the commit-existence check in a shallow clone (CI environments often
+        # use shallow clones that don't contain historical commits).  A full clone
+        # or an explicit unshallow is required for this check to be meaningful.
+        is_shallow = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+        )
+        if is_shallow.stdout.strip() == "true":
+            return errors  # shallow clone – skip commit verification
         check = subprocess.run(
             ["git", "cat-file", "-e", f"{data['commit']}^{{commit}}"],
             cwd=repo,

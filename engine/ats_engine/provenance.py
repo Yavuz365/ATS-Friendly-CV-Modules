@@ -165,10 +165,55 @@ class ProvenanceLog:
         return self.append(entry)
 
     def list_for_run(self, run_id: str) -> list[ProvenanceEntry]:
+        if self._conn is not None:
+            return self._query_sqlite(run_id=run_id)
         return [e for e in self._entries if e.run_id == run_id]
 
     def list_all(self) -> list[ProvenanceEntry]:
+        if self._conn is not None:
+            return self._query_sqlite()
         return list(self._entries)
+
+    def _query_sqlite(self, run_id: str | None = None) -> list[ProvenanceEntry]:
+        """Reconstruct ProvenanceEntry objects from the SQLite store."""
+        assert self._conn is not None
+        if run_id is not None:
+            rows = self._conn.execute(
+                "SELECT * FROM provenance_entries WHERE run_id = ? ORDER BY occurred_at, rowid",
+                (run_id,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM provenance_entries ORDER BY occurred_at, rowid"
+            ).fetchall()
+        entries: list[ProvenanceEntry] = []
+        for row in rows:
+            try:
+                kind = ProvenanceKind(row["kind"])
+            except ValueError:
+                raise ValueError(f"Unknown ProvenanceKind in database: {row['kind']!r}")
+            try:
+                detail = json.loads(row["detail_json"])
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Malformed detail JSON for entry {row['id']!r}: {exc}") from exc
+            try:
+                parent_ids = tuple(json.loads(row["parent_ids_json"]))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Malformed parent_ids JSON for entry {row['id']!r}: {exc}") from exc
+            entries.append(
+                ProvenanceEntry(
+                    id=row["id"],
+                    kind=kind,
+                    occurred_at=row["occurred_at"],
+                    run_id=row["run_id"],
+                    subject_id=row["subject_id"],
+                    parent_ids=parent_ids,
+                    status=row["status"],
+                    detail=detail,
+                    actor=row["actor"],
+                )
+            )
+        return entries
 
     def to_jsonable(self, run_id: str | None = None) -> list[dict[str, Any]]:
         rows = self.list_for_run(run_id) if run_id else self.list_all()
