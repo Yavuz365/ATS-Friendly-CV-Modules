@@ -134,11 +134,9 @@ def match_term(
     # concept source and is checked first so that known ontology concepts are
     # always returned at ONTOLOGY stage (review-required) rather than being
     # silently promoted to an un-reviewed EXACT stage.
-    for stage, adapter in ((MatchStage.ONTOLOGY, ontology_adapter),):
-        if adapter is None:
-            break
+    if ontology_adapter is not None:
         try:
-            result = adapter.matcher(normalized, text)
+            ont_result = ontology_adapter.matcher(normalized, text)
         except Exception as exc:
             return TermMatch(
                 term,
@@ -146,37 +144,37 @@ def match_term(
                 MatchStage.HUMAN_REVIEW,
                 None,
                 0,
-                f"{adapter.adapter_id} adapter hatası: {type(exc).__name__}; insan incelemesi gerekir.",
-                adapter_id=adapter.adapter_id,
-                adapter_version=adapter.version,
-                adapter_revision=adapter.revision,
+                f"{ontology_adapter.adapter_id} adapter hatası: {type(exc).__name__}; insan incelemesi gerekir.",
+                adapter_id=ontology_adapter.adapter_id,
+                adapter_version=ontology_adapter.version,
+                adapter_revision=ontology_adapter.revision,
                 review_required=True,
             )
-        if result.status is AdapterStatus.MATCH:
+        if ont_result.status is AdapterStatus.MATCH:
             return TermMatch(
                 term,
                 True,
-                stage,
-                result.matched_variant,
+                MatchStage.ONTOLOGY,
+                ont_result.matched_variant,
                 1,
-                result.explanation or f"{adapter.adapter_id} aday eşleşmesi; insan incelemesi gerekir.",
-                adapter_id=adapter.adapter_id,
-                adapter_version=adapter.version,
-                adapter_revision=adapter.revision,
-                confidence=result.confidence,
+                ont_result.explanation or f"{ontology_adapter.adapter_id} aday eşleşmesi; insan incelemesi gerekir.",
+                adapter_id=ontology_adapter.adapter_id,
+                adapter_version=ontology_adapter.version,
+                adapter_revision=ontology_adapter.revision,
+                confidence=ont_result.confidence,
                 review_required=True,
             )
-        if result.status is AdapterStatus.ERROR:
+        if ont_result.status is AdapterStatus.ERROR:
             return TermMatch(
                 term,
                 False,
                 MatchStage.HUMAN_REVIEW,
                 None,
                 0,
-                result.explanation or f"{adapter.adapter_id} sonucu ERROR; insan incelemesi gerekir.",
-                adapter_id=adapter.adapter_id,
-                adapter_version=adapter.version,
-                adapter_revision=adapter.revision,
+                ont_result.explanation or f"{ontology_adapter.adapter_id} sonucu ERROR; insan incelemesi gerekir.",
+                adapter_id=ontology_adapter.adapter_id,
+                adapter_version=ontology_adapter.version,
+                adapter_revision=ontology_adapter.revision,
                 review_required=True,
             )
         # NO_MATCH → fall through to exact / synonym / semantic
