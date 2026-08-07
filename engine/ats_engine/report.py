@@ -95,6 +95,13 @@ def build_report(
             locale="unspecified",
             domain="unspecified",
             comparator_version="caller-defined",
+            owner="caller",
+            rationale=(
+                "Caller passed target_low directly via the legacy --target CLI/API "
+                "parameter instead of a named EvaluationProfile; ownership and "
+                "justification for this number are the caller's, not the engine's."
+            ),
+            review_date="unspecified",
             diagnostic_stop_min=target_low,
         )
 
