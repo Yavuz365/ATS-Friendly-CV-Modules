@@ -1,14 +1,8 @@
 """Append-only provenance log for search, screening and artifacts (EVAL-002).
 
-Purpose
--------
-Record *what this engine actually did* during an evaluation or screening run:
-which artifact was ingested, which requirements were considered, which matcher
-stages fired, and which decision/gate outcomes were produced.
-
-This is not a commercial ATS audit log and does not claim vendor behaviour.
-Entries are immutable once appended. Missing fields stay explicit (None),
-never silently filled with success.
+The ledger records what the research engine actually did. It does not claim
+commercial ATS behaviour. Missing fields remain explicit and are never filled
+with a successful state.
 """
 
 from __future__ import annotations
@@ -32,13 +26,17 @@ class ProvenanceKind(str, Enum):
     NOTE = "NOTE"
 
 
+class ProvenanceStorageError(RuntimeError):
+    """Raised when persisted provenance cannot be decoded safely."""
+
+
 @dataclass(frozen=True)
 class ProvenanceEntry:
     id: str
     kind: ProvenanceKind
     occurred_at: str
     run_id: str
-    subject_id: str | None = None  # artifact / requirement / candidate id
+    subject_id: str | None = None
     parent_ids: tuple[str, ...] = ()
     status: str | None = None
     detail: dict[str, Any] = field(default_factory=dict)
@@ -58,11 +56,7 @@ def new_entry_id() -> str:
 
 
 class ProvenanceLog:
-    """In-memory append-only provenance ledger.
-
-    Optional SQLite path enables durable evaluation runs without coupling to
-    the full contract store.
-    """
+    """Append-only provenance ledger with optional durable SQLite storage."""
 
     def __init__(self, path: str | Path | None = None) -> None:
         self._entries: list[ProvenanceEntry] = []
@@ -104,14 +98,38 @@ class ProvenanceLog:
             """
         )
         self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_prov_run ON provenance_entries(run_id, occurred_at)"
+            "CREATE INDEX IF NOT EXISTS idx_prov_run ON provenance_entries(run_id, occurred_at, id)"
         )
         self._conn.commit()
 
+    @staticmethod
+    def _row_to_entry(row: sqlite3.Row) -> ProvenanceEntry:
+        try:
+            parent_ids = json.loads(row["parent_ids_json"])
+            detail = json.loads(row["detail_json"])
+            if not isinstance(parent_ids, list) or not all(isinstance(item, str) for item in parent_ids):
+                raise TypeError("parent_ids_json must decode to a list of strings")
+            if not isinstance(detail, dict):
+                raise TypeError("detail_json must decode to an object")
+            return ProvenanceEntry(
+                id=str(row["id"]),
+                kind=ProvenanceKind(row["kind"]),
+                occurred_at=str(row["occurred_at"]),
+                run_id=str(row["run_id"]),
+                subject_id=row["subject_id"],
+                parent_ids=tuple(parent_ids),
+                status=row["status"],
+                detail=detail,
+                actor=str(row["actor"]),
+            )
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+            row_id = row["id"] if "id" in row.keys() else "unknown"
+            raise ProvenanceStorageError(f"Invalid persisted provenance entry: {row_id}") from exc
+
     def append(self, entry: ProvenanceEntry) -> ProvenanceEntry:
-        if any(e.id == entry.id for e in self._entries):
+        if any(existing.id == entry.id for existing in self._entries):
             raise ValueError(f"Provenance entry already exists: {entry.id}")
-        self._entries.append(entry)
+
         if self._conn is not None:
             try:
                 with self._conn:
@@ -136,6 +154,8 @@ class ProvenanceLog:
                     )
             except sqlite3.IntegrityError as exc:
                 raise ValueError(f"Provenance entry already exists: {entry.id}") from exc
+
+        self._entries.append(entry)
         return entry
 
     def record(
@@ -165,17 +185,39 @@ class ProvenanceLog:
         return self.append(entry)
 
     def list_for_run(self, run_id: str) -> list[ProvenanceEntry]:
-        return [e for e in self._entries if e.run_id == run_id]
+        if self._conn is None:
+            return [entry for entry in self._entries if entry.run_id == run_id]
+        rows = self._conn.execute(
+            """
+            SELECT id, kind, occurred_at, run_id, subject_id,
+                   parent_ids_json, status, detail_json, actor
+            FROM provenance_entries
+            WHERE run_id = ?
+            ORDER BY occurred_at, id
+            """,
+            (run_id,),
+        ).fetchall()
+        return [self._row_to_entry(row) for row in rows]
 
     def list_all(self) -> list[ProvenanceEntry]:
-        return list(self._entries)
+        if self._conn is None:
+            return list(self._entries)
+        rows = self._conn.execute(
+            """
+            SELECT id, kind, occurred_at, run_id, subject_id,
+                   parent_ids_json, status, detail_json, actor
+            FROM provenance_entries
+            ORDER BY occurred_at, id
+            """
+        ).fetchall()
+        return [self._row_to_entry(row) for row in rows]
 
     def to_jsonable(self, run_id: str | None = None) -> list[dict[str, Any]]:
         rows = self.list_for_run(run_id) if run_id else self.list_all()
-        out: list[dict[str, Any]] = []
-        for e in rows:
-            payload = asdict(e)
-            payload["kind"] = e.kind.value
-            payload["parent_ids"] = list(e.parent_ids)
-            out.append(payload)
-        return out
+        output: list[dict[str, Any]] = []
+        for entry in rows:
+            payload = asdict(entry)
+            payload["kind"] = entry.kind.value
+            payload["parent_ids"] = list(entry.parent_ids)
+            output.append(payload)
+        return output
