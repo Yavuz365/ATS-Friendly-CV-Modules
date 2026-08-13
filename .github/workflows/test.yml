@@ -106,7 +106,7 @@ jobs:
           test -s dist/baseline/legacy-3b6cce1/SHA256SUMS.txt
           test -s dist/baseline/legacy-3b6cce1/source-3b6cce1e4c2919146752590f7bece4ae2812a8f5.tar.gz
       - name: Upload historical baseline evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: legacy-baseline-3b6cce1
           path: dist/baseline/legacy-3b6cce1
